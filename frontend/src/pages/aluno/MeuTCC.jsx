@@ -26,7 +26,9 @@ export default function MeuTCC() {
   ).length
 
   return (
-    <div className="conteudo-estreito">
+    // Largura cheia, como Entregas e Orientandos. A estreita é para
+    // formulários, não para telas de leitura.
+    <div>
       <div className="cabecalho-pagina">
         <h1>Meu TCC</h1>
         {tema.status === 'aprovado' && (
@@ -94,7 +96,7 @@ export default function MeuTCC() {
 
 function SemTema() {
   return (
-    <div className="conteudo-estreito">
+    <div>
       <div className="cabecalho-pagina">
         <h1>Meu TCC</h1>
       </div>

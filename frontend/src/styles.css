@@ -373,6 +373,12 @@ button.texto:hover:not(:disabled) {
   border-top: 1px solid var(--borda);
 }
 
+/* O cabeçalho já termina numa linha: sem isto, as duas ficam a 4px uma da
+   outra e parecem uma borda duplicada. */
+.cabecalho-pagina + .definicoes {
+  border-top: none;
+}
+
 .definicoes > div {
   display: grid;
   grid-template-columns: 150px 1fr;
