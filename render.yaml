@@ -20,10 +20,16 @@ services:
         generateValue: true
       - key: DJANGO_DEBUG
         value: "0"
-      # Preencher no painel depois de criar os serviços:
+      # O Render pede estes valores UMA VEZ, ao criar o Blueprint. Depois
+      # disso, mudanças são feitas na aba Environment do serviço.
       - key: DATABASE_URL
         sync: false
       - key: CORS_ALLOWED_ORIGINS
         sync: false
       - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        sync: false
+      # Conta do /admin: o plano grátis não tem shell, então o build.sh a cria.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
         sync: false

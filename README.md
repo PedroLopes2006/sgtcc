@@ -109,14 +109,13 @@ Variáveis a preencher no painel:
 | `DATABASE_URL` | connection string do Supabase |
 | `CORS_ALLOWED_ORIGINS` | URL do frontend, ex. `https://sgtcc.vercel.app` |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | a mesma URL |
+| `ADMIN_EMAIL` e `ADMIN_PASSWORD` | conta do `/admin` |
 
 `DJANGO_SECRET_KEY` o Render gera sozinho e `DJANGO_DEBUG` já vai como `0`.
 
-Depois do primeiro deploy, crie o usuário administrador pelo shell do serviço:
+**O plano gratuito do Render não dá acesso a shell**, então nada pode ser rodado à mão no servidor. Por isso o `build.sh` faz tudo a cada deploy: `collectstatic`, `migrate`, e `criar_admin`, que cria ou atualiza o superusuário a partir de `ADMIN_EMAIL` e `ADMIN_PASSWORD`. Sem essas duas variáveis o comando não faz nada.
 
-```bash
-python manage.py createsuperuser
-```
+Para popular as contas de demonstração, defina `SEED_DEMO=1`, aguarde um deploy e **apague a variável** — senão o seed roda a cada publicação.
 
 ### 3. Frontend
 

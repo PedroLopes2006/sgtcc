@@ -52,8 +52,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    # Serve os estáticos do /admin sem precisar de nginx nem de CDN.
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+    # WhiteNoise entra logo abaixo, só fora do DEBUG.
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -61,6 +60,15 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+if not DEBUG:
+    # Serve os estáticos do /admin sem nginx nem CDN. Fora do DEBUG apenas:
+    # em desenvolvimento quem serve é o runserver, e o WhiteNoise avisaria
+    # sobre a pasta staticfiles/ que só existe depois do collectstatic.
+    MIDDLEWARE.insert(
+        MIDDLEWARE.index("django.middleware.security.SecurityMiddleware") + 1,
+        "whitenoise.middleware.WhiteNoiseMiddleware",
+    )
 
 ROOT_URLCONF = "config.urls"
 

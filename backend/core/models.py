@@ -69,15 +69,21 @@ class UsuarioManager(BaseUserManager):
         usuario.save(using=self._db)
         return usuario
 
-    def create_user(self, email, nome="", senha=None, perfil=Perfil.ALUNO, **extra):
+    def create_user(self, email, nome="", senha=None, perfil=Perfil.ALUNO, password=None, **extra):
         extra.setdefault("is_staff", False)
         extra.setdefault("is_superuser", False)
-        return self._create_user(email, nome, senha, perfil, **extra)
+        return self._create_user(email, nome, senha or password, perfil, **extra)
 
-    def create_superuser(self, email, nome="Admin", senha=None, perfil=Perfil.ORIENTADOR, **extra):
+    def create_superuser(
+        self, email, nome="Admin", senha=None, perfil=Perfil.ORIENTADOR, password=None, **extra
+    ):
+        """
+        `password` existe porque o comando `createsuperuser` do Django passa a
+        senha com esse nome; sem ele, o comando quebraria.
+        """
         extra.setdefault("is_staff", True)
         extra.setdefault("is_superuser", True)
-        return self._create_user(email, nome, senha, perfil, **extra)
+        return self._create_user(email, nome, senha or password, perfil, **extra)
 
 
 class Usuario(AbstractBaseUser, PermissionsMixin):
