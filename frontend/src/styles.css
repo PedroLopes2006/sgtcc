@@ -145,6 +145,13 @@ body {
   max-width: 660px;
 }
 
+/* Meu TCC: o cabeçalho ocupa a largura cheia (o botão encosta na margem),
+   mas a lista para em 720px, como no protótipo — linha de texto mais curta
+   é mais fácil de ler. */
+.lista-informacoes {
+  max-width: 720px;
+}
+
 /* ---------------------------------------------------------------- texto */
 
 h1 {

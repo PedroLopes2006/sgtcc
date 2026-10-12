@@ -42,7 +42,7 @@ export default function MeuTCC() {
         <FormularioDeAjuste tema={tema} orientador={orientador} aoConcluir={recarregar} />
       ) : (
         <>
-          <dl className="definicoes">
+          <dl className="definicoes lista-informacoes">
             <div>
               <dt>Orientador</dt>
               <dd>{orientador?.nome || '—'}</dd>
