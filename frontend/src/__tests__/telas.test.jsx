@@ -94,9 +94,7 @@ describe('Cadastro (US01)', () => {
   })
 
   it('leva ao login com aviso quando a conta nasce mas o login automático falha', async () => {
-    // Encontrado testando o sistema publicado: o cadastro gravava a conta e
-    // mesmo assim dizia "Não foi possível criar a conta", levando o usuário a
-    // tentar de novo e esbarrar no e-mail duplicado.
+    // Regressão: o cadastro gravava a conta e dizia que falhou.
     vi.spyOn(api, 'post').mockImplementation((rota) =>
       rota === '/auth/registrar/'
         ? Promise.resolve({ data: { id: 7 } })
@@ -120,9 +118,7 @@ describe('Cadastro (US01)', () => {
     await userEvent.click(screen.getByRole('button', { name: /criar conta/i }))
 
     expect(await screen.findByText('Conta criada. Entre com seu e-mail e senha.')).toBeInTheDocument()
-    // Nunca a mensagem de falha, que é falsa neste caso.
     expect(screen.queryByText('Não foi possível criar a conta.')).not.toBeInTheDocument()
-    // E o e-mail já vem preenchido, para o usuário só digitar a senha.
     expect(screen.getByLabelText('E-mail')).toHaveValue('pedro@aluno.edu.br')
   })
 })

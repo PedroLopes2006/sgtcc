@@ -1,12 +1,8 @@
 """
 Regras de negócio do Sprint 3.
 
-A lógica fica aqui, fora das views, para que os critérios de aceite possam ser
-testados sem passar por HTTP e para que a API continue fina.
-
-Notificações (US03 CA2, US03 CA4, US04 CA3) ficam para quando o Telegram
-entrar — por ora cada ponto de notificação registra um Evento, que é o que
-alimentará o disparo depois.
+Notificações (US03 CA2, US03 CA4, US04 CA3): cada ponto registra um Evento;
+o envio é a US02.
 """
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction

@@ -2,12 +2,9 @@
 Configuração do Django para o SGTCC.
 
 Banco, em ordem de preferência:
-  1. DATABASE_URL  — produção (Supabase)
-  2. POSTGRES_HOST — Postgres local do docker-compose
-  3. SQLite        — sem nenhuma das duas; serve para rodar os testes rápido
-
-Nada aqui precisa ser editado para publicar: tudo que muda entre a máquina de
-vocês e o servidor vem de variável de ambiente.
+  1. DATABASE_URL  — Supabase
+  2. POSTGRES_HOST — Postgres do docker-compose
+  3. SQLite        — testes
 """
 from datetime import timedelta
 from pathlib import Path
@@ -23,12 +20,12 @@ SECRET_KEY = os.environ.get(
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",") if h.strip()]
 
-# O Render publica o host do serviço aqui; evita ter que repetir o domínio na mão.
+# O Render publica o host do serviço nesta variável.
 _host_externo = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if _host_externo and _host_externo not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_host_externo)
 
-# Necessário para o /admin aceitar POST atrás do proxy HTTPS do host.
+# O /admin precisa disto atrás do proxy HTTPS.
 CSRF_TRUSTED_ORIGINS = [
     o.strip()
     for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
@@ -52,7 +49,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    # WhiteNoise entra logo abaixo, só fora do DEBUG.
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -62,9 +58,7 @@ MIDDLEWARE = [
 ]
 
 if not DEBUG:
-    # Serve os estáticos do /admin sem nginx nem CDN. Fora do DEBUG apenas:
-    # em desenvolvimento quem serve é o runserver, e o WhiteNoise avisaria
-    # sobre a pasta staticfiles/ que só existe depois do collectstatic.
+    # Estáticos do /admin. Em DEBUG quem serve é o runserver.
     MIDDLEWARE.insert(
         MIDDLEWARE.index("django.middleware.security.SecurityMiddleware") + 1,
         "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -93,7 +87,7 @@ if os.environ.get("DATABASE_URL"):
     DATABASES = {
         "default": dj_database_url.config(
             conn_max_age=600,
-            # O Supabase exige TLS; sem isto a conexão é recusada.
+            # O Supabase exige TLS.
             ssl_require=os.environ.get("DATABASE_SSL", "1") == "1",
         )
     }
@@ -118,7 +112,7 @@ else:
 
 AUTH_USER_MODEL = "core.Usuario"
 
-# RNF03 — senhas sempre com hash; o Django já faz isso, aqui só reforçamos a política.
+# RNF03 — política de senha.
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
@@ -165,7 +159,7 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Endurecimento aplicado só fora do DEBUG, para não atrapalhar o desenvolvimento.
+# Só fora do DEBUG.
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SSL_REDIRECT", "1") == "1"

@@ -26,8 +26,6 @@ export default function MeuTCC() {
   ).length
 
   return (
-    // Largura cheia, como Entregas e Orientandos. A estreita é para
-    // formulários, não para telas de leitura.
     <div>
       <div className="cabecalho-pagina">
         <h1>Meu TCC</h1>

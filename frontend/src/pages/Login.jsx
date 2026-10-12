@@ -7,7 +7,6 @@ import { painelDoPerfil, useAuth } from '../auth'
 export default function Login() {
   const { usuario, entrar } = useAuth()
   const navegar = useNavigate()
-  // Vem do cadastro quando a conta foi criada mas o login automático falhou.
   const { aviso, email: emailVindoDoCadastro } = useLocation().state || {}
   const [email, setEmail] = useState(emailVindoDoCadastro || '')
   const [senha, setSenha] = useState('')

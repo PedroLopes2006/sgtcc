@@ -145,9 +145,7 @@ body {
   max-width: 660px;
 }
 
-/* Meu TCC: o cabeçalho ocupa a largura cheia (o botão encosta na margem),
-   mas a lista para em 720px, como no protótipo — linha de texto mais curta
-   é mais fácil de ler. */
+/* Protótipo: cabeçalho em largura cheia, lista em 720px. */
 .lista-informacoes {
   max-width: 720px;
 }
@@ -380,8 +378,7 @@ button.texto:hover:not(:disabled) {
   border-top: 1px solid var(--borda);
 }
 
-/* O cabeçalho já termina numa linha: sem isto, as duas ficam a 4px uma da
-   outra e parecem uma borda duplicada. */
+/* O cabeçalho já termina numa linha; duas seguidas parecem borda duplicada. */
 .cabecalho-pagina + .definicoes {
   border-top: none;
 }
@@ -647,7 +644,6 @@ button.texto:hover:not(:disabled) {
   margin: 12px 0 0;
 }
 
-/* Confirmação, não falha: a conta foi criada, só falta entrar. */
 .aviso {
   color: #15803d;
   font-size: 12px;

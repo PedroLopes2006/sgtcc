@@ -1,9 +1,4 @@
-"""
-Criação do superusuário sem shell.
-
-O plano gratuito do Render não dá acesso a shell, então o administrador tem
-de nascer durante o build — por variáveis de ambiente.
-"""
+"""Criação do superusuário por variáveis de ambiente, durante o build."""
 from io import StringIO
 from unittest import mock
 
@@ -34,7 +29,7 @@ class CriarAdminTests(TestCase):
         self.assertEqual(Usuario.objects.count(), 0)
 
     def test_rodar_de_novo_nao_duplica_nem_quebra(self):
-        """O build roda a cada deploy, então o comando precisa ser idempotente."""
+        """Idempotente: o build roda a cada deploy."""
         self._rodar(ADMIN_EMAIL="admin@sgtcc.edu.br", ADMIN_PASSWORD="senhaForte123")
         self._rodar(ADMIN_EMAIL="admin@sgtcc.edu.br", ADMIN_PASSWORD="outraSenha456")
 
@@ -61,8 +56,7 @@ class CreateSuperuserTests(TestCase):
         )
         admin = Usuario.objects.get(email="local@sgtcc.edu.br")
         self.assertTrue(admin.is_superuser)
-        # Sem senha informada, a conta fica sem senha utilizável — nunca com
-        # uma senha em branco que permitisse entrar.
+        # Sem senha informada: senha inutilizável, nunca em branco.
         self.assertFalse(admin.has_usable_password())
 
     def test_createsuperuser_aceita_a_senha_pela_variavel_do_django(self):

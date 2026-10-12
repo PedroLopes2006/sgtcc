@@ -24,8 +24,6 @@ export default function Cadastro() {
       navegar(painelDoPerfil(usuario.perfil), { replace: true })
     } catch (e) {
       if (e.contaCriada) {
-        // A conta existe. Mandar para o login com aviso, nunca dizer que
-        // falhou: o usuário tentaria de novo e esbarraria no e-mail duplicado.
         navegar('/login', {
           replace: true,
           state: { aviso: 'Conta criada. Entre com seu e-mail e senha.', email: form.email },

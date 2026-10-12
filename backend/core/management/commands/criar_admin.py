@@ -1,12 +1,8 @@
 """
-Cria o superusuário a partir de variáveis de ambiente.
+Cria o superusuário a partir de ADMIN_EMAIL e ADMIN_PASSWORD.
 
-Existe porque o plano gratuito do Render não dá acesso a shell: sem isto não
-haveria como rodar `createsuperuser` no servidor. O `build.sh` chama este
-comando a cada deploy.
-
-É seguro rodar sempre: sem as variáveis não faz nada, e com elas é idempotente
-— se a conta já existe, apenas garante a senha e as permissões.
+O plano gratuito do Render não tem shell, então o build.sh chama este comando
+a cada deploy. Idempotente: sem as variáveis não faz nada.
 """
 import os
 

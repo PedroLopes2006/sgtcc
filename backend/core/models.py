@@ -1,12 +1,8 @@
 """
-Modelos do SGTCC.
+Modelos do SGTCC. Escopo do Sprint 3: US01, US03, US04 e US05.
 
-Escopo do Sprint 3: US01, US03, US04 e US05. As entidades Versão, Comentário
-e Notificação ficam para os próximos sprints (US06 em diante) e por isso não
-aparecem aqui — o DER completo do Sprint 1 continua valendo como alvo.
-
-As regras de negócio citadas nos comentários são as do Documento de
-Especificação do Sistema (Sprint 1), seção 7.
+Versão, Comentário e Notificação ficam para a US06 em diante.
+As RN citadas são as da Especificação do Sistema (Sprint 1), seção 7.
 """
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.exceptions import ValidationError
@@ -77,10 +73,7 @@ class UsuarioManager(BaseUserManager):
     def create_superuser(
         self, email, nome="Admin", senha=None, perfil=Perfil.ORIENTADOR, password=None, **extra
     ):
-        """
-        `password` existe porque o comando `createsuperuser` do Django passa a
-        senha com esse nome; sem ele, o comando quebraria.
-        """
+        """`password`: nome usado pelo createsuperuser do Django."""
         extra.setdefault("is_staff", True)
         extra.setdefault("is_superuser", True)
         return self._create_user(email, nome, senha or password, perfil, **extra)
