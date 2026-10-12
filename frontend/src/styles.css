@@ -634,6 +634,13 @@ button.texto:hover:not(:disabled) {
   margin: 12px 0 0;
 }
 
+/* Confirmação, não falha: a conta foi criada, só falta entrar. */
+.aviso {
+  color: #15803d;
+  font-size: 12px;
+  margin: 12px 0 0;
+}
+
 .carregando {
   color: var(--texto-suave);
   padding: 48px;

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { mensagemDeErro } from '../api'
 import { painelDoPerfil, useAuth } from '../auth'
 
@@ -7,7 +7,9 @@ import { painelDoPerfil, useAuth } from '../auth'
 export default function Login() {
   const { usuario, entrar } = useAuth()
   const navegar = useNavigate()
-  const [email, setEmail] = useState('')
+  // Vem do cadastro quando a conta foi criada mas o login automático falhou.
+  const { aviso, email: emailVindoDoCadastro } = useLocation().state || {}
+  const [email, setEmail] = useState(emailVindoDoCadastro || '')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -34,6 +36,8 @@ export default function Login() {
       <form className="cartao-acesso" onSubmit={aoEnviar}>
         <h1>Entrar</h1>
         <p className="legenda">Acesse para acompanhar seu TCC.</p>
+
+        {aviso && <p className="aviso">{aviso}</p>}
 
         <div className="campo">
           <label htmlFor="email">E-mail</label>

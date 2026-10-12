@@ -31,7 +31,16 @@ export function AuthProvider({ children }) {
       // US01 CA1 — cadastro seguido de login automático.
       async cadastrar({ nome, email, senha, perfil }) {
         await api.post('/auth/registrar/', { nome, email, senha, perfil })
-        return this.entrar(email, senha)
+        try {
+          return await this.entrar(email, senha)
+        } catch (erro) {
+          // A conta JÁ nasceu; só o login automático falhou (rede lenta, por
+          // exemplo). Sem esta marca, quem chama avisa que não foi possível
+          // criar a conta — e manda o usuário tentar de novo com um e-mail
+          // que agora já existe.
+          erro.contaCriada = true
+          throw erro
+        }
       },
 
       sair() {

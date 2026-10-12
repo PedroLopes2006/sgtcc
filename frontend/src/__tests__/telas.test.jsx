@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import api from '../api'
 import { AuthProvider } from '../auth'
 import Cadastro from '../pages/Cadastro'
+import Login from '../pages/Login'
 import AreaAluno from '../pages/aluno/AreaAluno'
 import Entregas from '../pages/aluno/Entregas'
 import MeuTCC from '../pages/aluno/MeuTCC'
@@ -90,6 +91,39 @@ describe('Cadastro (US01)', () => {
     await userEvent.click(orientador)
     expect(orientador).toHaveAttribute('aria-pressed', 'true')
     expect(aluno).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('leva ao login com aviso quando a conta nasce mas o login automático falha', async () => {
+    // Encontrado testando o sistema publicado: o cadastro gravava a conta e
+    // mesmo assim dizia "Não foi possível criar a conta", levando o usuário a
+    // tentar de novo e esbarrar no e-mail duplicado.
+    vi.spyOn(api, 'post').mockImplementation((rota) =>
+      rota === '/auth/registrar/'
+        ? Promise.resolve({ data: { id: 7 } })
+        : Promise.reject(new Error('Network Error')),
+    )
+
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={['/cadastro']}>
+          <Routes>
+            <Route path="/cadastro" element={<Cadastro />} />
+            <Route path="/login" element={<Login />} />
+          </Routes>
+        </MemoryRouter>
+      </AuthProvider>,
+    )
+
+    await userEvent.type(screen.getByLabelText('Nome'), 'Pedro Lopes')
+    await userEvent.type(screen.getByLabelText('E-mail'), 'pedro@aluno.edu.br')
+    await userEvent.type(screen.getByLabelText('Senha'), 'TccSprint3!')
+    await userEvent.click(screen.getByRole('button', { name: /criar conta/i }))
+
+    expect(await screen.findByText('Conta criada. Entre com seu e-mail e senha.')).toBeInTheDocument()
+    // Nunca a mensagem de falha, que é falsa neste caso.
+    expect(screen.queryByText('Não foi possível criar a conta.')).not.toBeInTheDocument()
+    // E o e-mail já vem preenchido, para o usuário só digitar a senha.
+    expect(screen.getByLabelText('E-mail')).toHaveValue('pedro@aluno.edu.br')
   })
 })
 
