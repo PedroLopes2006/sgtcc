@@ -1,0 +1,51 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sgtcc}
+      POSTGRES_USER: ${POSTGRES_USER:-sgtcc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sgtcc}
+    volumes:
+      - dados_postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sgtcc}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sgtcc}
+      POSTGRES_USER: ${POSTGRES_USER:-sgtcc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sgtcc}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-chave-insegura-apenas-local-trocar-em-producao}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-1}
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_URL: http://localhost:8000/api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  dados_postgres:

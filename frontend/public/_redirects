@@ -1,0 +1,3 @@
+# Netlify e Cloudflare Pages: o React Router cuida das rotas, então qualquer
+# caminho tem que cair no index.html. Sem isto, recarregar /aluno/entregas dá 404.
+/*  /index.html  200
