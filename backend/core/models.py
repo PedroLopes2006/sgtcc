@@ -48,6 +48,8 @@ class TipoEvento(models.TextChoices):
     ENTREGA_CRIADA = "entrega_criada", "Entrega criada"
     # US10 CA1 — RN10 / RF18: gatilho da notificação ao aluno (RF16).
     ENTREGA_EM_REVISAO = "entrega_em_revisao", "Entrega em revisão"
+    # US11 CA3 — RN10 / RF18: gatilho da notificação ao aluno (RF16).
+    CORRECAO_SOLICITADA = "correcao_solicitada", "Correção solicitada"
     TROCA_ORIENTADOR = "troca_orientador", "Troca de orientador"
 
 
@@ -238,6 +240,29 @@ class Entrega(models.Model):
     @property
     def atrasada(self):
         return self.estado not in EstadoEntrega.encerrados() and self.prazo < timezone.localdate()
+
+
+class Comentario(models.Model):
+    """
+    Parecer do orientador sobre uma Entrega (RF10).
+
+    US11 — registrado ao solicitar correção (RN07).
+    RN14 — não é editado nem removido: a API não expõe nenhuma rota para isso.
+    O vínculo opcional com uma Versão específica entra com a US06.
+    """
+
+    entrega = models.ForeignKey(Entrega, on_delete=models.CASCADE, related_name="comentarios")
+    autor = models.ForeignKey(Usuario, on_delete=models.PROTECT, related_name="comentarios")
+    texto = models.TextField("texto")
+    data_criacao = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "comentário"
+        verbose_name_plural = "comentários"
+        ordering = ["data_criacao", "id"]
+
+    def __str__(self):
+        return f"Comentário de {self.autor.nome} em {self.entrega.titulo}"
 
 
 class Evento(models.Model):

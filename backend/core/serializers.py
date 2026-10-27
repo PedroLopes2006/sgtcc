@@ -163,6 +163,12 @@ class CriacaoEntregaSerializer(serializers.Serializer):
     prazo = serializers.DateField()
 
 
+class SolicitacaoCorrecaoSerializer(serializers.Serializer):
+    """US11 CA2 / RN07 — o comentário é obrigatório."""
+
+    comentario = serializers.CharField(allow_blank=False, trim_whitespace=True)
+
+
 class EventoSerializer(serializers.ModelSerializer):
     usuario_relacionado = OrientadorResumoSerializer(read_only=True)
 

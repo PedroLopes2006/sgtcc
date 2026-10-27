@@ -9,6 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from .models import (
+    Comentario,
     Entrega,
     EstadoEntrega,
     Evento,
@@ -213,6 +214,46 @@ def iniciar_revisao_entrega(*, orientador, entrega):
         entrega.tcc,
         TipoEvento.ENTREGA_EM_REVISAO,
         f'Entrega "{entrega.titulo}" em revisão por {orientador.nome}.',
+        usuario=orientador,
+    )
+    return entrega
+
+
+@transaction.atomic
+def solicitar_correcao_entrega(*, orientador, entrega, comentario):
+    """
+    US11 — registrar comentário e solicitar correção.
+
+    CA1: "em_revisao" passa a "correcao_solicitada", com o comentário gravado.
+    CA2 / RN07: o comentário é obrigatório.
+    CA3: o aluno é notificado.
+    RN05: só o orientador ativo do TCC age sobre a entrega.
+    RN06 / RF17: aqui só vale o passo em_revisao → correcao_solicitada.
+    RN10 / RF18 / RNF12: a mudança de estado gera um Evento, só de inclusão.
+    RN14: o Comentario é criado e nunca alterado.
+    RF16 / RNF11: a notificação é o Evento gravado; o envio é a US02.
+    """
+    _exigir_orientador_ativo(orientador, entrega.tcc)
+    # CA2 / RN07 — sem texto não há solicitação.
+    if not (comentario or "").strip():
+        raise ValidationError({"comentario": "O comentário é obrigatório."})
+    # RN06 / RF17 — qualquer estado diferente de "em_revisao" é recusado.
+    if entrega.estado != EstadoEntrega.EM_REVISAO:
+        raise ValidationError(
+            {"detail": 'Só é possível solicitar correção de uma entrega "em revisão".'}
+        )
+
+    texto = comentario.strip()
+    Comentario.objects.create(entrega=entrega, autor=orientador, texto=texto)
+    entrega.estado = EstadoEntrega.CORRECAO_SOLICITADA
+    entrega.save(update_fields=["estado"])
+
+    # CA3 / RF16 — o aluno é notificado e recebe o texto junto, como na US04.
+    # RN10 / RF18 — a mudança de estado deixa rastro no log do TCC.
+    registrar_evento(
+        entrega.tcc,
+        TipoEvento.CORRECAO_SOLICITADA,
+        f'Correção solicitada na entrega "{entrega.titulo}": {texto}',
         usuario=orientador,
     )
     return entrega

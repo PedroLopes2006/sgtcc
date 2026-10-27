@@ -29,6 +29,7 @@ from .serializers import (
     PropostaTemaSerializer,
     ReenvioTemaSerializer,
     SolicitacaoAjusteSerializer,
+    SolicitacaoCorrecaoSerializer,
     TCCSerializer,
     TemaSerializer,
     UsuarioSerializer,
@@ -243,6 +244,33 @@ class IniciarRevisaoView(APIView):
     def post(self, request, entrega_id):
         entrega = get_object_or_404(Entrega, id=entrega_id)
         entrega = services.iniciar_revisao_entrega(orientador=request.user, entrega=entrega)
+        return Response(EntregaSerializer(entrega).data)
+
+
+# ---------------------------------------------------------------- US11
+
+
+class SolicitarCorrecaoView(APIView):
+    """
+    US11 CA1, CA2 e CA3 — POST /api/entregas/<id>/solicitar-correcao/
+
+    RNF04: exclusivo de orientadores. RN05, RN06 e RN07 são aplicadas no service.
+    RN14: não há rota para editar ou remover comentários.
+    """
+
+    permission_classes = [IsAuthenticated, EhOrientador]
+
+    @traduzir_erros_de_dominio
+    def post(self, request, entrega_id):
+        serializer = SolicitacaoCorrecaoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        entrega = get_object_or_404(Entrega, id=entrega_id)
+        entrega = services.solicitar_correcao_entrega(
+            orientador=request.user,
+            entrega=entrega,
+            comentario=serializer.validated_data["comentario"],
+        )
         return Response(EntregaSerializer(entrega).data)
 
 
