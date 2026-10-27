@@ -16,7 +16,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from . import services
-from .models import Perfil, StatusTema, TCC, Tema, Usuario
+from .models import Entrega, Perfil, StatusTema, TCC, Tema, Usuario
 from .permissions import EhAluno, EhOrientador
 from .serializers import (
     CadastroSerializer,
@@ -225,6 +225,25 @@ class EntregasView(APIView):
             prazo=serializer.validated_data["prazo"],
         )
         return Response(EntregaSerializer(entrega).data, status=status.HTTP_201_CREATED)
+
+
+# ---------------------------------------------------------------- US10
+
+
+class IniciarRevisaoView(APIView):
+    """
+    US10 CA1 e CA2 — POST /api/entregas/<id>/iniciar-revisao/
+
+    RNF04: exclusivo de orientadores. RN05 e RN06 são aplicadas no service.
+    """
+
+    permission_classes = [IsAuthenticated, EhOrientador]
+
+    @traduzir_erros_de_dominio
+    def post(self, request, entrega_id):
+        entrega = get_object_or_404(Entrega, id=entrega_id)
+        entrega = services.iniciar_revisao_entrega(orientador=request.user, entrega=entrega)
+        return Response(EntregaSerializer(entrega).data)
 
 
 # ---------------------------------------------------------------- log

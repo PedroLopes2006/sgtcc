@@ -46,6 +46,8 @@ class TipoEvento(models.TextChoices):
     TEMA_APROVADO = "tema_aprovado", "Tema aprovado"
     TEMA_AJUSTE_SOLICITADO = "tema_ajuste_solicitado", "Ajuste de tema solicitado"
     ENTREGA_CRIADA = "entrega_criada", "Entrega criada"
+    # US10 CA1 — RN10 / RF18: gatilho da notificação ao aluno (RF16).
+    ENTREGA_EM_REVISAO = "entrega_em_revisao", "Entrega em revisão"
     TROCA_ORIENTADOR = "troca_orientador", "Troca de orientador"
 
 
