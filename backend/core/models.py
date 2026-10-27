@@ -1,7 +1,8 @@
 """
-Modelos do SGTCC. Escopo do Sprint 3: US01, US03, US04 e US05.
+Modelos do SGTCC. Escopo do Sprint 3: US01, US03, US04, US05, US10 e US11.
 
-Versão, Comentário e Notificação ficam para a US06 em diante.
+Versão e Notificação ficam para a US06 em diante. O Comentário entra com a
+US11, sem o vínculo opcional com Versão, que depende da US06.
 As RN citadas são as da Especificação do Sistema (Sprint 1), seção 7.
 """
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin

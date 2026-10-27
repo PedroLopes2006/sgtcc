@@ -1,8 +1,8 @@
 """
 Regras de negócio do Sprint 3.
 
-Notificações (US03 CA2, US03 CA4, US04 CA3): cada ponto registra um Evento;
-o envio é a US02.
+Notificações (US03 CA2, US03 CA4, US04 CA3, US10 CA1, US11 CA3): cada ponto
+registra um Evento; o envio é a US02.
 """
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
