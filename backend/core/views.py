@@ -1,5 +1,5 @@
 """
-Endpoints do Sprint 3 — US01, US03, US04 e US05.
+Endpoints do Sprint 4 — US01, US03, US04 e US05.
 
 As views ficam finas de propósito: validam entrada, chamam core.services e
 devolvem o estado resultante. As regras de negócio estão em services.py.
@@ -16,7 +16,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from . import services
-from .models import Perfil, StatusTema, TCC, Tema, Usuario
+from .models import  Entrega, Perfil, StatusTema, TCC, Tema, Usuario
 from .permissions import EhAluno, EhOrientador
 from .serializers import (
     CadastroSerializer,
@@ -225,6 +225,21 @@ class EntregasView(APIView):
             prazo=serializer.validated_data["prazo"],
         )
         return Response(EntregaSerializer(entrega).data, status=status.HTTP_201_CREATED)
+
+# ---------------------------------------------------------------- US08
+
+
+class SinalizarProntaView(APIView):
+    """US08 — POST /api/entregas/<id>/sinalizar-pronta/"""
+
+    permission_classes = [IsAuthenticated, EhAluno]
+
+    @traduzir_erros_de_dominio
+    def post(self, request, entrega_id):
+        entrega = get_object_or_404(Entrega, id=entrega_id)
+        entrega = services.sinalizar_pronta(aluno=request.user, entrega=entrega)
+        return Response(EntregaSerializer(entrega).data)
+
 
 
 # ---------------------------------------------------------------- log

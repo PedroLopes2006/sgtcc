@@ -25,6 +25,12 @@ urlpatterns = [
     ),
     # US05
     path("entregas/", views.EntregasView.as_view(), name="entregas"),
+    # US08
+    path(
+        "entregas/<int:entrega_id>/sinalizar-pronta/",
+        views.SinalizarProntaView.as_view(),
+        name="sinalizar-pronta",
+    ),
     # log / base da timeline
     path("eventos/", views.meus_eventos, name="eventos"),
 ]

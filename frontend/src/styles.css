@@ -687,3 +687,12 @@ button.texto:hover:not(:disabled) {
     gap: 4px;
   }
 }
+
+/* ------------------------------------------------------------ sinalizar (US08) */
+
+.acoes-linha {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+

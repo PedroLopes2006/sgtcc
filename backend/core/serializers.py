@@ -141,6 +141,8 @@ class SolicitacaoAjusteSerializer(serializers.Serializer):
 
 class EntregaSerializer(serializers.ModelSerializer):
     atrasada = serializers.BooleanField(read_only=True)
+    # US08 — vem da mesma regra do service (RN04), para o front não decidir sozinho.
+    pode_sinalizar = serializers.BooleanField(source="pode_ser_sinalizada", read_only=True)
 
     class Meta:
         model = Entrega

@@ -40,7 +40,7 @@ class EventoAdmin(admin.ModelAdmin):
 
 @admin.register(Versao)
 class VersaoAdmin(admin.ModelAdmin):
-    """Provisório: permite criar uma versão à mão para testar a US08 até a US06 entrar."""
+    """Provisório: permite criar uma versão à mão para t/home/felipe/Documentos/Projetos/SGTCC/sgtcc/backend/core/admin.pyestar a US08 até a US06 entrar."""
 
     list_display = ("entrega", "numero", "data_envio")
 
