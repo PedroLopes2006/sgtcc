@@ -237,6 +237,28 @@ class Entrega(models.Model):
     def atrasada(self):
         return self.estado not in EstadoEntrega.encerrados() and self.prazo < timezone.localdate()
 
+class Versao(models.Model):
+    """
+    Arquivo enviado dentro de uma entrega.
+
+    Forma mínima: só o que a US08 consulta (RN04 — sinalizar exige ao menos uma
+    versão, e o `related_name="versoes"` é como as regras a encontram). O envio
+    do arquivo, o armazenamento, o nome original, o tamanho, o autor e a
+    unicidade do número (RN13) são da US06, que completa este modelo.
+    """
+
+    entrega = models.ForeignKey(Entrega, on_delete=models.CASCADE, related_name="versoes")
+    numero = models.PositiveIntegerField("número")
+    arquivo = models.FileField("arquivo", upload_to="versoes/", blank=True)
+    data_envio = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "versão"
+        verbose_name_plural = "versões"
+        ordering = ["numero"]
+
+    def __str__(self):
+        return f"{self.entrega.titulo} — v{self.numero}"
 
 class Evento(models.Model):
     """
@@ -251,6 +273,11 @@ class Evento(models.Model):
     descricao = models.TextField("descrição")
     usuario_relacionado = models.ForeignKey(
         Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name="eventos"
+    )
+    # Eventos de uma entrega (sinalização…) apontam para ela; os de tema não.
+    # A US09 usa isto para saber desde quando a entrega espera revisão.
+    entrega = models.ForeignKey(
+        Entrega, on_delete=models.SET_NULL, null=True, blank=True, related_name="eventos"
     )
     data_hora = models.DateTimeField(default=timezone.now)
 

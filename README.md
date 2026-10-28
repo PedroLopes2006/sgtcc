@@ -11,12 +11,15 @@ Frederico Mariani, Pedro Augusto, Felipe Regiani, Carlos Augusto, Paulo Sérgio,
 | US03 | Propor tema e indicar orientador | Completa (CA1–CA4) |
 | US04 | Aprovar ou ajustar tema | Completa (CA1–CA3) |
 | US05 | Criar entrega | Completa (CA1–CA2) |
+| US08 | Sinalizar pronta para revisão | Completa (CA1–CA3) |
 
 Conforme o recorte combinado para o sprint:
 
-- **A US05 cria só a etapa, sem arquivo.** O upload de versões é a US06, fora deste sprint — não há campo de arquivo em `Entrega`.
-- **As notificações ficam para quando o Telegram entrar.** Os pontos que pedem aviso (US03 CA2 e CA4, US04 CA3) já gravam um `Evento` no log, que é exatamente o gatilho que o disparo vai consumir depois. Nesta etapa só a mudança de status é implementada.
-- As entidades **Versão, Comentário e Notificação** do DER do Sprint 1 ainda não existem no código, pelo mesmo motivo.
+- **A US05 cria só a etapa, sem arquivo.** O upload de versões é a US06, feita por outra pessoa do grupo — não há campo de arquivo em `Entrega`. A `Versao` existe aqui só na forma mínima que a US08 consulta (entrega e número, com `related_name="versoes"`); a US06 completa o modelo.
+- **As notificações ficam para quando o Telegram entrar.** Os pontos que pedem aviso (US03 CA2 e CA4, US04 CA3, US08 CA3) já gravam um `Evento` no log, que é exatamente o gatilho que o disparo vai consumir depois. Nesta etapa só a mudança de status é implementada.
+- **Versão** existe só em forma mínima (veja acima). **Comentário e Notificação** do DER do Sprint 1 ainda não existem no código.
+- O `Evento` ganhou o vínculo opcional com a `Entrega`: a sinalização aponta para ela. A US09 usará isso para ordenar a fila pela data em que a entrega ficou pronta.
+- **A sinalização fica como botão na lista de entregas** e não há como desfazê-la: depois de "pronto para revisão", a entrega só sai desse estado pela ação do orientador (US10 em diante).
 
 ## Relação com o protótipo do Figma
 
@@ -57,6 +60,8 @@ Dados de exemplo (personas do Sprint 2):
 ```bash
 docker compose exec backend python manage.py seed_demo
 ```
+O seed cria, para o Lucas, uma entrega em rascunho sem versão (a sinalização é barrada) e outra com um registro de versão (já pode ser sinalizada). A versão é só um registro, sem arquivo, até a US06. O seed não roda de novo se o Lucas já existir: para recriar os dados, apague o volume (`docker compose down -v`).
+
 
 | Perfil | E-mail | Senha |
 |--------|--------|-------|
