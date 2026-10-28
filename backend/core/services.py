@@ -181,3 +181,56 @@ def criar_entrega(*, aluno, titulo, prazo):
         usuario=aluno,
     )
     return entrega
+
+# us08
+@transaction.atomic
+def sinalizar_pronta(*, aluno, entrega):
+    """
+    US08 — sinalizar a entrega como pronta para revisão.
+
+    CA1: "rascunho" com ao menos uma versão passa a "pronto para revisão".
+    CA2: sem nenhuma versão, o sistema impede (RN04).
+    CA3: o orientador ativo é avisado (registro do gatilho) e um Evento é gravado.
+
+    A entrega é travada durante a transição: um segundo clique, ou duas abas,
+    esperam a primeira terminar e já encontram o novo estado, então a
+    sinalização nunca é registrada duas vezes. (Em SQLite, usado só nos
+    testes, o select_for_update não faz nada.)
+    """
+    if not aluno.eh_aluno:
+        raise PermissionDenied("Apenas alunos podem sinalizar entregas.")
+    entrega = Entrega.objects.select_for_update().select_related("tcc").get(pk=entrega.pk)
+    if entrega.tcc.aluno_id != aluno.id:
+        raise PermissionDenied("Esta entrega não pertence a você.")
+
+    if entrega.estado != EstadoEntrega.RASCUNHO:
+        raise ValidationError(
+            {
+                "detail": (
+                    'Só é possível sinalizar uma entrega em "rascunho". '
+                    f"Estado atual: {entrega.get_estado_display().lower()}."
+                )
+            }
+        )
+    ultima = entrega.versoes.order_by("-numero").first()
+    if ultima is None:
+        raise ValidationError(
+            {"detail": "Envie ao menos uma versão antes de sinalizar a entrega como pronta."}
+        )
+    orientador = entrega.tcc.orientador_atual
+    if orientador is None:
+        raise ValidationError({"detail": "Esta entrega não tem um orientador ativo para avisar."})
+
+    entrega.estado = EstadoEntrega.PRONTO_PARA_REVISAO
+    entrega.save(update_fields=["estado"])
+
+    # CA3 — o orientador é notificado da mudança de estado.
+    registrar_evento(
+        entrega.tcc,
+        TipoEvento.ENTREGA_PRONTA,
+        f'Entrega "{entrega.titulo}" sinalizada como pronta para revisão '
+        f"(versão {ultima.numero}). {orientador.nome} foi avisado.",
+        usuario=aluno,
+        entrega=entrega,
+    )
+    return entrega
