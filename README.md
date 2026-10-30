@@ -1,6 +1,6 @@
 # SGTCC — Sistema de Gestão de TCC
 
-Sprint 3 — Grupo 1 (Turma CC4N)
+Sprint 3 e 4 — Grupo 1 (Turma CC4N)
 Frederico Mariani, Pedro Augusto, Felipe Regiani, Carlos Augusto, Paulo Sérgio, Vitor Marçal
 
 ## O que está implementado
@@ -11,12 +11,13 @@ Frederico Mariani, Pedro Augusto, Felipe Regiani, Carlos Augusto, Paulo Sérgio,
 | US03 | Propor tema e indicar orientador | Completa (CA1–CA4) |
 | US04 | Aprovar ou ajustar tema | Completa (CA1–CA3) |
 | US05 | Criar entrega | Completa (CA1–CA2) |
+| US06 | Upload de versão | Completa (CA1–CA4) |
 
 Conforme o recorte combinado para o sprint:
 
-- **A US05 cria só a etapa, sem arquivo.** O upload de versões é a US06, fora deste sprint — não há campo de arquivo em `Entrega`.
+- **A US06 entrega o upload, não o histórico.** A tela de versões anteriores é a US07 e fica para depois; aqui a lista mostra apenas o número da versão atual.
 - **As notificações ficam para quando o Telegram entrar.** Os pontos que pedem aviso (US03 CA2 e CA4, US04 CA3) já gravam um `Evento` no log, que é exatamente o gatilho que o disparo vai consumir depois. Nesta etapa só a mudança de status é implementada.
-- As entidades **Versão, Comentário e Notificação** do DER do Sprint 1 ainda não existem no código, pelo mesmo motivo.
+- As entidades **Comentário e Notificação** do DER do Sprint 1 ainda não existem no código, pelo mesmo motivo. A **Versão** entrou com a US06.
 
 ## Relação com o protótipo do Figma
 
@@ -27,7 +28,7 @@ Duas divergências conscientes:
 1. **Sem etapas fixas.** O protótipo mostra "Progresso: 1 de 5 entregas" e uma coluna "Fase atual", sugerindo um roteiro de 5 etapas pré-definidas. A US05 diz que o aluno cria as entregas que quiser, com título livre — e a User Story manda. Aqui o total é quantas entregas existem, e a fase atual é a primeira entrega ainda em andamento.
 2. **A avaliação do tema sai da tabela de orientandos**, num modal, como no protótipo — não há fila de temas separada. A "Fila de revisão" desenhada no Figma é de *entregas* (US09) e entra num próximo sprint; por isso o item aparece desativado na barra lateral, junto de Linha do tempo e Perfil.
 
-Telas do protótipo ainda não implementadas, porque pertencem a US fora deste sprint: detalhe da entrega, enviar versão, revisão, linha do tempo e perfil.
+Telas do protótipo ainda não implementadas, porque pertencem a US fora deste sprint: detalhe da entrega, revisão, linha do tempo e perfil.
 
 ## Stack
 
@@ -110,6 +111,12 @@ Variáveis a preencher no painel:
 | `CORS_ALLOWED_ORIGINS` | URL do frontend, ex. `https://sgtcc.vercel.app` |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | a mesma URL |
 | `ADMIN_EMAIL` e `ADMIN_PASSWORD` | conta do `/admin` |
+| `AWS_STORAGE_BUCKET_NAME` | nome do bucket no Supabase Storage, ex. `versoes` |
+| `AWS_S3_ENDPOINT_URL` | `https://<project-ref>.supabase.co/storage/v1/s3` |
+| `AWS_S3_REGION_NAME` | a região do projeto, ex. `sa-east-1` |
+| `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` | Supabase > Settings > API > Storage > S3 Access Keys |
+
+As cinco últimas são da US06. O disco do Render é apagado a cada deploy, então os PDFs precisam ir para o Supabase Storage; sem elas o Django grava em `backend/media`, o que só serve para rodar local.
 
 `DJANGO_SECRET_KEY` o Render gera sozinho e `DJANGO_DEBUG` já vai como `0`.
 
@@ -156,6 +163,7 @@ No backend, um teste por critério de aceite mais as regras de negócio envolvid
 | POST | `/api/temas/<id>/solicitar-ajuste/` | US04 CA2 | orientador |
 | GET | `/api/temas/pendentes/` | US04 (não usado pelo front) | orientador |
 | GET, POST | `/api/entregas/` | US05 | aluno |
+| POST | `/api/entregas/<id>/versoes/` | US06 CA1–CA4 | aluno |
 | GET | `/api/eventos/` | base da US16 | aluno |
 
 ## Organização do código
@@ -200,7 +208,7 @@ As regras de negócio ficam em `services.py`, fora das views. Isso mantém a API
 
 ## Próximos passos
 
-1. **US06 e US07** — upload de versões no Supabase Storage (PDF, com limite de tamanho) e histórico.
+1. **US07** — histórico de versões de uma entrega.
 2. **US08 a US13** — máquina de estados completa da entrega (RN06) e fluxo de revisão.
 3. **US02 e RF16** — bot do Telegram consumindo os `Evento` já gravados.
 4. **US14 a US16** — painel com prazos vencidos destacados, reatribuição de orientador e timeline.

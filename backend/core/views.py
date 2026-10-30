@@ -10,17 +10,19 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from . import services
-from .models import Perfil, StatusTema, TCC, Tema, Usuario
+from .models import Entrega, Perfil, StatusTema, TCC, Tema, Usuario
 from .permissions import EhAluno, EhOrientador
 from .serializers import (
     CadastroSerializer,
     CriacaoEntregaSerializer,
+    EnvioDeVersaoSerializer,
     EntregaSerializer,
     EventoSerializer,
     LoginSerializer,
@@ -32,6 +34,7 @@ from .serializers import (
     TCCSerializer,
     TemaSerializer,
     UsuarioSerializer,
+    VersaoSerializer,
 )
 
 
@@ -225,6 +228,33 @@ class EntregasView(APIView):
             prazo=serializer.validated_data["prazo"],
         )
         return Response(EntregaSerializer(entrega).data, status=status.HTTP_201_CREATED)
+
+
+# ---------------------------------------------------------------- US06
+
+
+class VersoesView(APIView):
+    """US06 — POST /api/entregas/<id>/versoes/"""
+
+    permission_classes = [IsAuthenticated, EhAluno]
+    parser_classes = [MultiPartParser, FormParser]
+
+    @traduzir_erros_de_dominio
+    def post(self, request, entrega_id):
+        serializer = EnvioDeVersaoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        entrega = get_object_or_404(Entrega, id=entrega_id)
+        versao = services.enviar_versao(
+            aluno=request.user,
+            entrega=entrega,
+            arquivo=serializer.validated_data["arquivo"],
+        )
+        entrega.refresh_from_db()
+        return Response(
+            {"versao": VersaoSerializer(versao).data, "entrega": EntregaSerializer(entrega).data},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 # ---------------------------------------------------------------- log

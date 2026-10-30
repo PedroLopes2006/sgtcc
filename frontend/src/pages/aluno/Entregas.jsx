@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import EnviarVersao from '../../components/EnviarVersao'
 import Estado from '../../components/Estado'
 import { ROTULO_ESTADO_ENTREGA, dataCurta } from '../../formato'
 import { useTcc } from './AreaAluno'
 
-/** US05 — lista de entregas e porta de entrada para criar uma nova. */
+/** US05 — lista de entregas. US06 — envio de versão a partir dela. */
 export default function Entregas() {
-  const { tcc } = useTcc()
+  const { tcc, recarregar } = useTcc()
   const navegar = useNavigate()
+  const [enviandoVersaoDe, setEnviandoVersaoDe] = useState(null)
 
   const temaAprovado = tcc?.tema?.status === 'aprovado'
   const entregas = tcc?.entregas || []
@@ -44,17 +47,38 @@ export default function Entregas() {
                 <div className="titulo">{entrega.titulo}</div>
                 <div className={`meta ${entrega.atrasada ? 'prazo-vencido' : ''}`}>
                   Prazo {dataCurta(entrega.prazo)}
+                  {entrega.versao_atual && ` · versão ${entrega.versao_atual.numero}`}
                   {entrega.atrasada && ' · vencido'}
                 </div>
               </div>
-              <Estado
-                codigo={entrega.estado}
-                rotulo={ROTULO_ESTADO_ENTREGA[entrega.estado]}
-                atrasado={entrega.atrasada}
-              />
+
+              <div className="acoes-da-linha">
+                <Estado
+                  codigo={entrega.estado}
+                  rotulo={ROTULO_ESTADO_ENTREGA[entrega.estado]}
+                  atrasado={entrega.atrasada}
+                />
+                {/* RN03 — fora de rascunho e correção solicitada, não há envio. */}
+                {entrega.aceita_versao && (
+                  <button className="contorno" onClick={() => setEnviandoVersaoDe(entrega)}>
+                    Enviar versão
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ul>
+      )}
+
+      {enviandoVersaoDe && (
+        <EnviarVersao
+          entrega={enviandoVersaoDe}
+          aoFechar={() => setEnviandoVersaoDe(null)}
+          aoConcluir={async () => {
+            setEnviandoVersaoDe(null)
+            await recarregar()
+          }}
+        />
       )}
     </div>
   )

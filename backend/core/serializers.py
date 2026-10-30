@@ -13,6 +13,7 @@ from .models import (
     TCC,
     Tema,
     Usuario,
+    Versao,
 )
 
 
@@ -139,8 +140,28 @@ class SolicitacaoAjusteSerializer(serializers.Serializer):
     justificativa = serializers.CharField(allow_blank=False, trim_whitespace=True)
 
 
+class VersaoSerializer(serializers.ModelSerializer):
+    """US06 — uma versão enviada."""
+
+    arquivo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Versao
+        fields = ["id", "numero", "nome_original", "tamanho", "data_envio", "arquivo_url"]
+        read_only_fields = fields
+
+    def get_arquivo_url(self, versao):
+        try:
+            return versao.arquivo.url
+        except (ValueError, NotImplementedError):
+            return None
+
+
 class EntregaSerializer(serializers.ModelSerializer):
     atrasada = serializers.BooleanField(read_only=True)
+    aceita_versao = serializers.BooleanField(read_only=True)
+    numero_da_proxima_versao = serializers.IntegerField(read_only=True)
+    versao_atual = VersaoSerializer(read_only=True)
 
     class Meta:
         model = Entrega
@@ -152,8 +173,17 @@ class EntregaSerializer(serializers.ModelSerializer):
             "data_criacao",
             "data_conclusao",
             "atrasada",
+            "aceita_versao",
+            "numero_da_proxima_versao",
+            "versao_atual",
         ]
-        read_only_fields = ["id", "estado", "data_criacao", "data_conclusao", "atrasada"]
+        read_only_fields = fields
+
+
+class EnvioDeVersaoSerializer(serializers.Serializer):
+    """US06 — entrada do upload."""
+
+    arquivo = serializers.FileField()
 
 
 class CriacaoEntregaSerializer(serializers.Serializer):
