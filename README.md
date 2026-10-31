@@ -26,6 +26,33 @@ Conforme o recorte combinado para o sprint:
 - **A US10 e a US11 ficam como botões na tabela de orientandos.** "Iniciar revisão" aparece na linha cuja entrega está pronta para revisão, e "Solicitar correção" na que está em revisão, abrindo um modal com o comentário obrigatório. A API diz qual entrega espera o orientador (`entrega_para_revisao`), porque ela pode não ser a "fase atual" da linha.
 - **O comentário da correção** fica gravado ligado à entrega e à versão avaliada (RF10), nunca é editado nem removido (RN14), e o aluno o lê na lista de entregas enquanto a entrega estiver em "correção solicitada".
 
+## O que cada US aplica
+
+Resumo do que cada US entrega e de quais requisitos da especificação (RF, RN e RNF do Sprint 1) ela aplica.
+
+| US | O que faz | RF | RN | RNF |
+|----|-----------|----|----|-----|
+| US01 | Cadastro e login com perfil de aluno ou orientador; erro genérico para credenciais inválidas | RF01 | — | RNF03, RNF04 |
+| US03 | O aluno propõe o tema e indica o orientador: nascem o TCC, o Tema "proposto" e a Orientação ativa; reenvia o tema após um ajuste | RF03 | RN01, RN10, RN15 | RNF04 |
+| US04 | O orientador aprova o tema ou pede ajuste, com justificativa obrigatória | RF04 | RN05, RN07, RN10 | RNF04 |
+| US05 | O aluno cria uma entrega (título e prazo) em "rascunho", só com o tema aprovado | RF05 | RN02 | RNF04 |
+| US06 | O aluno envia uma versão em PDF, com número incremental; depois de uma correção, a entrega volta a "rascunho" | RF06 | RN03, RN10, RN13 | RNF04 |
+| US08 | O aluno sinaliza a entrega como "pronta para revisão" (exige ao menos uma versão) e o orientador é avisado | RF08 | RN04, RN10 | RNF04 |
+| US10 | O orientador abre uma entrega "pronta para revisão" e ela passa a "em revisão"; o aluno é avisado; em qualquer outro estado a ação é recusada | RF16\*, RF17, RF18 | RN05, RN06, RN10 | RNF04, RNF12 |
+| US11 | Com a entrega "em revisão", o orientador registra um comentário obrigatório e pede correção: ela passa a "correção solicitada", o aluno é avisado e lê o comentário; o comentário fica ligado à versão avaliada | RF10, RF11 (parte), RF16\*, RF17, RF18 | RN05, RN06, RN07, RN10, RN14 | RNF04, RNF12 |
+
+\* RF16: nesta etapa só o gatilho, o `Evento` gravado no log. O envio pelo Telegram é a US02.
+
+### Requisitos atendidos no projeto
+
+| Tipo | Atendidos | Parciais |
+|------|-----------|----------|
+| RF | 01, 03, 04, 05, 06, 08, 18 | 10 (o comentário só nasce ao solicitar correção), 11 (só "solicitar correção"; aprovar e concluir são a US12), 16 (grava o `Evento`, sem envio), 17 (só os passos até a correção) |
+| RNF | 03, 04, 05, 06, 09, 13 | 12 (o log é só de inclusão por convenção, sem trava técnica nos modelos) |
+| RN | 01, 02, 03, 04, 05, 07, 09, 10, 13, 14, 15 | 06 (rascunho → pronta → em revisão → correção → rascunho; "concluída" e "enviada à banca" são as US12 e US13) |
+
+No código, cada função de `services.py` cita no docstring o CA e as regras que aplica, e os testes citam a regra que cada um confere.
+
 ## Relação com o protótipo do Figma
 
 As telas seguem o [protótipo do Sprint 2](https://www.figma.com/design/S2vvHsgShUZoAzaORCW7gb/SGTCC?node-id=2034-66): barra lateral fixa, ação primária preta, e os textos de interface (rótulos, ajudas e estados vazios) copiados de lá.
