@@ -9,7 +9,7 @@ from datetime import timedelta
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from core.models import Orientacao, Perfil, StatusTema, TCC, Tema, Usuario
+from core.models import Orientacao, Perfil, StatusTema, TCC, Tema, Usuario, Versao
 from core.services import criar_entrega
 
 
@@ -48,11 +48,21 @@ class Command(BaseCommand):
             data_aprovacao=timezone.now(),
         )
         Orientacao.objects.create(tcc=tcc, orientador=orientador)
+        # Rascunho sem versão: sinalizar pronta é barrado (US08 CA2).
         criar_entrega(
             aluno=aluno,
             titulo="Capítulo 1 — Introdução",
             prazo=timezone.localdate() + timedelta(days=21),
         )
+
+        # Rascunho com uma versão: já pode ser sinalizado como pronto (US08 CA1).
+        # A versão é só um registro, sem arquivo; o envio de verdade é a US06.
+        referencial = criar_entrega(
+            aluno=aluno,
+            titulo="Capítulo 2 — Referencial teórico",
+            prazo=timezone.localdate() + timedelta(days=35),
+        )
+        Versao.objects.create(entrega=referencial, numero=1)
 
         # Ana: tema proposto, esperando parecer do Marcos — alimenta a fila da US04.
         tcc_ana = TCC.objects.create(aluno=ana)

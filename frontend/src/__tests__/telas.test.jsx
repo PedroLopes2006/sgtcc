@@ -288,3 +288,98 @@ describe('Orientandos (US04)', () => {
     )
   })
 })
+
+describe('Enviar versão (US06)', () => {
+  function entregaEm(estado, versaoAtual = null, proxima = 1) {
+    return {
+      id: 4,
+      titulo: 'Referencial teórico',
+      estado,
+      prazo: '2026-11-24',
+      atrasada: false,
+      aceita_versao: ['rascunho', 'correcao_solicitada'].includes(estado),
+      numero_da_proxima_versao: proxima,
+      versao_atual: versaoAtual,
+    }
+  }
+
+  it('mostra o botão de enviar versão só nos estados que aceitam (RN03)', async () => {
+    entrarComo(ALUNO)
+    vi.spyOn(api, 'get').mockResolvedValue({
+      data: tccComTema('aprovado', [
+        entregaEm('rascunho'),
+        { ...entregaEm('em_revisao'), id: 5, titulo: 'Metodologia' },
+      ]),
+    })
+
+    renderizarAreaAluno('/aluno/entregas')
+
+    await screen.findByText('Referencial teórico')
+    expect(screen.getAllByRole('button', { name: 'Enviar versão' })).toHaveLength(1)
+  })
+
+  it('mostra o número da versão atual na linha', async () => {
+    entrarComo(ALUNO)
+    vi.spyOn(api, 'get').mockResolvedValue({
+      data: tccComTema('aprovado', [
+        entregaEm('rascunho', { id: 1, numero: 2, nome_original: 'v2.pdf' }, 3),
+      ]),
+    })
+
+    renderizarAreaAluno('/aluno/entregas')
+
+    expect(await screen.findByText(/versão 2/)).toBeInTheDocument()
+  })
+
+  it('recusa arquivo que não é PDF antes de chamar a API', async () => {
+    entrarComo(ALUNO)
+    vi.spyOn(api, 'get').mockResolvedValue({
+      data: tccComTema('aprovado', [entregaEm('rascunho')]),
+    })
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
+
+    renderizarAreaAluno('/aluno/entregas')
+    await userEvent.click(await screen.findByRole('button', { name: 'Enviar versão' }))
+
+    const modal = screen.getByRole('dialog')
+    // applyAccept: false simula quem escolhe "todos os arquivos" no seletor
+    // e passa por cima do filtro do atributo accept.
+    await userEvent.upload(
+      within(modal).getByLabelText('Arquivo da versão'),
+      new File(['x'], 'tcc.docx', { type: 'application/msword' }),
+      { applyAccept: false },
+    )
+
+    expect(within(modal).getByText(/Formato não aceito/)).toBeInTheDocument()
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('envia o PDF escolhido para a entrega certa', async () => {
+    entrarComo(ALUNO)
+    vi.spyOn(api, 'get').mockResolvedValue({
+      data: tccComTema('aprovado', [entregaEm('correcao_solicitada', null, 3)]),
+    })
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
+
+    renderizarAreaAluno('/aluno/entregas')
+    await userEvent.click(await screen.findByRole('button', { name: 'Enviar versão' }))
+
+    const modal = screen.getByRole('dialog')
+    expect(within(modal).getByText(/nova versão 3/)).toBeInTheDocument()
+
+    const enviar = within(modal).getByRole('button', { name: 'Enviar versão' })
+    expect(enviar).toBeDisabled()
+
+    await userEvent.upload(
+      within(modal).getByLabelText('Arquivo da versão'),
+      new File(['%PDF'], 'capitulo.pdf', { type: 'application/pdf' }),
+    )
+    expect(within(modal).getByText('capitulo.pdf')).toBeInTheDocument()
+    expect(enviar).toBeEnabled()
+
+    await userEvent.click(enviar)
+    await waitFor(() => expect(post).toHaveBeenCalled())
+    expect(post.mock.calls[0][0]).toBe('/entregas/4/versoes/')
+    expect(post.mock.calls[0][1].get('arquivo').name).toBe('capitulo.pdf')
+  })
+})

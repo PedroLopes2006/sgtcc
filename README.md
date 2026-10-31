@@ -1,6 +1,6 @@
 # SGTCC — Sistema de Gestão de TCC
 
-Sprint 3 — Grupo 1 (Turma CC4N)
+Sprint 3 e 4 — Grupo 1 (Turma CC4N)
 Frederico Mariani, Pedro Augusto, Felipe Regiani, Carlos Augusto, Paulo Sérgio, Vitor Marçal
 
 ## O que está implementado
@@ -11,12 +11,16 @@ Frederico Mariani, Pedro Augusto, Felipe Regiani, Carlos Augusto, Paulo Sérgio,
 | US03 | Propor tema e indicar orientador | Completa (CA1–CA4) |
 | US04 | Aprovar ou ajustar tema | Completa (CA1–CA3) |
 | US05 | Criar entrega | Completa (CA1–CA2) |
+| US06 | Upload de versão | Completa (CA1–CA4) |
+| US08 | Sinalizar pronta para revisão | Completa (CA1–CA3) |
 
 Conforme o recorte combinado para o sprint:
 
-- **A US05 cria só a etapa, sem arquivo.** O upload de versões é a US06, fora deste sprint — não há campo de arquivo em `Entrega`.
-- **As notificações ficam para quando o Telegram entrar.** Os pontos que pedem aviso (US03 CA2 e CA4, US04 CA3) já gravam um `Evento` no log, que é exatamente o gatilho que o disparo vai consumir depois. Nesta etapa só a mudança de status é implementada.
-- As entidades **Versão, Comentário e Notificação** do DER do Sprint 1 ainda não existem no código, pelo mesmo motivo.
+- **A US05 cria só a etapa, sem arquivo.** O upload de versões é a US06, feita por outra pessoa do grupo — não há campo de arquivo em `Entrega`. A `Versao` existe aqui só na forma mínima que a US08 consulta (entrega e número, com `related_name="versoes"`); a US06 completa o modelo.
+- **As notificações ficam para quando o Telegram entrar.** Os pontos que pedem aviso (US03 CA2 e CA4, US04 CA3, US08 CA3) já gravam um `Evento` no log, que é exatamente o gatilho que o disparo vai consumir depois. Nesta etapa só a mudança de status é implementada.
+- **Versão** existe só em forma mínima (veja acima). **Comentário e Notificação** do DER do Sprint 1 ainda não existem no código.
+- O `Evento` ganhou o vínculo opcional com a `Entrega`: a sinalização aponta para ela. A US09 usará isso para ordenar a fila pela data em que a entrega ficou pronta.
+- **A sinalização fica como botão na lista de entregas** e não há como desfazê-la: depois de "pronto para revisão", a entrega só sai desse estado pela ação do orientador (US10 em diante).
 
 ## Relação com o protótipo do Figma
 
@@ -27,7 +31,7 @@ Duas divergências conscientes:
 1. **Sem etapas fixas.** O protótipo mostra "Progresso: 1 de 5 entregas" e uma coluna "Fase atual", sugerindo um roteiro de 5 etapas pré-definidas. A US05 diz que o aluno cria as entregas que quiser, com título livre — e a User Story manda. Aqui o total é quantas entregas existem, e a fase atual é a primeira entrega ainda em andamento.
 2. **A avaliação do tema sai da tabela de orientandos**, num modal, como no protótipo — não há fila de temas separada. A "Fila de revisão" desenhada no Figma é de *entregas* (US09) e entra num próximo sprint; por isso o item aparece desativado na barra lateral, junto de Linha do tempo e Perfil.
 
-Telas do protótipo ainda não implementadas, porque pertencem a US fora deste sprint: detalhe da entrega, enviar versão, revisão, linha do tempo e perfil.
+Telas do protótipo ainda não implementadas, porque pertencem a US fora deste sprint: detalhe da entrega, revisão, linha do tempo e perfil.
 
 ## Stack
 
@@ -57,6 +61,8 @@ Dados de exemplo (personas do Sprint 2):
 ```bash
 docker compose exec backend python manage.py seed_demo
 ```
+O seed cria, para o Lucas, uma entrega em rascunho sem versão (a sinalização é barrada) e outra com um registro de versão (já pode ser sinalizada). A versão é só um registro, sem arquivo, até a US06. O seed não roda de novo se o Lucas já existir: para recriar os dados, apague o volume (`docker compose down -v`).
+
 
 | Perfil | E-mail | Senha |
 |--------|--------|-------|
@@ -110,6 +116,12 @@ Variáveis a preencher no painel:
 | `CORS_ALLOWED_ORIGINS` | URL do frontend, ex. `https://sgtcc.vercel.app` |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | a mesma URL |
 | `ADMIN_EMAIL` e `ADMIN_PASSWORD` | conta do `/admin` |
+| `AWS_STORAGE_BUCKET_NAME` | nome do bucket no Supabase Storage, ex. `versoes` |
+| `AWS_S3_ENDPOINT_URL` | `https://<project-ref>.supabase.co/storage/v1/s3` |
+| `AWS_S3_REGION_NAME` | a região do projeto, ex. `sa-east-1` |
+| `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` | Supabase > Settings > API > Storage > S3 Access Keys |
+
+As cinco últimas são da US06. O disco do Render é apagado a cada deploy, então os PDFs precisam ir para o Supabase Storage; sem elas o Django grava em `backend/media`, o que só serve para rodar local.
 
 `DJANGO_SECRET_KEY` o Render gera sozinho e `DJANGO_DEBUG` já vai como `0`.
 
@@ -156,6 +168,8 @@ No backend, um teste por critério de aceite mais as regras de negócio envolvid
 | POST | `/api/temas/<id>/solicitar-ajuste/` | US04 CA2 | orientador |
 | GET | `/api/temas/pendentes/` | US04 (não usado pelo front) | orientador |
 | GET, POST | `/api/entregas/` | US05 | aluno |
+| POST | `/api/entregas/<id>/versoes/` | US06 CA1–CA4 | aluno |
+| POST | `/api/entregas/<id>/sinalizar-pronta/` | US08 CA1–CA3 | aluno |
 | GET | `/api/eventos/` | base da US16 | aluno |
 
 ## Organização do código
@@ -164,7 +178,7 @@ No backend, um teste por critério de aceite mais as regras de negócio envolvid
 backend/
   config/            configurações, URLs raiz
   core/
-    models.py        Usuario, TCC, Tema, Orientacao, Entrega, Evento
+    models.py        Usuario, TCC, Tema, Orientacao, Entrega, Versao, Evento
     services.py      regras de negócio — é aqui que mora a lógica das US
     serializers.py   validação de entrada e formato de saída
     views.py         endpoints finos, só orquestram services
@@ -181,26 +195,28 @@ frontend/
       orientador/    Orientandos (tabela + modal de avaliação)
     __tests__/       testes de fumaça das telas
 ```
-
 As regras de negócio ficam em `services.py`, fora das views. Isso mantém a API fina e permite testar os critérios de aceite sem passar por HTTP — vale manter esse padrão nos próximos sprints.
 
 ## Regras de negócio cobertas
-
 | Regra | Onde |
 |-------|------|
 | RN01 — um TCC por aluno | `TCC.aluno` é `OneToOneField` + checagem em `propor_tema` |
 | RN02 — entrega exige tema aprovado | `criar_entrega` |
+| RN03 — estados em que a entrega aceita versão | `Entrega.aceita_versao`, `enviar_versao` |
+| RN04 — sinalizar exige ao menos uma versão | `sinalizar_pronta`, `Entrega.pode_ser_sinalizada` |
 | RN05 — só o orientador ativo decide | `_exigir_orientador_ativo` |
 | RN07 — ajuste exige justificativa | `solicitar_ajuste_tema` |
 | RN09 — uma orientação ativa por TCC | constraint parcial no banco |
 | RN10 — toda mudança gera evento | `registrar_evento` |
+| RN13 — número de versão nunca reutilizado | contador `Entrega.versoes_enviadas` + constraint no banco |
 | RN15 — orientação ativa desde a proposta | `propor_tema` |
 | RNF03 — senha com hash | `UsuarioManager.set_password` |
 | RNF04 — acesso por perfil | `core/permissions.py` |
 
 ## Próximos passos
 
-1. **US06 e US07** — upload de versões no Supabase Storage (PDF, com limite de tamanho) e histórico.
-2. **US08 a US13** — máquina de estados completa da entrega (RN06) e fluxo de revisão.
+1. **US07** — histórico de versões de uma entrega.
+2. **US09 a US13** — fila de revisão, marcar em revisão, comentário e correção, aprovação e envio à banca (RN06).
 3. **US02 e RF16** — bot do Telegram consumindo os `Evento` já gravados.
 4. **US14 a US16** — painel com prazos vencidos destacados, reatribuição de orientador e timeline.
+

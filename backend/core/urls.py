@@ -25,6 +25,14 @@ urlpatterns = [
     ),
     # US05
     path("entregas/", views.EntregasView.as_view(), name="entregas"),
+    # US06
+    path("entregas/<int:entrega_id>/versoes/", views.VersoesView.as_view(), name="versoes"),
+    # US08
+    path(
+        "entregas/<int:entrega_id>/sinalizar-pronta/",
+        views.SinalizarProntaView.as_view(),
+        name="sinalizar-pronta",
+    ),
     # US10
     path(
         "entregas/<int:entrega_id>/iniciar-revisao/",
