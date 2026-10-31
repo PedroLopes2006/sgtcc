@@ -1,5 +1,5 @@
 """
-Endpoints do Sprint 4 — US01, US03, US04 e US05.
+Endpoints dos Sprints 3 e 4 — US01, US03, US04, US05, US06, US08, US10 e US11.
 
 As views ficam finas de propósito: validam entrada, chamam core.services e
 devolvem o estado resultante. As regras de negócio estão em services.py.
@@ -31,6 +31,7 @@ from .serializers import (
     PropostaTemaSerializer,
     ReenvioTemaSerializer,
     SolicitacaoAjusteSerializer,
+    SolicitacaoCorrecaoSerializer,
     TCCSerializer,
     TemaSerializer,
     UsuarioSerializer,
@@ -270,6 +271,52 @@ class VersoesView(APIView):
             {"versao": VersaoSerializer(versao).data, "entrega": EntregaSerializer(entrega).data},
             status=status.HTTP_201_CREATED,
         )
+
+
+# ---------------------------------------------------------------- US10
+
+
+class IniciarRevisaoView(APIView):
+    """
+    US10 CA1 e CA2 — POST /api/entregas/<id>/iniciar-revisao/
+
+    RNF04: exclusivo de orientadores. RN05 e RN06 são aplicadas no service.
+    """
+
+    permission_classes = [IsAuthenticated, EhOrientador]
+
+    @traduzir_erros_de_dominio
+    def post(self, request, entrega_id):
+        entrega = get_object_or_404(Entrega, id=entrega_id)
+        entrega = services.iniciar_revisao_entrega(orientador=request.user, entrega=entrega)
+        return Response(EntregaSerializer(entrega).data)
+
+
+# ---------------------------------------------------------------- US11
+
+
+class SolicitarCorrecaoView(APIView):
+    """
+    US11 CA1, CA2 e CA3 — POST /api/entregas/<id>/solicitar-correcao/
+
+    RNF04: exclusivo de orientadores. RN05, RN06 e RN07 são aplicadas no service.
+    RN14: não há rota para editar ou remover comentários.
+    """
+
+    permission_classes = [IsAuthenticated, EhOrientador]
+
+    @traduzir_erros_de_dominio
+    def post(self, request, entrega_id):
+        serializer = SolicitacaoCorrecaoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        entrega = get_object_or_404(Entrega, id=entrega_id)
+        entrega = services.solicitar_correcao_entrega(
+            orientador=request.user,
+            entrega=entrega,
+            comentario=serializer.validated_data["comentario"],
+        )
+        return Response(EntregaSerializer(entrega).data)
 
 
 # ---------------------------------------------------------------- log

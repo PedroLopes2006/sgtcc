@@ -33,6 +33,18 @@ urlpatterns = [
         views.SinalizarProntaView.as_view(),
         name="sinalizar-pronta",
     ),
+    # US10
+    path(
+        "entregas/<int:entrega_id>/iniciar-revisao/",
+        views.IniciarRevisaoView.as_view(),
+        name="iniciar-revisao",
+    ),
+    # US11
+    path(
+        "entregas/<int:entrega_id>/solicitar-correcao/",
+        views.SolicitarCorrecaoView.as_view(),
+        name="solicitar-correcao",
+    ),
     # log / base da timeline
     path("eventos/", views.meus_eventos, name="eventos"),
 ]

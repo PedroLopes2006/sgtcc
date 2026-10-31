@@ -1,8 +1,8 @@
 """
 Regras de negócio dos Sprints 3 e 4.
 
-Notificações (US03 CA2, US03 CA4, US04 CA3): cada ponto registra um Evento;
-o envio é a US02.
+Notificações (US03 CA2, US03 CA4, US04 CA3, US08 CA3, US10 CA1, US11 CA3): cada
+ponto registra um Evento; o envio é a US02.
 """
 from pathlib import Path
 
@@ -12,6 +12,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from .models import (
+    Comentario,
     Entrega,
     EstadoEntrega,
     Evento,
@@ -25,10 +26,10 @@ from .models import (
 )
 
 
-def registrar_evento(tcc, tipo, descricao, usuario=None):
+def registrar_evento(tcc, tipo, descricao, usuario=None, entrega=None):
     """RN10 — ponto único de gravação no log do TCC."""
     return Evento.objects.create(
-        tcc=tcc, tipo=tipo, descricao=descricao, usuario_relacionado=usuario
+        tcc=tcc, tipo=tipo, descricao=descricao, usuario_relacionado=usuario, entrega=entrega
     )
 
 
@@ -99,9 +100,9 @@ def reenviar_tema(*, aluno, tema, titulo, descricao):
     return tema
 
 
-def _exigir_orientador_ativo(orientador, tema):
+def _exigir_orientador_ativo(orientador, tcc):
     """RN05 — só o orientador com Orientação ativa age sobre aquele TCC."""
-    orientacao = tema.tcc.orientacao_ativa
+    orientacao = tcc.orientacao_ativa
     if orientacao is None or orientacao.orientador_id != orientador.id:
         raise PermissionDenied("Você não é o orientador ativo deste TCC.")
 
@@ -109,7 +110,7 @@ def _exigir_orientador_ativo(orientador, tema):
 @transaction.atomic
 def aprovar_tema(*, orientador, tema):
     """US04 CA1 — tema "proposto" passa a "aprovado", com data registrada."""
-    _exigir_orientador_ativo(orientador, tema)
+    _exigir_orientador_ativo(orientador, tema.tcc)
     if tema.status != StatusTema.PROPOSTO:
         raise ValidationError({"detail": 'Só é possível aprovar um tema com status "proposto".'})
 
@@ -131,7 +132,7 @@ def aprovar_tema(*, orientador, tema):
 @transaction.atomic
 def solicitar_ajuste_tema(*, orientador, tema, justificativa):
     """US04 CA2 — pedir ajuste exige justificativa."""
-    _exigir_orientador_ativo(orientador, tema)
+    _exigir_orientador_ativo(orientador, tema.tcc)
     if tema.status != StatusTema.PROPOSTO:
         raise ValidationError(
             {"detail": 'Só é possível solicitar ajuste em um tema com status "proposto".'}
@@ -185,6 +186,7 @@ def criar_entrega(*, aluno, titulo, prazo):
         usuario=aluno,
     )
     return entrega
+
 
 def _validar_arquivo_da_versao(arquivo):
     """Formato PDF, conforme o protótipo, e um teto de tamanho."""
@@ -309,6 +311,87 @@ def sinalizar_pronta(*, aluno, entrega):
         f'Entrega "{entrega.titulo}" sinalizada como pronta para revisão '
         f"(versão {ultima.numero}). {orientador.nome} foi avisado.",
         usuario=aluno,
+        entrega=entrega,
+    )
+    return entrega
+
+
+@transaction.atomic
+def iniciar_revisao_entrega(*, orientador, entrega):
+    """
+    US10 — marcar a entrega como "em revisão".
+
+    CA1: "pronto_para_revisao" passa a "em_revisao" e o aluno é notificado.
+    CA2: em qualquer outro estado a transição é impedida.
+    RN05: só o orientador ativo do TCC age sobre a entrega.
+    RN06 / RF17: a máquina de estados é estrita; aqui só vale o passo
+        pronto_para_revisao → em_revisao.
+    RN10 / RF18 / RNF12: a mudança de estado gera um Evento, só de inclusão.
+    RF16 / RNF11: a notificação é o Evento gravado; o envio é a US02 e uma
+        falha nele não desfaz a transição.
+    """
+    _exigir_orientador_ativo(orientador, entrega.tcc)
+    # CA2 / RN06 / RF17 — qualquer estado diferente de "pronto_para_revisao" é recusado.
+    if entrega.estado != EstadoEntrega.PRONTO_PARA_REVISAO:
+        raise ValidationError(
+            {"detail": 'Só é possível iniciar a revisão de uma entrega "pronta para revisão".'}
+        )
+
+    entrega.estado = EstadoEntrega.EM_REVISAO
+    entrega.save(update_fields=["estado"])
+
+    # CA1 / RF16 — o aluno é notificado da mudança de estado (registro do gatilho).
+    # RN10 / RF18 — a mudança de estado deixa rastro no log do TCC.
+    registrar_evento(
+        entrega.tcc,
+        TipoEvento.ENTREGA_EM_REVISAO,
+        f'Entrega "{entrega.titulo}" em revisão por {orientador.nome}.',
+        usuario=orientador,
+        entrega=entrega,
+    )
+    return entrega
+
+
+@transaction.atomic
+def solicitar_correcao_entrega(*, orientador, entrega, comentario):
+    """
+    US11 — registrar comentário e solicitar correção.
+
+    CA1: "em_revisao" passa a "correcao_solicitada", com o comentário gravado.
+    CA2 / RN07: o comentário é obrigatório.
+    CA3: o aluno é notificado.
+    RN05: só o orientador ativo do TCC age sobre a entrega.
+    RN06 / RF17: aqui só vale o passo em_revisao → correcao_solicitada.
+    RN10 / RF18 / RNF12: a mudança de estado gera um Evento, só de inclusão.
+    RN14: o Comentario é criado e nunca alterado.
+    RF10: o Comentario fica vinculado à entrega e à versão avaliada.
+    RF16 / RNF11: a notificação é o Evento gravado; o envio é a US02.
+    """
+    _exigir_orientador_ativo(orientador, entrega.tcc)
+    # CA2 / RN07 — sem texto não há solicitação.
+    if not (comentario or "").strip():
+        raise ValidationError({"comentario": "O comentário é obrigatório."})
+    # RN06 / RF17 — qualquer estado diferente de "em_revisao" é recusado.
+    if entrega.estado != EstadoEntrega.EM_REVISAO:
+        raise ValidationError(
+            {"detail": 'Só é possível solicitar correção de uma entrega "em revisão".'}
+        )
+
+    texto = comentario.strip()
+    # RF10 — o comentário aponta a versão que o orientador acabou de avaliar.
+    Comentario.objects.create(
+        entrega=entrega, versao=entrega.versao_atual, autor=orientador, texto=texto
+    )
+    entrega.estado = EstadoEntrega.CORRECAO_SOLICITADA
+    entrega.save(update_fields=["estado"])
+
+    # CA3 / RF16 — o aluno é notificado e recebe o texto junto, como na US04.
+    # RN10 / RF18 — a mudança de estado deixa rastro no log do TCC.
+    registrar_evento(
+        entrega.tcc,
+        TipoEvento.CORRECAO_SOLICITADA,
+        f'Correção solicitada na entrega "{entrega.titulo}": {texto}',
+        usuario=orientador,
         entrega=entrega,
     )
     return entrega

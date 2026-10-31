@@ -17,7 +17,14 @@ def criar_versao(entrega, numero=None):
     US08 continuam iguais.
     """
     numero = numero or entrega.versoes.count() + 1
-    return Versao.objects.create(entrega=entrega, numero=numero)
+    return Versao.objects.create(
+        entrega=entrega,
+        numero=numero,
+        arquivo=f"tcc/{entrega.tcc_id}/entrega/{entrega.id}/v{numero}.pdf",
+        nome_original=f"v{numero}.pdf",
+        tamanho=1,
+        enviado_por=entrega.tcc.aluno,
+    )
 
 
 class BaseEntregaTests(APITestCase):

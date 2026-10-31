@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import (
+    Comentario,
     Entrega,
     EstadoEntrega,
     Evento,
@@ -157,6 +158,18 @@ class VersaoSerializer(serializers.ModelSerializer):
             return None
 
 
+class ComentarioSerializer(serializers.ModelSerializer):
+    """US11 / RF10 — parecer do orientador, com a versão avaliada quando houver."""
+
+    autor = OrientadorResumoSerializer(read_only=True)
+    versao = serializers.IntegerField(source="versao.numero", read_only=True, default=None)
+
+    class Meta:
+        model = Comentario
+        fields = ["id", "autor", "texto", "versao", "data_criacao"]
+        read_only_fields = fields
+
+
 class EntregaSerializer(serializers.ModelSerializer):
     atrasada = serializers.BooleanField(read_only=True)
     aceita_versao = serializers.BooleanField(read_only=True)
@@ -164,6 +177,12 @@ class EntregaSerializer(serializers.ModelSerializer):
     versao_atual = VersaoSerializer(read_only=True)
     # US08 — vem da mesma regra do service (RN04), para o front não decidir sozinho.
     pode_sinalizar = serializers.BooleanField(source="pode_ser_sinalizada", read_only=True)
+    # US11 — o aluno precisa ler o que o orientador pediu para corrigir.
+    ultimo_comentario = serializers.SerializerMethodField()
+
+    def get_ultimo_comentario(self, entrega):
+        comentario = entrega.comentarios.select_related("autor", "versao").last()
+        return ComentarioSerializer(comentario).data if comentario else None
 
     class Meta:
         model = Entrega
@@ -178,6 +197,8 @@ class EntregaSerializer(serializers.ModelSerializer):
             "aceita_versao",
             "numero_da_proxima_versao",
             "versao_atual",
+            "pode_sinalizar",
+            "ultimo_comentario",
         ]
         read_only_fields = fields
 
@@ -193,6 +214,12 @@ class CriacaoEntregaSerializer(serializers.Serializer):
 
     titulo = serializers.CharField(max_length=200)
     prazo = serializers.DateField()
+
+
+class SolicitacaoCorrecaoSerializer(serializers.Serializer):
+    """US11 CA2 / RN07 — o comentário é obrigatório."""
+
+    comentario = serializers.CharField(allow_blank=False, trim_whitespace=True)
 
 
 class EventoSerializer(serializers.ModelSerializer):
@@ -231,6 +258,7 @@ class OrientandoSerializer(serializers.ModelSerializer):
     prazo = serializers.SerializerMethodField()
     prazo_vencido = serializers.SerializerMethodField()
     aguarda_avaliacao_de_tema = serializers.SerializerMethodField()
+    entrega_para_revisao = serializers.SerializerMethodField()
 
     class Meta:
         model = TCC
@@ -245,6 +273,7 @@ class OrientandoSerializer(serializers.ModelSerializer):
             "prazo",
             "prazo_vencido",
             "aguarda_avaliacao_de_tema",
+            "entrega_para_revisao",
         ]
 
     def _entrega_atual(self, tcc):
@@ -296,3 +325,16 @@ class OrientandoSerializer(serializers.ModelSerializer):
         """Liga o botão "Avaliar tema" na linha."""
         tema = getattr(tcc, "tema", None)
         return bool(tema and tema.status == StatusTema.PROPOSTO)
+
+    def get_entrega_para_revisao(self, tcc):
+        """
+        US10 / US11 — a primeira entrega que espera uma ação do orientador.
+
+        "pronto_para_revisao" liga o botão "Iniciar revisão" e "em_revisao" liga
+        o "Solicitar correção". A "entrega atual" da linha não serve aqui: ela
+        é a primeira em andamento, que pode ser um rascunho do aluno.
+        """
+        for entrega in tcc.entregas.all():
+            if entrega.estado in (EstadoEntrega.PRONTO_PARA_REVISAO, EstadoEntrega.EM_REVISAO):
+                return EntregaSerializer(entrega).data
+        return None

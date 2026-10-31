@@ -11,12 +11,20 @@ import { dataCurta, iniciais } from '../../formato'
  * Não existe uma "fila de temas" separada: o orientador vê todos os
  * orientandos e age na linha de quem está com tema pendente. A "Fila de
  * revisão" do protótipo é de entregas (US09), e entra num próximo sprint.
+ *
+ * US10 — a entrega pronta para revisão ganha "Iniciar revisão" na linha.
+ * US11 — a entrega em revisão ganha "Solicitar correção", num modal com o
+ * comentário obrigatório (RN07). Quem diz qual entrega espera o orientador é
+ * a API (`entrega_para_revisao`); a tela só liga o botão do estado certo.
  */
 export default function Orientandos() {
   const [linhas, setLinhas] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+  const [aviso, setAviso] = useState('')
   const [avaliando, setAvaliando] = useState(null)
+  const [corrigindo, setCorrigindo] = useState(null)
+  const [iniciando, setIniciando] = useState(null) // id da entrega em andamento
 
   const carregar = useCallback(async () => {
     try {
@@ -33,6 +41,21 @@ export default function Orientandos() {
   useEffect(() => {
     carregar()
   }, [carregar])
+
+  async function iniciarRevisao(entrega) {
+    setAviso('')
+    setErro('')
+    setIniciando(entrega.id)
+    try {
+      await api.post(`/entregas/${entrega.id}/iniciar-revisao/`)
+      setAviso(`Revisão de "${entrega.titulo}" iniciada. O aluno foi avisado.`)
+      await carregar()
+    } catch (e) {
+      setErro(mensagemDeErro(e, 'Não foi possível iniciar a revisão.'))
+    } finally {
+      setIniciando(null)
+    }
+  }
 
   const pendentes = linhas.filter((l) => l.aguarda_avaliacao_de_tema).length
   const itens = [
@@ -59,6 +82,7 @@ export default function Orientandos() {
         )}
       </div>
 
+      {aviso && <p className="aviso">{aviso}</p>}
       {erro && <p className="erro">{erro}</p>}
 
       {carregando ? (
@@ -105,11 +129,34 @@ export default function Orientandos() {
                   {dataCurta(linha.prazo)}
                 </td>
                 <td>
-                  {linha.aguarda_avaliacao_de_tema && (
-                    <button className="contorno" onClick={() => setAvaliando(linha)}>
-                      Avaliar tema
-                    </button>
-                  )}
+                  <div className="acoes-linha">
+                    {linha.aguarda_avaliacao_de_tema && (
+                      <button className="contorno" onClick={() => setAvaliando(linha)}>
+                        Avaliar tema
+                      </button>
+                    )}
+                    {/* US10 CA1 — só a entrega pronta para revisão pode ser aberta (RN06). */}
+                    {linha.entrega_para_revisao?.estado === 'pronto_para_revisao' && (
+                      <button
+                        className="contorno"
+                        onClick={() => iniciarRevisao(linha.entrega_para_revisao)}
+                        disabled={iniciando === linha.entrega_para_revisao.id}
+                        aria-label={`Iniciar revisão de ${linha.entrega_para_revisao.titulo}`}
+                      >
+                        {iniciando === linha.entrega_para_revisao.id ? 'Iniciando…' : 'Iniciar revisão'}
+                      </button>
+                    )}
+                    {/* US11 CA1 — só a entrega em revisão pede correção (RN06). */}
+                    {linha.entrega_para_revisao?.estado === 'em_revisao' && (
+                      <button
+                        className="contorno"
+                        onClick={() => setCorrigindo(linha)}
+                        aria-label={`Solicitar correção de ${linha.entrega_para_revisao.titulo}`}
+                      >
+                        Solicitar correção
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -127,7 +174,87 @@ export default function Orientandos() {
           }}
         />
       )}
+      {corrigindo && (
+        <ModalSolicitarCorrecao
+          linha={corrigindo}
+          aoFechar={() => setCorrigindo(null)}
+          aoConcluir={async () => {
+            const { titulo } = corrigindo.entrega_para_revisao
+            setCorrigindo(null)
+            setAviso(`Correção solicitada em "${titulo}". O aluno foi avisado.`)
+            await carregar()
+          }}
+        />
+      )}
     </Layout>
+  )
+}
+
+/** US11 — comentário obrigatório (RN07); o aluno o recebe junto com a notificação. */
+function ModalSolicitarCorrecao({ linha, aoFechar, aoConcluir }) {
+  const { aluno, entrega_para_revisao: entrega } = linha
+  const [comentario, setComentario] = useState('')
+  const [erro, setErro] = useState('')
+  const [enviando, setEnviando] = useState(false)
+
+  async function enviar(evento) {
+    evento.preventDefault()
+    // RN07 — como no protótipo, o botão fica ativo e a mensagem aparece ao tentar.
+    if (!comentario.trim()) {
+      setErro('Escreva um comentário para solicitar correção.')
+      return
+    }
+    setErro('')
+    setEnviando(true)
+    try {
+      await api.post(`/entregas/${entrega.id}/solicitar-correcao/`, { comentario })
+      await aoConcluir()
+    } catch (e) {
+      setErro(mensagemDeErro(e, 'Não foi possível solicitar a correção.'))
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <Modal titulo="Solicitar correção" aoFechar={aoFechar}>
+      <div className="modal-autor">
+        <span className="avatar">{iniciais(aluno?.nome)}</span>
+        <div>
+          <div>{aluno?.nome}</div>
+          <div className="quando">{entrega.titulo}</div>
+        </div>
+      </div>
+
+      {erro && <p className="erro">{erro}</p>}
+
+      <form onSubmit={enviar}>
+        <div className="campo">
+          <label htmlFor="comentario">Novo comentário</label>
+          <textarea
+            id="comentario"
+            rows={5}
+            value={comentario}
+            onChange={(e) => {
+              setComentario(e.target.value)
+              setErro('')
+            }}
+            placeholder="Descreva o que precisa ser ajustado"
+          />
+          <p className="ajuda">
+            Obrigatório. O aluno recebe esse comentário junto com a notificação.
+          </p>
+        </div>
+
+        <div className="barra-acoes">
+          <button type="button" className="contorno" onClick={aoFechar} disabled={enviando}>
+            Cancelar
+          </button>
+          <button type="submit" disabled={enviando}>
+            {enviando ? 'Enviando…' : 'Solicitar correção'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 

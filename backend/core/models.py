@@ -1,7 +1,8 @@
 """
-Modelos do SGTCC. Escopo do Sprint 3: US01, US03, US04 e US05.
+Modelos do SGTCC. Escopo do Sprint 3: US01, US03, US04, US05, US10 e US11.
 
-Versão, Comentário e Notificação ficam para a US06 em diante.
+Versão e Notificação ficam para a US06 em diante. O Comentário entra com a
+US11, sem o vínculo opcional com Versão, que depende da US06.
 As RN citadas são as da Especificação do Sistema (Sprint 1), seção 7.
 """
 from pathlib import Path
@@ -48,7 +49,13 @@ class TipoEvento(models.TextChoices):
     TEMA_APROVADO = "tema_aprovado", "Tema aprovado"
     TEMA_AJUSTE_SOLICITADO = "tema_ajuste_solicitado", "Ajuste de tema solicitado"
     ENTREGA_CRIADA = "entrega_criada", "Entrega criada"
+    # US08 CA3 — RN10 / RF18: gatilho da notificação ao orientador (RF16).
+    ENTREGA_PRONTA = "entrega_pronta", "Entrega sinalizada como pronta"
     UPLOAD = "upload", "Versão enviada"
+    # US10 CA1 — RN10 / RF18: gatilho da notificação ao aluno (RF16).
+    ENTREGA_EM_REVISAO = "entrega_em_revisao", "Entrega em revisão"
+    # US11 CA3 — RN10 / RF18: gatilho da notificação ao aluno (RF16).
+    CORRECAO_SOLICITADA = "correcao_solicitada", "Correção solicitada"
     TROCA_ORIENTADOR = "troca_orientador", "Troca de orientador"
 
 
@@ -290,6 +297,33 @@ class Versao(models.Model):
     def __str__(self):
         return f"{self.entrega.titulo} — versão {self.numero}"
 
+
+
+class Comentario(models.Model):
+    """
+    Parecer do orientador sobre uma Entrega (RF10).
+
+    US11 — registrado ao solicitar correção (RN07).
+    RN14 — não é editado nem removido: a API não expõe nenhuma rota para isso.
+    RF10 — pode apontar a Versão avaliada; se a versão for apagada (RN13), o
+    comentário permanece, só perde o vínculo.
+    """
+
+    entrega = models.ForeignKey(Entrega, on_delete=models.CASCADE, related_name="comentarios")
+    versao = models.ForeignKey(
+        Versao, on_delete=models.SET_NULL, null=True, blank=True, related_name="comentarios"
+    )
+    autor = models.ForeignKey(Usuario, on_delete=models.PROTECT, related_name="comentarios")
+    texto = models.TextField("texto")
+    data_criacao = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "comentário"
+        verbose_name_plural = "comentários"
+        ordering = ["data_criacao", "id"]
+
+    def __str__(self):
+        return f"Comentário de {self.autor.nome} em {self.entrega.titulo}"
 
 
 class Evento(models.Model):

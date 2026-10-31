@@ -56,13 +56,23 @@ class Command(BaseCommand):
         )
 
         # Rascunho com uma versão: já pode ser sinalizado como pronto (US08 CA1).
-        # A versão é só um registro, sem arquivo; o envio de verdade é a US06.
+        # A versão é só um registro, sem arquivo no disco; o envio de verdade é a US06.
+        # RN13 — o contador da entrega acompanha a versão, para o próximo upload ser a v2.
         referencial = criar_entrega(
             aluno=aluno,
             titulo="Capítulo 2 — Referencial teórico",
             prazo=timezone.localdate() + timedelta(days=35),
         )
-        Versao.objects.create(entrega=referencial, numero=1)
+        Versao.objects.create(
+            entrega=referencial,
+            numero=1,
+            arquivo=f"tcc/{tcc.id}/entrega/{referencial.id}/v1.pdf",
+            nome_original="capitulo-2-v1.pdf",
+            tamanho=1,
+            enviado_por=aluno,
+        )
+        referencial.versoes_enviadas = 1
+        referencial.save(update_fields=["versoes_enviadas"])
 
         # Ana: tema proposto, esperando parecer do Marcos — alimenta a fila da US04.
         tcc_ana = TCC.objects.create(aluno=ana)

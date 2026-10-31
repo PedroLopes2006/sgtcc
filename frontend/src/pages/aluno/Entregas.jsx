@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import api, { mensagemDeErro } from '../../api'
 import EnviarVersao from '../../components/EnviarVersao'
 import Estado from '../../components/Estado'
 import { ROTULO_ESTADO_ENTREGA, dataCurta } from '../../formato'
@@ -52,6 +53,18 @@ export default function Entregas() {
         </div>
       </div>
 
+      {/* US11 CA3 — o aviso do protótipo: o aluno vê de relance que há correção pendente. */}
+      {entregas
+        .filter((e) => e.estado === 'correcao_solicitada' && e.ultimo_comentario)
+        .map((e) => (
+          <div className="aviso-correcao" key={e.id}>
+            <strong>Seu orientador pediu correção</strong>
+            <span>
+              {e.titulo} · {e.ultimo_comentario.autor?.nome}
+            </span>
+          </div>
+        ))}
+
       {aviso && <p className="aviso">{aviso}</p>}
       {erro && <p className="erro">{erro}</p>}
 
@@ -76,6 +89,18 @@ export default function Entregas() {
                   {entrega.versao_atual && ` · versão ${entrega.versao_atual.numero}`}
                   {entrega.atrasada && ' · vencido'}
                 </div>
+                {/* US11 — o aluno lê o que o orientador pediu para corrigir. */}
+                {entrega.estado === 'correcao_solicitada' && entrega.ultimo_comentario && (
+                  <div className="comentario-correcao">
+                    <div>{entrega.ultimo_comentario.texto}</div>
+                    <div className="rotulo">
+                      {entrega.ultimo_comentario.autor?.nome}
+                      {entrega.ultimo_comentario.versao &&
+                        ` · versão ${entrega.ultimo_comentario.versao}`}
+                      {` · ${dataCurta(entrega.ultimo_comentario.data_criacao)}`}
+                    </div>
+                  </div>
+                )}
               </div>
              <div className="acoes-linha">
                 <Estado
