@@ -12,12 +12,15 @@ Frederico Mariani, Pedro Augusto, Felipe Regiani, Carlos Augusto, Paulo Sérgio,
 | US04 | Aprovar ou ajustar tema | Completa (CA1–CA3) |
 | US05 | Criar entrega | Completa (CA1–CA2) |
 | US06 | Upload de versão | Completa (CA1–CA4) |
+| US08 | Sinalizar pronta para revisão | Completa (CA1–CA3) |
 
 Conforme o recorte combinado para o sprint:
 
-- **A US06 entrega o upload, não o histórico.** A tela de versões anteriores é a US07 e fica para depois; aqui a lista mostra apenas o número da versão atual.
-- **As notificações ficam para quando o Telegram entrar.** Os pontos que pedem aviso (US03 CA2 e CA4, US04 CA3) já gravam um `Evento` no log, que é exatamente o gatilho que o disparo vai consumir depois. Nesta etapa só a mudança de status é implementada.
-- As entidades **Comentário e Notificação** do DER do Sprint 1 ainda não existem no código, pelo mesmo motivo. A **Versão** entrou com a US06.
+- **A US05 cria só a etapa, sem arquivo.** O upload de versões é a US06, feita por outra pessoa do grupo — não há campo de arquivo em `Entrega`. A `Versao` existe aqui só na forma mínima que a US08 consulta (entrega e número, com `related_name="versoes"`); a US06 completa o modelo.
+- **As notificações ficam para quando o Telegram entrar.** Os pontos que pedem aviso (US03 CA2 e CA4, US04 CA3, US08 CA3) já gravam um `Evento` no log, que é exatamente o gatilho que o disparo vai consumir depois. Nesta etapa só a mudança de status é implementada.
+- **Versão** existe só em forma mínima (veja acima). **Comentário e Notificação** do DER do Sprint 1 ainda não existem no código.
+- O `Evento` ganhou o vínculo opcional com a `Entrega`: a sinalização aponta para ela. A US09 usará isso para ordenar a fila pela data em que a entrega ficou pronta.
+- **A sinalização fica como botão na lista de entregas** e não há como desfazê-la: depois de "pronto para revisão", a entrega só sai desse estado pela ação do orientador (US10 em diante).
 
 ## Relação com o protótipo do Figma
 
@@ -58,6 +61,8 @@ Dados de exemplo (personas do Sprint 2):
 ```bash
 docker compose exec backend python manage.py seed_demo
 ```
+O seed cria, para o Lucas, uma entrega em rascunho sem versão (a sinalização é barrada) e outra com um registro de versão (já pode ser sinalizada). A versão é só um registro, sem arquivo, até a US06. O seed não roda de novo se o Lucas já existir: para recriar os dados, apague o volume (`docker compose down -v`).
+
 
 | Perfil | E-mail | Senha |
 |--------|--------|-------|
@@ -164,6 +169,7 @@ No backend, um teste por critério de aceite mais as regras de negócio envolvid
 | GET | `/api/temas/pendentes/` | US04 (não usado pelo front) | orientador |
 | GET, POST | `/api/entregas/` | US05 | aluno |
 | POST | `/api/entregas/<id>/versoes/` | US06 CA1–CA4 | aluno |
+| POST | `/api/entregas/<id>/sinalizar-pronta/` | US08 CA1–CA3 | aluno |
 | GET | `/api/eventos/` | base da US16 | aluno |
 
 ## Organização do código
@@ -172,7 +178,7 @@ No backend, um teste por critério de aceite mais as regras de negócio envolvid
 backend/
   config/            configurações, URLs raiz
   core/
-    models.py        Usuario, TCC, Tema, Orientacao, Entrega, Evento
+    models.py        Usuario, TCC, Tema, Orientacao, Entrega, Versao, Evento
     services.py      regras de negócio — é aqui que mora a lógica das US
     serializers.py   validação de entrada e formato de saída
     views.py         endpoints finos, só orquestram services
@@ -189,19 +195,20 @@ frontend/
       orientador/    Orientandos (tabela + modal de avaliação)
     __tests__/       testes de fumaça das telas
 ```
-
 As regras de negócio ficam em `services.py`, fora das views. Isso mantém a API fina e permite testar os critérios de aceite sem passar por HTTP — vale manter esse padrão nos próximos sprints.
 
 ## Regras de negócio cobertas
-
 | Regra | Onde |
 |-------|------|
 | RN01 — um TCC por aluno | `TCC.aluno` é `OneToOneField` + checagem em `propor_tema` |
 | RN02 — entrega exige tema aprovado | `criar_entrega` |
+| RN03 — estados em que a entrega aceita versão | `Entrega.aceita_versao`, `enviar_versao` |
+| RN04 — sinalizar exige ao menos uma versão | `sinalizar_pronta`, `Entrega.pode_ser_sinalizada` |
 | RN05 — só o orientador ativo decide | `_exigir_orientador_ativo` |
 | RN07 — ajuste exige justificativa | `solicitar_ajuste_tema` |
 | RN09 — uma orientação ativa por TCC | constraint parcial no banco |
 | RN10 — toda mudança gera evento | `registrar_evento` |
+| RN13 — número de versão nunca reutilizado | contador `Entrega.versoes_enviadas` + constraint no banco |
 | RN15 — orientação ativa desde a proposta | `propor_tema` |
 | RNF03 — senha com hash | `UsuarioManager.set_password` |
 | RNF04 — acesso por perfil | `core/permissions.py` |
@@ -209,6 +216,7 @@ As regras de negócio ficam em `services.py`, fora das views. Isso mantém a API
 ## Próximos passos
 
 1. **US07** — histórico de versões de uma entrega.
-2. **US08 a US13** — máquina de estados completa da entrega (RN06) e fluxo de revisão.
+2. **US09 a US13** — fila de revisão, marcar em revisão, comentário e correção, aprovação e envio à banca (RN06).
 3. **US02 e RF16** — bot do Telegram consumindo os `Evento` já gravados.
 4. **US14 a US16** — painel com prazos vencidos destacados, reatribuição de orientador e timeline.
+

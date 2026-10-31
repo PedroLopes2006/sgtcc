@@ -5,14 +5,36 @@ import Estado from '../../components/Estado'
 import { ROTULO_ESTADO_ENTREGA, dataCurta } from '../../formato'
 import { useTcc } from './AreaAluno'
 
-/** US05 — lista de entregas. US06 — envio de versão a partir dela. */
+/**
+ * US05 — lista de entregas e porta de entrada para criar uma nova.
+ * US06 — envio de versão a partir dela.
+ * US08 — cada entrega que já pode ser sinalizada como pronta ganha o botão para isso.
+ */
 export default function Entregas() {
   const { tcc, recarregar } = useTcc()
   const navegar = useNavigate()
   const [enviandoVersaoDe, setEnviandoVersaoDe] = useState(null)
+  const [sinalizando, setSinalizando] = useState(null) // id da entrega em andamento
+  const [aviso, setAviso] = useState('')
+  const [erro, setErro] = useState('')
 
   const temaAprovado = tcc?.tema?.status === 'aprovado'
   const entregas = tcc?.entregas || []
+
+  async function sinalizar(entrega) {
+    setAviso('')
+    setErro('')
+    setSinalizando(entrega.id)
+    try {
+      await api.post(`/entregas/${entrega.id}/sinalizar-pronta/`)
+      setAviso(`"${entrega.titulo}" sinalizada. Seu orientador foi avisado.`)
+      await recarregar()
+    } catch (e) {
+      setErro(mensagemDeErro(e, 'Não foi possível sinalizar a entrega.'))
+    } finally {
+      setSinalizando(null)
+    }
+  }
 
   return (
     <div>
@@ -29,6 +51,10 @@ export default function Entregas() {
           </button>
         </div>
       </div>
+
+      {aviso && <p className="aviso">{aviso}</p>}
+      {erro && <p className="erro">{erro}</p>}
+
 
       {entregas.length === 0 ? (
         <div className="vazio">
@@ -51,8 +77,7 @@ export default function Entregas() {
                   {entrega.atrasada && ' · vencido'}
                 </div>
               </div>
-
-              <div className="acoes-da-linha">
+             <div className="acoes-linha">
                 <Estado
                   codigo={entrega.estado}
                   rotulo={ROTULO_ESTADO_ENTREGA[entrega.estado]}
@@ -62,6 +87,17 @@ export default function Entregas() {
                 {entrega.aceita_versao && (
                   <button className="contorno" onClick={() => setEnviandoVersaoDe(entrega)}>
                     Enviar versão
+                  </button>
+                )}
+                {/* US08 — a API diz se a entrega pode ser sinalizada (RN04). */}
+                {entrega.pode_sinalizar && (
+                  <button
+                    className="contorno"
+                    onClick={() => sinalizar(entrega)}
+                    disabled={sinalizando === entrega.id}
+                    aria-label={`Sinalizar ${entrega.titulo} como pronta`}
+                  >
+                    {sinalizando === entrega.id ? 'Sinalizando…' : 'Sinalizar pronta'}
                   </button>
                 )}
               </div>

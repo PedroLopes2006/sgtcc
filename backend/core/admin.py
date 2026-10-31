@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Entrega, Evento, Orientacao, TCC, Tema, Usuario
+from .models import Entrega, Evento, Orientacao, TCC, Tema, Usuario, Versao
 
 
 @admin.register(Usuario)
@@ -37,3 +37,10 @@ class EntregaAdmin(admin.ModelAdmin):
 class EventoAdmin(admin.ModelAdmin):
     list_display = ("tcc", "tipo", "data_hora")
     list_filter = ("tipo",)
+
+@admin.register(Versao)
+class VersaoAdmin(admin.ModelAdmin):
+    """Provisório: permite criar uma versão à mão para t/home/felipe/Documentos/Projetos/SGTCC/sgtcc/backend/core/admin.pyestar a US08 até a US06 entrar."""
+
+    list_display = ("entrega", "numero", "data_envio")
+

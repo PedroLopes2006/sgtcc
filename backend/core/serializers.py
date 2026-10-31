@@ -162,6 +162,8 @@ class EntregaSerializer(serializers.ModelSerializer):
     aceita_versao = serializers.BooleanField(read_only=True)
     numero_da_proxima_versao = serializers.IntegerField(read_only=True)
     versao_atual = VersaoSerializer(read_only=True)
+    # US08 — vem da mesma regra do service (RN04), para o front não decidir sozinho.
+    pode_sinalizar = serializers.BooleanField(source="pode_ser_sinalizada", read_only=True)
 
     class Meta:
         model = Entrega

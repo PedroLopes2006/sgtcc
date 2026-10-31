@@ -244,6 +244,11 @@ class Entrega(models.Model):
         return self.estado not in EstadoEntrega.encerrados() and self.prazo < timezone.localdate()
 
     @property
+    def pode_ser_sinalizada(self):
+        """RN04 — em rascunho e com ao menos uma versão enviada."""
+        return self.estado == EstadoEntrega.RASCUNHO and self.versoes.exists()
+
+    @property
     def aceita_versao(self):
         """RN03 — upload só em "rascunho" ou "correção solicitada"."""
         return self.estado in (EstadoEntrega.RASCUNHO, EstadoEntrega.CORRECAO_SOLICITADA)
@@ -256,12 +261,10 @@ class Entrega(models.Model):
     def numero_da_proxima_versao(self):
         return self.versoes_enviadas + 1
 
-
 def caminho_da_versao(versao, nome_original):
     """tcc/<id>/entrega/<id>/v<n>.pdf — previsível e sem colisão entre alunos."""
     extensao = Path(nome_original).suffix.lower() or ".pdf"
     return f"tcc/{versao.entrega.tcc_id}/entrega/{versao.entrega_id}/v{versao.numero}{extensao}"
-
 
 class Versao(models.Model):
     """Arquivo enviado pelo aluno dentro de uma Entrega (US06)."""
@@ -288,6 +291,7 @@ class Versao(models.Model):
         return f"{self.entrega.titulo} — versão {self.numero}"
 
 
+
 class Evento(models.Model):
     """
     Log imutável do ciclo de vida do TCC.
@@ -301,6 +305,11 @@ class Evento(models.Model):
     descricao = models.TextField("descrição")
     usuario_relacionado = models.ForeignKey(
         Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name="eventos"
+    )
+    # Eventos de uma entrega (sinalização…) apontam para ela; os de tema não.
+    # A US09 usa isto para saber desde quando a entrega espera revisão.
+    entrega = models.ForeignKey(
+        Entrega, on_delete=models.SET_NULL, null=True, blank=True, related_name="eventos"
     )
     data_hora = models.DateTimeField(default=timezone.now)
 
