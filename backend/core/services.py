@@ -364,6 +364,7 @@ def solicitar_correcao_entrega(*, orientador, entrega, comentario):
     RN06 / RF17: aqui só vale o passo em_revisao → correcao_solicitada.
     RN10 / RF18 / RNF12: a mudança de estado gera um Evento, só de inclusão.
     RN14: o Comentario é criado e nunca alterado.
+    RF10: o Comentario fica vinculado à entrega e à versão avaliada.
     RF16 / RNF11: a notificação é o Evento gravado; o envio é a US02.
     """
     _exigir_orientador_ativo(orientador, entrega.tcc)
@@ -377,7 +378,10 @@ def solicitar_correcao_entrega(*, orientador, entrega, comentario):
         )
 
     texto = comentario.strip()
-    Comentario.objects.create(entrega=entrega, autor=orientador, texto=texto)
+    # RF10 — o comentário aponta a versão que o orientador acabou de avaliar.
+    Comentario.objects.create(
+        entrega=entrega, versao=entrega.versao_atual, autor=orientador, texto=texto
+    )
     entrega.estado = EstadoEntrega.CORRECAO_SOLICITADA
     entrega.save(update_fields=["estado"])
 

@@ -756,3 +756,31 @@ button.texto:hover:not(:disabled) {
   gap: 16px;
 }
 
+
+/* ------------------------------------------------------------ correção (US11) */
+
+.comentario-correcao {
+  margin-top: 8px;
+  padding-left: 10px;
+  border-left: 2px solid var(--borda-forte);
+  font-size: 13px;
+}
+.comentario-correcao .rotulo {
+  font-size: 12px;
+  color: var(--texto-suave);
+  margin-bottom: 2px;
+}
+
+.aviso-correcao {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio);
+  font-size: 13px;
+}
+.aviso-correcao span {
+  color: var(--texto-suave);
+}

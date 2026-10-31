@@ -305,10 +305,14 @@ class Comentario(models.Model):
 
     US11 — registrado ao solicitar correção (RN07).
     RN14 — não é editado nem removido: a API não expõe nenhuma rota para isso.
-    O vínculo opcional com uma Versão específica entra com a US06.
+    RF10 — pode apontar a Versão avaliada; se a versão for apagada (RN13), o
+    comentário permanece, só perde o vínculo.
     """
 
     entrega = models.ForeignKey(Entrega, on_delete=models.CASCADE, related_name="comentarios")
+    versao = models.ForeignKey(
+        Versao, on_delete=models.SET_NULL, null=True, blank=True, related_name="comentarios"
+    )
     autor = models.ForeignKey(Usuario, on_delete=models.PROTECT, related_name="comentarios")
     texto = models.TextField("texto")
     data_criacao = models.DateTimeField(default=timezone.now)
