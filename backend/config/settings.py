@@ -152,8 +152,41 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# US06 — limites do arquivo de versão.
+VERSAO_EXTENSOES = (".pdf",)
+VERSAO_TAMANHO_MAXIMO = int(os.environ.get("VERSAO_TAMANHO_MAXIMO_MB", "10")) * 1024 * 1024
+
+# Com as credenciais S3 definidas, os arquivos vão para o Supabase Storage.
+# Sem elas, ficam em disco — o que serve para desenvolvimento, mas não para o
+# Render, cujo disco é apagado a cada deploy.
+_bucket = os.environ.get("AWS_STORAGE_BUCKET_NAME")
+
+if _bucket:
+    _armazenamento_de_arquivos = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": _bucket,
+            "endpoint_url": os.environ["AWS_S3_ENDPOINT_URL"],
+            "access_key": os.environ["AWS_ACCESS_KEY_ID"],
+            "secret_key": os.environ["AWS_SECRET_ACCESS_KEY"],
+            "region_name": os.environ.get("AWS_S3_REGION_NAME", "sa-east-1"),
+            "file_overwrite": False,
+            "default_acl": None,
+            "querystring_auth": True,
+            "querystring_expire": 3600,
+            "signature_version": "s3v4",
+            "addressing_style": "path",
+        },
+    }
+else:
+    _armazenamento_de_arquivos = {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+
 STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "default": _armazenamento_de_arquivos,
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 

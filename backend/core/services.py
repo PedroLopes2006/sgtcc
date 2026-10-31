@@ -1,9 +1,12 @@
 """
-Regras de negócio do Sprint 3.
+Regras de negócio dos Sprints 3 e 4.
 
 Notificações (US03 CA2, US03 CA4, US04 CA3): cada ponto registra um Evento;
 o envio é a US02.
 """
+from pathlib import Path
+
+from django.conf import settings
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
@@ -18,6 +21,7 @@ from .models import (
     TCC,
     Tema,
     TipoEvento,
+    Versao,
 )
 
 
@@ -181,6 +185,80 @@ def criar_entrega(*, aluno, titulo, prazo):
         usuario=aluno,
     )
     return entrega
+
+def _validar_arquivo_da_versao(arquivo):
+    """Formato PDF, conforme o protótipo, e um teto de tamanho."""
+    if arquivo is None:
+        raise ValidationError({"arquivo": "Selecione um arquivo."})
+
+    extensao = Path(arquivo.name).suffix.lower()
+    if extensao not in settings.VERSAO_EXTENSOES:
+        permitidas = ", ".join(settings.VERSAO_EXTENSOES)
+        raise ValidationError({"arquivo": f"Formato não aceito. Envie um arquivo {permitidas}."})
+
+    if arquivo.size == 0:
+        raise ValidationError({"arquivo": "O arquivo está vazio."})
+
+    if arquivo.size > settings.VERSAO_TAMANHO_MAXIMO:
+        teto = settings.VERSAO_TAMANHO_MAXIMO // (1024 * 1024)
+        raise ValidationError({"arquivo": f"O arquivo passa do limite de {teto} MB."})
+
+
+@transaction.atomic
+def enviar_versao(*, aluno, entrega, arquivo):
+    """
+    US06 — upload de versão.
+
+    CA1 / RN13: cria a Versão com número incremental.
+    CA2: de "correção solicitada", a entrega volta para "rascunho".
+    CA3 / RN03: qualquer outro estado é recusado.
+    CA4: registra um Evento "upload".
+    """
+    if not aluno.eh_aluno:
+        raise PermissionDenied("Apenas alunos enviam versões.")
+    if entrega.tcc.aluno_id != aluno.id:
+        raise PermissionDenied("Esta entrega não pertence a você.")
+
+    if not entrega.aceita_versao:
+        raise ValidationError(
+            {
+                "detail": "Só é possível enviar versão com a entrega em "
+                '"rascunho" ou "correção solicitada".'
+            }
+        )
+
+    _validar_arquivo_da_versao(arquivo)
+
+    # Trava a entrega até o fim da transação: dois envios simultâneos não
+    # podem calcular o mesmo número.
+    entrega = Entrega.objects.select_for_update().get(pk=entrega.pk)
+
+    versao = Versao(
+        entrega=entrega,
+        numero=entrega.numero_da_proxima_versao,
+        enviado_por=aluno,
+        nome_original=Path(arquivo.name).name[:255],
+        tamanho=arquivo.size,
+    )
+    versao.arquivo = arquivo
+    versao.save()
+
+    campos = ["versoes_enviadas"]
+    entrega.versoes_enviadas = versao.numero
+
+    voltou_para_rascunho = entrega.estado == EstadoEntrega.CORRECAO_SOLICITADA
+    if voltou_para_rascunho:
+        entrega.estado = EstadoEntrega.RASCUNHO
+        campos.append("estado")
+
+    entrega.save(update_fields=campos)
+
+    descricao = f'Versão {versao.numero} enviada em "{entrega.titulo}".'
+    if voltou_para_rascunho:
+        descricao += " A entrega voltou para rascunho."
+    registrar_evento(entrega.tcc, TipoEvento.UPLOAD, descricao, usuario=aluno, entrega=entrega)
+
+    return versao
 
 # us08
 @transaction.atomic

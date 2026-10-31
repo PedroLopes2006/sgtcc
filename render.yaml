@@ -33,3 +33,16 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
+      # US06: o disco do Render é apagado a cada deploy, então os arquivos de
+      # versão vão para o Supabase Storage. Sem estas variáveis o Django grava
+      # em backend/media, que serve só para rodar local.
+      - key: AWS_STORAGE_BUCKET_NAME
+        sync: false
+      - key: AWS_S3_ENDPOINT_URL
+        sync: false
+      - key: AWS_S3_REGION_NAME
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false

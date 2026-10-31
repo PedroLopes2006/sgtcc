@@ -4,6 +4,8 @@ Modelos do SGTCC. Escopo do Sprint 3: US01, US03, US04 e US05.
 Versão, Comentário e Notificação ficam para a US06 em diante.
 As RN citadas são as da Especificação do Sistema (Sprint 1), seção 7.
 """
+from pathlib import Path
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -46,6 +48,7 @@ class TipoEvento(models.TextChoices):
     TEMA_APROVADO = "tema_aprovado", "Tema aprovado"
     TEMA_AJUSTE_SOLICITADO = "tema_ajuste_solicitado", "Ajuste de tema solicitado"
     ENTREGA_CRIADA = "entrega_criada", "Entrega criada"
+    UPLOAD = "upload", "Versão enviada"
     TROCA_ORIENTADOR = "troca_orientador", "Troca de orientador"
 
 
@@ -224,6 +227,9 @@ class Entrega(models.Model):
     prazo = models.DateField("prazo")
     data_criacao = models.DateTimeField(default=timezone.now)
     data_conclusao = models.DateTimeField(null=True, blank=True)
+    # RN13 — contador que só avança. Olhar o maior número existente
+    # reaproveitaria o número de uma versão apagada.
+    versoes_enviadas = models.PositiveIntegerField("versões enviadas", default=0)
 
     class Meta:
         verbose_name = "entrega"
@@ -237,28 +243,54 @@ class Entrega(models.Model):
     def atrasada(self):
         return self.estado not in EstadoEntrega.encerrados() and self.prazo < timezone.localdate()
 
-class Versao(models.Model):
-    """
-    Arquivo enviado dentro de uma entrega.
+    @property
+    def pode_ser_sinalizada(self):
+        """RN04 — em rascunho e com ao menos uma versão enviada."""
+        return self.estado == EstadoEntrega.RASCUNHO and self.versoes.exists()
 
-    Forma mínima: só o que a US08 consulta (RN04 — sinalizar exige ao menos uma
-    versão, e o `related_name="versoes"` é como as regras a encontram). O envio
-    do arquivo, o armazenamento, o nome original, o tamanho, o autor e a
-    unicidade do número (RN13) são da US06, que completa este modelo.
-    """
+    @property
+    def aceita_versao(self):
+        """RN03 — upload só em "rascunho" ou "correção solicitada"."""
+        return self.estado in (EstadoEntrega.RASCUNHO, EstadoEntrega.CORRECAO_SOLICITADA)
+
+    @property
+    def versao_atual(self):
+        return self.versoes.first()
+
+    @property
+    def numero_da_proxima_versao(self):
+        return self.versoes_enviadas + 1
+
+def caminho_da_versao(versao, nome_original):
+    """tcc/<id>/entrega/<id>/v<n>.pdf — previsível e sem colisão entre alunos."""
+    extensao = Path(nome_original).suffix.lower() or ".pdf"
+    return f"tcc/{versao.entrega.tcc_id}/entrega/{versao.entrega_id}/v{versao.numero}{extensao}"
+
+class Versao(models.Model):
+    """Arquivo enviado pelo aluno dentro de uma Entrega (US06)."""
 
     entrega = models.ForeignKey(Entrega, on_delete=models.CASCADE, related_name="versoes")
     numero = models.PositiveIntegerField("número")
-    arquivo = models.FileField("arquivo", upload_to="versoes/", blank=True)
+    arquivo = models.FileField("arquivo", upload_to=caminho_da_versao)
+    nome_original = models.CharField("nome original", max_length=255)
+    tamanho = models.PositiveIntegerField("tamanho em bytes")
+    enviado_por = models.ForeignKey(Usuario, on_delete=models.PROTECT, related_name="versoes")
     data_envio = models.DateTimeField(default=timezone.now)
 
     class Meta:
         verbose_name = "versão"
         verbose_name_plural = "versões"
-        ordering = ["numero"]
+        ordering = ["-numero"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["entrega", "numero"], name="numero_de_versao_unico_por_entrega"
+            )
+        ]
 
     def __str__(self):
-        return f"{self.entrega.titulo} — v{self.numero}"
+        return f"{self.entrega.titulo} — versão {self.numero}"
+
+
 
 class Evento(models.Model):
     """
