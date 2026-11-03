@@ -1,6 +1,6 @@
 # SGTCC — Sistema de Gestão de TCC
 
-Sprint 3 e 4 — Grupo 1 (Turma CC4N)
+Grupo 1 (Turma CC4N)
 Frederico Mariani, Pedro Augusto, Felipe Regiani, Carlos Augusto, Paulo Sérgio, Vitor Marçal
 
 ## O que está implementado
