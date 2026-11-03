@@ -152,10 +152,17 @@ class VersaoSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_arquivo_url(self, versao):
+        """
+        Em produção, URL assinada do Supabase (vale 1 hora). Em disco, o storage
+        devolve "/media/...": com o request, vira absoluta no host da API, porque
+        o front roda em outra origem. URL já absoluta passa sem mudança.
+        """
         try:
-            return versao.arquivo.url
+            url = versao.arquivo.url
         except (ValueError, NotImplementedError):
             return None
+        request = self.context.get("request")
+        return request.build_absolute_uri(url) if request else url
 
 
 class ComentarioSerializer(serializers.ModelSerializer):
@@ -336,5 +343,5 @@ class OrientandoSerializer(serializers.ModelSerializer):
         """
         for entrega in tcc.entregas.all():
             if entrega.estado in (EstadoEntrega.PRONTO_PARA_REVISAO, EstadoEntrega.EM_REVISAO):
-                return EntregaSerializer(entrega).data
+                return EntregaSerializer(entrega, context=self.context).data
         return None

@@ -164,14 +164,20 @@ def temas_pendentes(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, EhOrientador])
 def meus_orientandos(request):
-    """Visão de conjunto dos TCCs que o orientador acompanha."""
+    """
+    Visão de conjunto dos TCCs que o orientador acompanha.
+
+    RN05 — só os TCCs com Orientação ativa dele. É também por aqui que o
+    orientador recebe o link do arquivo da versão atual de cada entrega
+    (`versao_atual.arquivo_url`), para ler o documento antes de revisar.
+    """
     tccs = (
         TCC.objects.filter(orientacoes__orientador=request.user, orientacoes__ativa=True)
         .select_related("aluno", "tema")
         .prefetch_related("entregas")
         .distinct()
     )
-    return Response(OrientandoSerializer(tccs, many=True).data)
+    return Response(OrientandoSerializer(tccs, many=True, context={"request": request}).data)
 
 
 class AprovarTemaView(APIView):

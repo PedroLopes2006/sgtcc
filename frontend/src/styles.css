@@ -317,6 +317,35 @@ button.contorno:disabled {
   color: var(--texto-fraco);
 }
 
+/* Link com cara de botão contorno (abrir o arquivo da versão). */
+a.contorno {
+  display: inline-block;
+  padding: 8px 14px;
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio);
+  background: #fff;
+  color: var(--texto);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.contorno:hover {
+  background: var(--bg-sutil);
+}
+
+.documento-versao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.documento-versao .meta {
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
 button.texto {
   background: none;
   border-color: transparent;

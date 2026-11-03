@@ -24,6 +24,7 @@ Conforme o recorte combinado para o sprint:
 - O `Evento` ganhou o vínculo opcional com a `Entrega`: a sinalização, a abertura da revisão e a correção apontam para ela. A US09 usará isso para ordenar a fila pela data em que a entrega ficou pronta.
 - **A sinalização fica como botão na lista de entregas** e não há como desfazê-la: depois de "pronto para revisão", a entrega só sai desse estado pela ação do orientador.
 - **A US10 e a US11 ficam como botões na tabela de orientandos.** "Iniciar revisão" aparece na linha cuja entrega está pronta para revisão, e "Solicitar correção" na que está em revisão, abrindo um modal com o comentário obrigatório. A API diz qual entrega espera o orientador (`entrega_para_revisao`), porque ela pode não ser a "fase atual" da linha.
+- **O orientador abre o PDF da versão atual** pelo link "Abrir versão N", na linha da entrega que espera revisão e no modal de "Solicitar correção". Entrega sem versão não mostra o link. Ver a nota em [Endpoints](#endpoints).
 - **O comentário da correção** fica gravado ligado à entrega e à versão avaliada (RF10), nunca é editado nem removido (RN14), e o aluno o lê na lista de entregas enquanto a entrega estiver em "correção solicitada".
 
 ## O que cada US aplica
@@ -177,8 +178,8 @@ Um detalhe de ordem: o `VITE_API_URL` entra no bundle durante o build, não é l
 ## Testes
 
 ```bash
-cd backend && python manage.py test core   # 103 testes
-cd frontend && npm test                    # 24 testes
+cd backend && python manage.py test core   # 110 testes
+cd frontend && npm test                    # 26 testes
 ```
 
 No backend, um teste por critério de aceite mais as regras de negócio envolvidas, organizados por US em `backend/core/tests/`. O `test_fluxo_revisao.py` percorre a entrega inteira pela API (US06, US08, US10 e US11), de rascunho até a correção e de volta. No frontend, testes de fumaça (Vitest + Testing Library) que montam cada tela e conferem os textos do protótipo e as regras visíveis — botão desabilitado sem tema aprovado, justificativa obrigatória no modal.
@@ -195,7 +196,7 @@ No backend, um teste por critério de aceite mais as regras de negócio envolvid
 | GET | `/api/meu-tcc/` | — | aluno |
 | POST | `/api/temas/` | US03 CA1–CA3 | aluno |
 | POST | `/api/temas/<id>/reenviar/` | US03 CA4 | aluno |
-| GET | `/api/orientandos/` | US04 | orientador |
+| GET | `/api/orientandos/` | US04; acesso ao arquivo (US10–US12, implícito) | orientador |
 | POST | `/api/temas/<id>/aprovar/` | US04 CA1 | orientador |
 | POST | `/api/temas/<id>/solicitar-ajuste/` | US04 CA2 | orientador |
 | GET | `/api/temas/pendentes/` | US04 (não usado pelo front) | orientador |
@@ -205,6 +206,10 @@ No backend, um teste por critério de aceite mais as regras de negócio envolvid
 | POST | `/api/entregas/<id>/iniciar-revisao/` | US10 CA1, CA2 | orientador |
 | POST | `/api/entregas/<id>/solicitar-correcao/` | US11 CA1–CA3 | orientador |
 | GET | `/api/eventos/` | base da US16 | aluno |
+
+**Acesso do orientador ao arquivo.** Não há rota própria: cada entrega em `GET /api/orientandos/` traz `versao_atual.arquivo_url`, o link do PDF da versão atual. Como a rota só lista os TCCs com Orientação ativa do orientador logado (RN05), o link só chega a ele; depois de uma troca de orientador, só o novo o recebe. Em produção é uma URL assinada do Supabase Storage, válida por 1 hora (recarregar a tela gera outra). Em desenvolvimento, com os arquivos em disco, a URL aponta para o `/media/` do runserver, servido só com `DJANGO_DEBUG=1` e sem conferir quem pede.
+
+> Nenhum critério de aceite das US diz que o orientador abre o documento enviado: a US07 CA2 fala em baixar o arquivo, mas o ator é o aluno, e as US09 a US12 descrevem a revisão sem falar do acesso ao arquivo. Tratamos o acesso como implícito na revisão (US10 a US12) — não dá para comentar nem pedir correção sem ler a entrega.
 
 ## Organização do código
 
@@ -223,7 +228,7 @@ frontend/
     api.js           cliente Axios com JWT
     auth.jsx         contexto de autenticação
     formato.js       datas, iniciais e cores de estado
-    components/      Layout (barra lateral), Estado, Modal, RotaProtegida
+    components/      Layout (barra lateral), Estado, Modal, RotaProtegida, EnviarVersao, LinkVersao
     pages/           Login, Cadastro
       aluno/         AreaAluno, MeuTCC, ProporTema, Entregas, NovaEntrega
       orientador/    Orientandos (tabela + modais de avaliação de tema e de correção)

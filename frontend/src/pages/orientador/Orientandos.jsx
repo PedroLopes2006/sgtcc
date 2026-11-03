@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import api, { mensagemDeErro } from '../../api'
 import Estado from '../../components/Estado'
 import Layout from '../../components/Layout'
+import LinkVersao from '../../components/LinkVersao'
 import Modal from '../../components/Modal'
 import { dataCurta, iniciais } from '../../formato'
 
@@ -16,6 +17,9 @@ import { dataCurta, iniciais } from '../../formato'
  * US11 — a entrega em revisão ganha "Solicitar correção", num modal com o
  * comentário obrigatório (RN07). Quem diz qual entrega espera o orientador é
  * a API (`entrega_para_revisao`); a tela só liga o botão do estado certo.
+ *
+ * Junto dos botões, o link "Abrir versão N" leva ao PDF da versão atual dessa
+ * entrega, para o orientador ler o documento antes de decidir.
  */
 export default function Orientandos() {
   const [linhas, setLinhas] = useState([])
@@ -135,6 +139,10 @@ export default function Orientandos() {
                         Avaliar tema
                       </button>
                     )}
+                    <LinkVersao
+                      versao={linha.entrega_para_revisao?.versao_atual}
+                      titulo={linha.entrega_para_revisao?.titulo}
+                    />
                     {/* US10 CA1 — só a entrega pronta para revisão pode ser aberta (RN06). */}
                     {linha.entrega_para_revisao?.estado === 'pronto_para_revisao' && (
                       <button
@@ -224,6 +232,16 @@ function ModalSolicitarCorrecao({ linha, aoFechar, aoConcluir }) {
           <div className="quando">{entrega.titulo}</div>
         </div>
       </div>
+
+      {entrega.versao_atual?.arquivo_url && (
+        <div className="bloco-leitura">
+          <div className="rotulo">Documento</div>
+          <div className="documento-versao">
+            <LinkVersao versao={entrega.versao_atual} />
+            <span className="meta">{entrega.versao_atual.nome_original}</span>
+          </div>
+        </div>
+      )}
 
       {erro && <p className="erro">{erro}</p>}
 

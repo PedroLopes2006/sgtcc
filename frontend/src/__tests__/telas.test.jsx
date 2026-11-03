@@ -383,3 +383,77 @@ describe('Enviar versão (US06)', () => {
     expect(post.mock.calls[0][1].get('arquivo').name).toBe('capitulo.pdf')
   })
 })
+
+describe('Arquivo da versão para o orientador', () => {
+  const URL_V2 = 'https://storage.exemplo/tcc/1/entrega/6/v2.pdf?assinatura=abc'
+
+  function linhaEmRevisao(versaoAtual) {
+    const entrega = {
+      id: 6,
+      titulo: 'Metodologia',
+      estado: 'em_revisao',
+      prazo: '2026-11-24',
+      atrasada: false,
+      versao_atual: versaoAtual,
+    }
+    return {
+      id: 2,
+      aluno: { id: 2, nome: 'Bruno Alves' },
+      tema: { id: 2, titulo: 'Tema de Bruno', status: 'aprovado' },
+      entregas: [entrega],
+      fase_atual: 'Metodologia',
+      estado: { codigo: 'em_revisao', rotulo: 'Em revisão' },
+      progresso: { concluidas: 0, total: 1 },
+      prazo: '2026-11-24',
+      prazo_vencido: false,
+      aguarda_avaliacao_de_tema: false,
+      entrega_para_revisao: entrega,
+    }
+  }
+
+  function renderizarPainel(linhas) {
+    entrarComo(ORIENTADOR)
+    vi.spyOn(api, 'get').mockResolvedValue({ data: linhas })
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={['/orientador']}>
+          <Routes>
+            <Route path="/orientador" element={<Orientandos />} />
+          </Routes>
+        </MemoryRouter>
+      </AuthProvider>,
+    )
+  }
+
+  it('mostra o link da versão atual na linha e no modal de correção', async () => {
+    renderizarPainel([
+      linhaEmRevisao({ id: 9, numero: 2, nome_original: 'metodologia.pdf', arquivo_url: URL_V2 }),
+    ])
+
+    const link = await screen.findByRole('link', { name: /Abrir versão 2/ })
+    expect(link).toHaveAttribute('href', URL_V2)
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
+
+    // US11 — quem pede correção precisa do documento à mão.
+    await userEvent.click(screen.getByRole('button', { name: /Solicitar correção/ }))
+    const modal = screen.getByRole('dialog')
+    expect(within(modal).getByRole('link', { name: /Abrir versão 2/ })).toHaveAttribute(
+      'href',
+      URL_V2,
+    )
+    expect(within(modal).getByText('metodologia.pdf')).toBeInTheDocument()
+  })
+
+  it('não mostra link quando a entrega não tem versão', async () => {
+    renderizarPainel([linhaEmRevisao(null)])
+
+    expect(await screen.findByText('Bruno Alves')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Abrir versão/ })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /Solicitar correção/ }))
+    expect(
+      within(screen.getByRole('dialog')).queryByRole('link', { name: /Abrir versão/ }),
+    ).not.toBeInTheDocument()
+  })
+})
