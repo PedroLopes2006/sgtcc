@@ -180,7 +180,7 @@ Um detalhe de ordem: o `VITE_API_URL` entra no bundle durante o build, não é l
 
 ```bash
 cd backend && python manage.py test core   # 115 testes
-cd frontend && npm test                    # 26 testes
+cd frontend && npm test                    # 31 testes
 ```
 
 No backend, um teste por critério de aceite mais as regras de negócio envolvidas, organizados por US em `backend/core/tests/`. O `test_fluxo_revisao.py` percorre a entrega inteira pela API (US06, US08, US10 e US11), de rascunho até a correção e de volta. No frontend, testes de fumaça (Vitest + Testing Library) que montam cada tela e conferem os textos do protótipo e as regras visíveis — botão desabilitado sem tema aprovado, justificativa obrigatória no modal.

@@ -383,21 +383,46 @@ button.texto:hover:not(:disabled) {
   background: var(--texto-fraco);
 }
 
-.ponto.aguardando {
-  background: var(--azul);
-}
+/* Uma cor para cada estado, a mesma em qualquer tela. O atraso não troca a cor:
+   ele aparece no texto "vencido" e na data. */
 
-.ponto.concluido {
-  background: #3f3f46;
-}
-
+/* entrega */
 .ponto.rascunho {
   background: transparent;
   border: 1px solid var(--texto-fraco);
 }
 
-.ponto.atrasado {
-  background: var(--vermelho);
+.ponto.pronto_para_revisao {
+  background: var(--azul);
+}
+
+.ponto.em_revisao {
+  background: #7c3aed;
+}
+
+.ponto.correcao_solicitada {
+  background: #ea580c;
+}
+
+.ponto.concluida {
+  background: #16a34a;
+}
+
+.ponto.enviada_a_banca {
+  background: #3f3f46;
+}
+
+/* tema */
+.ponto.proposto {
+  background: #d97706;
+}
+
+.ponto.ajuste_solicitado {
+  background: #db2777;
+}
+
+.ponto.aprovado {
+  background: #0891b2;
 }
 
 /* ------------------------------------------------- lista de definição */

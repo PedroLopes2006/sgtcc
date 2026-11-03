@@ -103,11 +103,7 @@ export default function Entregas() {
                 )}
               </div>
              <div className="acoes-linha">
-                <Estado
-                  codigo={entrega.estado}
-                  rotulo={ROTULO_ESTADO_ENTREGA[entrega.estado]}
-                  atrasado={entrega.atrasada}
-                />
+                <Estado codigo={entrega.estado} rotulo={ROTULO_ESTADO_ENTREGA[entrega.estado]} />
                 {/* RN03 — fora de rascunho e correção solicitada, não há envio. */}
                 {entrega.aceita_versao && (
                   <button className="contorno" onClick={() => setEnviandoVersaoDe(entrega)}>

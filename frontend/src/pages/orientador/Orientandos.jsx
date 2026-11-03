@@ -80,7 +80,7 @@ export default function Orientandos() {
         <h1>Orientandos</h1>
         {pendentes > 0 && (
           <span className="estado">
-            <span className="ponto aguardando" aria-hidden="true" />
+            <span className="ponto proposto" aria-hidden="true" />
             {pendentes} {pendentes === 1 ? 'tema aguardando' : 'temas aguardando'}
           </span>
         )}

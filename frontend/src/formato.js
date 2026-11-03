@@ -16,15 +16,26 @@ export function iniciais(nome = '') {
   return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase()
 }
 
-/** Classe do pontinho de estado, pela semântica e não pela cor. */
-export function classeDoEstado(codigo, atrasado = false) {
-  if (atrasado) return 'atrasado'
-  if (['proposto', 'ajuste_solicitado', 'pronto_para_revisao', 'em_revisao',
-       'correcao_solicitada'].includes(codigo)) {
-    return 'aguardando'
-  }
-  if (['aprovado', 'concluida', 'enviada_a_banca'].includes(codigo)) return 'concluido'
-  return 'rascunho'
+/** Estados de entrega e de tema que têm cor própria no pontinho (veja `.ponto` em styles.css). */
+export const ESTADOS_COM_COR = [
+  'rascunho',
+  'pronto_para_revisao',
+  'em_revisao',
+  'correcao_solicitada',
+  'concluida',
+  'enviada_a_banca',
+  'proposto',
+  'ajuste_solicitado',
+  'aprovado',
+]
+
+/**
+ * Classe do pontinho de estado: uma por estado, para cada um ter a sua cor.
+ * O atraso não entra aqui; quem está vencido continua com a cor do estado e
+ * ganha o aviso "vencido" no texto.
+ */
+export function classeDoEstado(codigo) {
+  return ESTADOS_COM_COR.includes(codigo) ? codigo : 'rascunho'
 }
 
 export const ROTULO_ESTADO_ENTREGA = {
