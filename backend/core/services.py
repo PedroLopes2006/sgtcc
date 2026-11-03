@@ -107,6 +107,24 @@ def _exigir_orientador_ativo(orientador, tcc):
         raise PermissionDenied("Você não é o orientador ativo deste TCC.")
 
 
+def _exigir_primeira_entrega_pendente(entrega):
+    """
+    RN06 / US12 CA2 — o orientador revisa as entregas em ordem.
+
+    Só a primeira entrega ainda pendente (que não está "concluída" nem
+    "enviada à banca"), na ordem de prazo e criação, pode ser revisada. A
+    seguinte só chega à vez quando a anterior é concluída.
+    """
+    primeira = entrega.tcc.entregas.exclude(estado__in=EstadoEntrega.encerrados()).first()
+    if primeira is not None and primeira.pk != entrega.pk:
+        raise ValidationError(
+            {
+                "detail": "Só é possível revisar a primeira entrega pendente do aluno "
+                f'("{primeira.titulo}").'
+            }
+        )
+
+
 @transaction.atomic
 def aprovar_tema(*, orientador, tema):
     """US04 CA1 — tema "proposto" passa a "aprovado", com data registrada."""
@@ -326,6 +344,7 @@ def iniciar_revisao_entrega(*, orientador, entrega):
     RN05: só o orientador ativo do TCC age sobre a entrega.
     RN06 / RF17: a máquina de estados é estrita; aqui só vale o passo
         pronto_para_revisao → em_revisao.
+    RN06: as entregas são revisadas em ordem; só a primeira pendente do aluno.
     RN10 / RF18 / RNF12: a mudança de estado gera um Evento, só de inclusão.
     RF16 / RNF11: a notificação é o Evento gravado; o envio é a US02 e uma
         falha nele não desfaz a transição.
@@ -336,6 +355,8 @@ def iniciar_revisao_entrega(*, orientador, entrega):
         raise ValidationError(
             {"detail": 'Só é possível iniciar a revisão de uma entrega "pronta para revisão".'}
         )
+    # RN06 — as entregas são revisadas em ordem: só a primeira pendente.
+    _exigir_primeira_entrega_pendente(entrega)
 
     entrega.estado = EstadoEntrega.EM_REVISAO
     entrega.save(update_fields=["estado"])
@@ -362,6 +383,7 @@ def solicitar_correcao_entrega(*, orientador, entrega, comentario):
     CA3: o aluno é notificado.
     RN05: só o orientador ativo do TCC age sobre a entrega.
     RN06 / RF17: aqui só vale o passo em_revisao → correcao_solicitada.
+    RN06: as entregas são revisadas em ordem; só a primeira pendente do aluno.
     RN10 / RF18 / RNF12: a mudança de estado gera um Evento, só de inclusão.
     RN14: o Comentario é criado e nunca alterado.
     RF10: o Comentario fica vinculado à entrega e à versão avaliada.
@@ -376,6 +398,8 @@ def solicitar_correcao_entrega(*, orientador, entrega, comentario):
         raise ValidationError(
             {"detail": 'Só é possível solicitar correção de uma entrega "em revisão".'}
         )
+    # RN06 — as entregas são revisadas em ordem: só a primeira pendente.
+    _exigir_primeira_entrega_pendente(entrega)
 
     texto = comentario.strip()
     # RF10 — o comentário aponta a versão que o orientador acabou de avaliar.

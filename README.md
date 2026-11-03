@@ -23,7 +23,8 @@ Conforme o recorte combinado para o sprint:
 - **Notificação** do DER do Sprint 1 ainda não existe no código. O **Comentário** entrou com a US11.
 - O `Evento` ganhou o vínculo opcional com a `Entrega`: a sinalização, a abertura da revisão e a correção apontam para ela. A US09 usará isso para ordenar a fila pela data em que a entrega ficou pronta.
 - **A sinalização fica como botão na lista de entregas** e não há como desfazê-la: depois de "pronto para revisão", a entrega só sai desse estado pela ação do orientador.
-- **A US10 e a US11 ficam como botões na tabela de orientandos.** "Iniciar revisão" aparece na linha cuja entrega está pronta para revisão, e "Solicitar correção" na que está em revisão, abrindo um modal com o comentário obrigatório. A API diz qual entrega espera o orientador (`entrega_para_revisao`), porque ela pode não ser a "fase atual" da linha.
+- **A US10 e a US11 ficam como botões na tabela de orientandos.** "Iniciar revisão" aparece na linha cuja entrega está pronta para revisão, e "Solicitar correção" na que está em revisão, abrindo um modal com o comentário obrigatório. A API diz qual entrega espera o orientador (`entrega_para_revisao`).
+- **O orientador revisa as entregas em ordem (RN06).** Só a primeira entrega ainda pendente do aluno (que não está "concluída" nem "enviada à banca") pode ser aberta e receber pedido de correção, e ela é a mesma "fase atual" da linha. A seguinte só chega à vez quando a anterior for concluída; até lá o backend recusa a ação (400) e a tela não mostra o botão. A conclusão da entrega é a US12, ainda não implementada.
 - **O orientador abre o PDF da versão atual** pelo link "Abrir versão N", na linha da entrega que espera revisão e no modal de "Solicitar correção". Entrega sem versão não mostra o link. Ver a nota em [Endpoints](#endpoints).
 - **O comentário da correção** fica gravado ligado à entrega e à versão avaliada (RF10), nunca é editado nem removido (RN14), e o aluno o lê na lista de entregas enquanto a entrega estiver em "correção solicitada".
 
@@ -39,8 +40,8 @@ Resumo do que cada US entrega e de quais requisitos da especificação (RF, RN e
 | US05 | O aluno cria uma entrega (título e prazo) em "rascunho", só com o tema aprovado | RF05 | RN02 | RNF04 |
 | US06 | O aluno envia uma versão em PDF, com número incremental; depois de uma correção, a entrega volta a "rascunho" | RF06 | RN03, RN10, RN13 | RNF04 |
 | US08 | O aluno sinaliza a entrega como "pronta para revisão" (exige ao menos uma versão) e o orientador é avisado | RF08 | RN04, RN10 | RNF04 |
-| US10 | O orientador abre uma entrega "pronta para revisão" e ela passa a "em revisão"; o aluno é avisado; em qualquer outro estado a ação é recusada | RF16\*, RF17, RF18 | RN05, RN06, RN10 | RNF04, RNF12 |
-| US11 | Com a entrega "em revisão", o orientador registra um comentário obrigatório e pede correção: ela passa a "correção solicitada", o aluno é avisado e lê o comentário; o comentário fica ligado à versão avaliada | RF10, RF11 (parte), RF16\*, RF17, RF18 | RN05, RN06, RN07, RN10, RN14 | RNF04, RNF12 |
+| US10 | O orientador abre a primeira entrega pendente, se estiver "pronta para revisão", e ela passa a "em revisão"; o aluno é avisado; em qualquer outro estado, ou em outra entrega, a ação é recusada | RF16\*, RF17, RF18 | RN05, RN06, RN10 | RNF04, RNF12 |
+| US11 | Com a primeira entrega pendente "em revisão", o orientador registra um comentário obrigatório e pede correção: ela passa a "correção solicitada", o aluno é avisado e lê o comentário; o comentário fica ligado à versão avaliada | RF10, RF11 (parte), RF16\*, RF17, RF18 | RN05, RN06, RN07, RN10, RN14 | RNF04, RNF12 |
 
 \* RF16: nesta etapa só o gatilho, o `Evento` gravado no log. O envio pelo Telegram é a US02.
 
@@ -178,7 +179,7 @@ Um detalhe de ordem: o `VITE_API_URL` entra no bundle durante o build, não é l
 ## Testes
 
 ```bash
-cd backend && python manage.py test core   # 110 testes
+cd backend && python manage.py test core   # 115 testes
 cd frontend && npm test                    # 26 testes
 ```
 
@@ -244,7 +245,7 @@ As regras de negócio ficam em `services.py`, fora das views. Isso mantém a API
 | RN03 — estados em que a entrega aceita versão | `Entrega.aceita_versao`, `enviar_versao` |
 | RN04 — sinalizar exige ao menos uma versão | `sinalizar_pronta`, `Entrega.pode_ser_sinalizada` |
 | RN05 — só o orientador ativo decide | `_exigir_orientador_ativo` |
-| RN06 — transições de estado da entrega, passo a passo | `sinalizar_pronta`, `iniciar_revisao_entrega`, `solicitar_correcao_entrega` (conclusão e banca ficam para as US12 e US13) |
+| RN06 — transições de estado da entrega, passo a passo, e revisão em ordem | `sinalizar_pronta`, `iniciar_revisao_entrega`, `solicitar_correcao_entrega` e `_exigir_primeira_entrega_pendente` (conclusão e banca ficam para as US12 e US13) |
 | RN07 — ajuste e correção exigem texto | `solicitar_ajuste_tema`, `solicitar_correcao_entrega` |
 | RN09 — uma orientação ativa por TCC | constraint parcial no banco |
 | RN10 — toda mudança gera evento | `registrar_evento` |

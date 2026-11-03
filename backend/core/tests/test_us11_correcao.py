@@ -150,3 +150,28 @@ class SolicitarCorrecaoTests(APITestCase):
         for nome in ("comentario", "comentarios", "editar-comentario", "remover-comentario"):
             with self.assertRaises(NoReverseMatch):
                 reverse(nome, args=[comentario.id])
+
+    def test_rn06_so_a_primeira_entrega_pendente_recebe_correcao(self):
+        """RN06 / US12 CA2 — o Capítulo 2 só entra na vez quando o Capítulo 1 é encerrado."""
+        segunda = Entrega.objects.create(
+            tcc=self.tcc, titulo="Capítulo 2", prazo=self.entrega.prazo + timedelta(days=7),
+            estado=EstadoEntrega.EM_REVISAO,
+        )
+        url_segunda = reverse("solicitar-correcao", args=[segunda.id])
+
+        # A primeira ainda está pendente: a segunda é recusada, sem comentário, estado nem evento.
+        resposta = self.client.post(url_segunda, self.dados, format="json")
+        self.assertEqual(resposta.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Capítulo 1", str(resposta.data["detail"]))
+        segunda.refresh_from_db()
+        self.assertEqual(segunda.estado, EstadoEntrega.EM_REVISAO)
+        self.assertEqual(Comentario.objects.filter(entrega=segunda).count(), 0)
+        self.assertFalse(self.tcc.eventos.filter(entrega=segunda).exists())
+
+        # Concluída a primeira, a segunda passa a ser a pendente e aceita a correção.
+        Entrega.objects.filter(pk=self.entrega.pk).update(estado=EstadoEntrega.CONCLUIDA)
+        resposta = self.client.post(url_segunda, self.dados, format="json")
+        self.assertEqual(resposta.status_code, status.HTTP_200_OK)
+        segunda.refresh_from_db()
+        self.assertEqual(segunda.estado, EstadoEntrega.CORRECAO_SOLICITADA)
+        self.assertEqual(Comentario.objects.filter(entrega=segunda).count(), 1)

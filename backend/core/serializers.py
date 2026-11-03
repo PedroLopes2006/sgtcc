@@ -335,13 +335,19 @@ class OrientandoSerializer(serializers.ModelSerializer):
 
     def get_entrega_para_revisao(self, tcc):
         """
-        US10 / US11 — a primeira entrega que espera uma ação do orientador.
+        US10 / US11 — a entrega que espera uma ação do orientador.
 
-        "pronto_para_revisao" liga o botão "Iniciar revisão" e "em_revisao" liga
-        o "Solicitar correção". A "entrega atual" da linha não serve aqui: ela
-        é a primeira em andamento, que pode ser um rascunho do aluno.
+        RN06 — as entregas são revisadas em ordem: só a primeira pendente (que
+        não está "concluída" nem "enviada à banca") pode ser revisada, e é a
+        mesma "fase atual" da linha. "pronto_para_revisao" liga o botão "Iniciar
+        revisão" e "em_revisao" liga o "Solicitar correção". Se a primeira
+        pendente ainda é rascunho ou espera correção do aluno, não há ação, e as
+        seguintes ficam fora de vista até chegar a vez delas.
         """
         for entrega in tcc.entregas.all():
+            if entrega.estado in EstadoEntrega.encerrados():
+                continue
             if entrega.estado in (EstadoEntrega.PRONTO_PARA_REVISAO, EstadoEntrega.EM_REVISAO):
                 return EntregaSerializer(entrega, context=self.context).data
+            return None
         return None

@@ -213,8 +213,8 @@ class SaidasDaRevisaoTests(APITestCase):
         Entrega.objects.create(tcc=self.tcc, titulo="Capítulo 1", prazo=self.prazo)
         self.assertIsNone(self._linha_do_orientador()["entrega_para_revisao"])
 
-    def test_aponta_a_entrega_pronta_mesmo_com_um_rascunho_antes_dela(self):
-        """O rascunho é a "entrega atual" da linha, mas quem espera revisão é a outra."""
+    def test_a_entrega_seguinte_fica_fora_de_vista_enquanto_a_primeira_esta_pendente(self):
+        """RN06 — o Capítulo 2 está pronto, mas o Capítulo 1 ainda é rascunho: sem ação."""
         Entrega.objects.create(tcc=self.tcc, titulo="Capítulo 1", prazo=self.prazo)
         Entrega.objects.create(
             tcc=self.tcc, titulo="Capítulo 2", prazo=self.prazo + timedelta(days=7),
@@ -224,8 +224,46 @@ class SaidasDaRevisaoTests(APITestCase):
         linha = self._linha_do_orientador()
 
         self.assertEqual(linha["fase_atual"], "Capítulo 1")
-        self.assertEqual(linha["entrega_para_revisao"]["titulo"], "Capítulo 2")
-        self.assertEqual(linha["entrega_para_revisao"]["estado"], EstadoEntrega.PRONTO_PARA_REVISAO)
+        self.assertIsNone(linha["entrega_para_revisao"])
+
+    def test_com_duas_prontas_so_a_primeira_espera_o_orientador(self):
+        Entrega.objects.create(
+            tcc=self.tcc, titulo="Capítulo 1", prazo=self.prazo,
+            estado=EstadoEntrega.PRONTO_PARA_REVISAO,
+        )
+        Entrega.objects.create(
+            tcc=self.tcc, titulo="Capítulo 2", prazo=self.prazo + timedelta(days=7),
+            estado=EstadoEntrega.PRONTO_PARA_REVISAO,
+        )
+
+        linha = self._linha_do_orientador()
+
+        self.assertEqual(linha["fase_atual"], "Capítulo 1")
+        self.assertEqual(linha["entrega_para_revisao"]["titulo"], "Capítulo 1")
+
+    def test_a_proxima_entrega_entra_na_vez_quando_a_anterior_e_encerrada(self):
+        """A entrega concluída (ou enviada à banca) libera a seguinte."""
+        for encerrada in (EstadoEntrega.CONCLUIDA, EstadoEntrega.ENVIADA_A_BANCA):
+            with self.subTest(anterior=encerrada):
+                Entrega.objects.all().delete()
+                Entrega.objects.create(
+                    tcc=self.tcc, titulo="Capítulo 1", prazo=self.prazo, estado=encerrada
+                )
+                Entrega.objects.create(
+                    tcc=self.tcc, titulo="Capítulo 2", prazo=self.prazo + timedelta(days=7),
+                    estado=EstadoEntrega.PRONTO_PARA_REVISAO,
+                )
+
+                linha = self._linha_do_orientador()
+
+                self.assertEqual(linha["fase_atual"], "Capítulo 2")
+                self.assertEqual(linha["entrega_para_revisao"]["titulo"], "Capítulo 2")
+
+    def test_so_entregas_encerradas_nao_deixam_nada_para_revisar(self):
+        Entrega.objects.create(
+            tcc=self.tcc, titulo="Capítulo 1", prazo=self.prazo, estado=EstadoEntrega.CONCLUIDA
+        )
+        self.assertIsNone(self._linha_do_orientador()["entrega_para_revisao"])
 
     def test_entrega_em_revisao_tambem_espera_o_orientador(self):
         Entrega.objects.create(

@@ -112,3 +112,29 @@ class MarcarEmRevisaoTests(APITestCase):
     def test_entrega_inexistente_retorna_404(self):
         resposta = self.client.post(reverse("iniciar-revisao", args=[99999]))
         self.assertEqual(resposta.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_rn06_so_a_primeira_entrega_pendente_pode_ser_revisada(self):
+        """RN06 / US12 CA2 — o Capítulo 2 só entra na vez quando o Capítulo 1 é encerrado."""
+        segunda = Entrega.objects.create(
+            tcc=self.tcc, titulo="Capítulo 2", prazo=self.entrega.prazo + timedelta(days=7),
+            estado=EstadoEntrega.PRONTO_PARA_REVISAO,
+        )
+        url_segunda = reverse("iniciar-revisao", args=[segunda.id])
+
+        # A primeira ainda está pendente: a segunda é recusada, sem mudar de estado nem gerar evento.
+        resposta = self.client.post(url_segunda)
+        self.assertEqual(resposta.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Capítulo 1", str(resposta.data["detail"]))
+        segunda.refresh_from_db()
+        self.assertEqual(segunda.estado, EstadoEntrega.PRONTO_PARA_REVISAO)
+        self.assertFalse(self.tcc.eventos.filter(entrega=segunda).exists())
+
+        # Com a primeira já em revisão, ela continua pendente e a segunda continua bloqueada.
+        self.assertEqual(self.client.post(self.url).status_code, status.HTTP_200_OK)
+        self.assertEqual(self.client.post(url_segunda).status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Concluída a primeira, a segunda passa a ser a pendente e entra na vez.
+        Entrega.objects.filter(pk=self.entrega.pk).update(estado=EstadoEntrega.CONCLUIDA)
+        self.assertEqual(self.client.post(url_segunda).status_code, status.HTTP_200_OK)
+        segunda.refresh_from_db()
+        self.assertEqual(segunda.estado, EstadoEntrega.EM_REVISAO)
