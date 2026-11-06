@@ -8,6 +8,7 @@ import Entregas from './pages/aluno/Entregas'
 import MeuTCC from './pages/aluno/MeuTCC'
 import NovaEntrega from './pages/aluno/NovaEntrega'
 import ProporTema from './pages/aluno/ProporTema'
+import HistoricoOrientando from './pages/orientador/HistoricoOrientando'
 import Orientandos from './pages/orientador/Orientandos'
 
 function Raiz() {
@@ -47,6 +48,10 @@ export default function App() {
             }
           />
 
+          {/* US15 CA2 / RNF04 */}
+          <Route path="/orientador/orientandos/:tccId/historico" element={
+            <RotaProtegida perfil="orientador"><HistoricoOrientando /></RotaProtegida>
+          } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

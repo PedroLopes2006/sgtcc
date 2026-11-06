@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
 import Estado from '../../components/Estado'
 import Layout from '../../components/Layout'
@@ -22,6 +23,8 @@ import { dataCurta, iniciais } from '../../formato'
  * entrega, para o orientador ler o documento antes de decidir.
  */
 export default function Orientandos() {
+  const [reatribuindo, setReatribuindo] = useState(null)
+  const [agindo, setAgindo] = useState(null)
   const [linhas, setLinhas] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
@@ -58,6 +61,21 @@ export default function Orientandos() {
       setErro(mensagemDeErro(e, 'Não foi possível iniciar a revisão.'))
     } finally {
       setIniciando(null)
+    }
+  }
+
+  /** US12 CA1–CA2 / US13 CA1 / RF11–12, RF16–18 / RN05–06, RN10, RN12 / RNF04, RNF12. */
+  async function concluirAcao(entrega, acao) {
+    setAgindo(entrega.id)
+    setErro('')
+    setAviso('')
+    try {
+      await api.post(`/entregas/${entrega.id}/${acao}/`)
+      await carregar()
+    } catch (e) {
+      setErro(mensagemDeErro(e, 'Não foi possível concluir a ação.'))
+    } finally {
+      setAgindo(null)
     }
   }
 
@@ -134,6 +152,25 @@ export default function Orientandos() {
                 </td>
                 <td>
                   <div className="acoes-linha">
+                    {/* US15 CA1–CA2 / RF14 / RN08 / RNF04 */}
+                    <Link to={`/orientador/orientandos/${linha.id}/historico`}>Histórico</Link>
+                    <button className="contorno" onClick={() => setReatribuindo(linha)}>Reatribuir</button>
+                    {/* US12 CA1–CA2 / RN06 */}
+                    {linha.entrega_para_revisao?.estado === 'em_revisao' && (
+                      <button onClick={() => concluirAcao(linha.entrega_para_revisao, 'aprovar')}
+                        disabled={agindo === linha.entrega_para_revisao.id}
+                        aria-label={`Aprovar entrega ${linha.entrega_para_revisao.titulo}`}>
+                        Aprovar entrega
+                      </button>
+                    )}
+                    {/* US13 CA1 / RN12 */}
+                    {linha.entrega_para_banca && (
+                      <button onClick={() => concluirAcao(linha.entrega_para_banca, 'enviar-a-banca')}
+                        disabled={agindo === linha.entrega_para_banca.id}
+                        aria-label={`Enviar à banca ${linha.entrega_para_banca.titulo}`}>
+                        Enviar à banca
+                      </button>
+                    )}
                     {linha.aguarda_avaliacao_de_tema && (
                       <button className="contorno" onClick={() => setAvaliando(linha)}>
                         Avaliar tema
@@ -172,6 +209,10 @@ export default function Orientandos() {
         </table>
       )}
 
+      {reatribuindo && (
+        <ModalReatribuir linha={reatribuindo} aoFechar={() => setReatribuindo(null)}
+          aoConcluir={async () => { setReatribuindo(null); await carregar() }} />
+      )}
       {avaliando && (
         <ModalAvaliarTema
           linha={avaliando}
@@ -374,4 +415,50 @@ function ModalAvaliarTema({ linha, aoFechar, aoConcluir }) {
       )}
     </Modal>
   )
+}
+
+
+/** US15 CA1–CA3 / RF14 / RN05, RN08–10, RN15 / RNF04: escolhe o novo orientador. */
+function ModalReatribuir({ linha, aoFechar, aoConcluir }) {
+  const [orientadores, setOrientadores] = useState([])
+  const [destino, setDestino] = useState('')
+  const [erro, setErro] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  useEffect(() => {
+    let ativo = true
+    api.get('/orientadores/').then(({ data }) => {
+      if (ativo) setOrientadores(data.filter(o => o.id !== linha.tema?.orientador?.id))
+    }).catch(e => { if (ativo) setErro(mensagemDeErro(e, 'Não foi possível carregar os orientadores.')) })
+    return () => { ativo = false }
+  }, [linha])
+
+  /** US15 CA1–CA3 / RF14 / RN08–10, RN15 / RNF04: confirma a reatribuição via API. */
+  async function enviar(evento) {
+    evento.preventDefault()
+    setEnviando(true)
+    setErro('')
+    try {
+      await api.post(`/orientandos/${linha.id}/reatribuir/`, { novo_orientador: Number(destino) })
+      await aoConcluir()
+    } catch (e) {
+      setErro(mensagemDeErro(e, 'Não foi possível reatribuir a orientação.'))
+      setEnviando(false)
+    }
+  }
+  return <Modal titulo="Reatribuir" aoFechar={aoFechar}>
+    {erro && <p className="erro">{erro}</p>}
+    <form onSubmit={enviar}>
+      <div className="campo">
+        <label htmlFor="novo-orientador">Orientador</label>
+        <select id="novo-orientador" value={destino} onChange={e => setDestino(e.target.value)} required>
+          <option value="">Selecione um orientador</option>
+          {orientadores.map(o => <option key={o.id} value={o.id}>{o.nome}</option>)}
+        </select>
+      </div>
+      <div className="barra-acoes">
+        <button type="button" className="contorno" onClick={aoFechar} disabled={enviando}>Cancelar</button>
+        <button type="submit" disabled={enviando || !destino}>Reatribuir</button>
+      </div>
+    </form>
+  </Modal>
 }

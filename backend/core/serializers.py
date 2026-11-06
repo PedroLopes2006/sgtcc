@@ -265,6 +265,8 @@ class OrientandoSerializer(serializers.ModelSerializer):
     prazo = serializers.SerializerMethodField()
     prazo_vencido = serializers.SerializerMethodField()
     aguarda_avaliacao_de_tema = serializers.SerializerMethodField()
+    # ---------------------------------------------------------------- US13
+    entrega_para_banca = serializers.SerializerMethodField()
     entrega_para_revisao = serializers.SerializerMethodField()
 
     class Meta:
@@ -281,6 +283,7 @@ class OrientandoSerializer(serializers.ModelSerializer):
             "prazo_vencido",
             "aguarda_avaliacao_de_tema",
             "entrega_para_revisao",
+            "entrega_para_banca",
         ]
 
     def _entrega_atual(self, tcc):
@@ -351,3 +354,49 @@ class OrientandoSerializer(serializers.ModelSerializer):
                 return EntregaSerializer(entrega, context=self.context).data
             return None
         return None
+
+    # ---------------------------------------------------------------- US13
+    def get_entrega_para_banca(self, tcc):
+        """US13 CA1 / RF12 / RN12: primeira concluída ainda não enviada à banca."""
+        entrega = next((e for e in tcc.entregas.all() if e.estado == EstadoEntrega.CONCLUIDA), None)
+        return EntregaSerializer(entrega, context=self.context).data if entrega else None
+
+
+# ---------------------------------------------------------------- US12
+# A resposta de aprovação usa EntregaSerializer (CA1 / RF11: estado e data_conclusao).
+
+# ---------------------------------------------------------------- US15
+class ReatribuicaoSerializer(serializers.Serializer):
+    """US15 CA1 / RF14 / RN08, RN09, RN15 / RNF04: destino da reatribuição."""
+    novo_orientador = serializers.PrimaryKeyRelatedField(
+        queryset=Usuario.objects.filter(perfil=Perfil.ORIENTADOR, is_active=True)
+    )
+
+
+class EntregaHistoricoSerializer(EntregaSerializer):
+    """US15 CA2 / RF14 / RN08: todas as versões e comentários preservados."""
+    versoes = VersaoSerializer(many=True, read_only=True)
+    comentarios = ComentarioSerializer(many=True, read_only=True)
+
+    class Meta(EntregaSerializer.Meta):
+        fields = EntregaSerializer.Meta.fields + ["versoes", "comentarios"]
+
+
+class OrientacaoHistoricoSerializer(serializers.ModelSerializer):
+    """US15 CA1–CA2 / RF14 / RN08, RN09: vínculos anteriores e atual."""
+    orientador = OrientadorResumoSerializer(read_only=True)
+
+    class Meta:
+        model = Orientacao
+        fields = ["id", "orientador", "data_inicio", "data_fim", "ativa"]
+        read_only_fields = fields
+
+
+class HistoricoTCCSerializer(TCCSerializer):
+    """US15 CA2–CA3 / RF14 / RN08, RN10 / RNF04: histórico completo autorizado."""
+    entregas = EntregaHistoricoSerializer(many=True, read_only=True)
+    eventos = EventoSerializer(many=True, read_only=True)
+    orientacoes = OrientacaoHistoricoSerializer(many=True, read_only=True)
+
+    class Meta(TCCSerializer.Meta):
+        fields = TCCSerializer.Meta.fields + ["eventos", "orientacoes"]
