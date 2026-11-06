@@ -56,6 +56,9 @@ class TipoEvento(models.TextChoices):
     ENTREGA_EM_REVISAO = "entrega_em_revisao", "Entrega em revisão"
     # US11 CA3 — RN10 / RF18: gatilho da notificação ao aluno (RF16).
     CORRECAO_SOLICITADA = "correcao_solicitada", "Correção solicitada"
+    # US12 / US13 — RN10: conclusão e encerramento formal.
+    ENTREGA_CONCLUIDA = "entrega_concluida", "Entrega concluída"
+    ENTREGA_ENVIADA_A_BANCA = "entrega_enviada_a_banca", "Entrega enviada à banca"
     TROCA_ORIENTADOR = "troca_orientador", "Troca de orientador"
 
 

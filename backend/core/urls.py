@@ -45,6 +45,13 @@ urlpatterns = [
         views.SolicitarCorrecaoView.as_view(),
         name="solicitar-correcao",
     ),
+    # ---------------------------------------------------------------- US12
+    path("entregas/<int:entrega_id>/aprovar/", views.AprovarEntregaView.as_view(), name="aprovar-entrega"),
+    # ---------------------------------------------------------------- US13
+    path("entregas/<int:entrega_id>/enviar-a-banca/", views.EnviarABancaView.as_view(), name="enviar-a-banca"),
+    # ---------------------------------------------------------------- US15
+    path("orientandos/<int:tcc_id>/reatribuir/", views.ReatribuirOrientadorView.as_view(), name="reatribuir-orientador"),
+    path("orientandos/<int:tcc_id>/historico/", views.HistoricoOrientandoView.as_view(), name="historico-orientando"),
     # log / base da timeline
     path("eventos/", views.meus_eventos, name="eventos"),
 ]

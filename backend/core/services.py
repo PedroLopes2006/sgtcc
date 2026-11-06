@@ -419,3 +419,83 @@ def solicitar_correcao_entrega(*, orientador, entrega, comentario):
         entrega=entrega,
     )
     return entrega
+
+# ---------------------------------------------------------------- US12
+
+@transaction.atomic
+def aprovar_entrega(*, orientador, entrega):
+    """US12 CA1–CA2 / RF11, RF16–18 / RN05, RN06, RN10 / RNF04, RNF12.
+
+    Conclui a primeira pendente em revisão e registra o aviso e a próxima etapa.
+    """
+    tcc = TCC.objects.select_for_update().get(pk=entrega.tcc_id)
+    _exigir_orientador_ativo(orientador, tcc)
+    if not orientador.eh_orientador:
+        raise PermissionDenied("Apenas orientadores podem aprovar entregas.")
+    entrega = Entrega.objects.select_for_update().get(pk=entrega.pk)
+    if entrega.estado != EstadoEntrega.EM_REVISAO:
+        raise ValidationError({"detail": 'Só é possível aprovar uma entrega "em revisão".'})
+    _exigir_primeira_entrega_pendente(entrega)
+    entrega.estado = EstadoEntrega.CONCLUIDA
+    entrega.data_conclusao = timezone.now()
+    entrega.save(update_fields=["estado", "data_conclusao"])
+    proxima = tcc.entregas.exclude(estado__in=EstadoEntrega.encerrados()).first()
+    descricao = f'Entrega "{entrega.titulo}" concluída por {orientador.nome}.'
+    if proxima:
+        descricao += f' Próxima etapa disponível: "{proxima.titulo}".'
+    registrar_evento(tcc, TipoEvento.ENTREGA_CONCLUIDA, descricao,
+                     usuario=orientador, entrega=entrega)
+    return entrega
+
+
+# ---------------------------------------------------------------- US13
+
+@transaction.atomic
+def enviar_a_banca_entrega(*, orientador, entrega):
+    """US13 CA1 / RF12 / RN12, RN06, RN10, RN05 / RNF04: encerramento formal."""
+    tcc = TCC.objects.select_for_update().get(pk=entrega.tcc_id)
+    _exigir_orientador_ativo(orientador, tcc)
+    if not orientador.eh_orientador:
+        raise PermissionDenied("Apenas orientadores podem enviar à banca.")
+    entrega = Entrega.objects.select_for_update().get(pk=entrega.pk)
+    if entrega.estado != EstadoEntrega.CONCLUIDA:
+        raise ValidationError({"detail": 'Só é possível enviar à banca uma entrega "concluída".'})
+    entrega.estado = EstadoEntrega.ENVIADA_A_BANCA
+    entrega.save(update_fields=["estado"])
+    registrar_evento(tcc, TipoEvento.ENTREGA_ENVIADA_A_BANCA,
+                     f'Entrega "{entrega.titulo}" enviada à banca por {orientador.nome}. Encerramento formal registrado.',
+                     usuario=orientador, entrega=entrega)
+    return entrega
+
+
+# ---------------------------------------------------------------- US15
+
+@transaction.atomic
+def reatribuir_orientador(*, orientador, tcc, novo_orientador):
+    """US15 CA1–CA3 / RF14 / RN05, RN08, RN09, RN15, RN10 / RNF04.
+
+    Trava o TCC, encerra o vínculo antigo e preserva todo o histórico existente.
+    """
+    tcc = TCC.objects.select_for_update().get(pk=tcc.pk)
+    _exigir_orientador_ativo(orientador, tcc)
+    if not orientador.eh_orientador:
+        raise PermissionDenied("Apenas orientadores podem reatribuir um TCC.")
+    if novo_orientador.perfil != Perfil.ORIENTADOR or not novo_orientador.is_active:
+        raise ValidationError({"novo_orientador": "Selecione um orientador ativo."})
+    if novo_orientador.pk == orientador.pk:
+        raise ValidationError({"novo_orientador": "Escolha um orientador diferente do atual."})
+    anterior = tcc.orientacao_ativa
+    anterior.encerrar()
+    nova = Orientacao.objects.create(tcc=tcc, orientador=novo_orientador)
+    registrar_evento(tcc, TipoEvento.TROCA_ORIENTADOR,
+                     f'Orientação reatribuída de {orientador.nome} para {novo_orientador.nome}. Histórico preservado.',
+                     usuario=orientador)
+    return nova
+
+
+def consultar_historico(*, orientador, tcc):
+    """US15 CA2 / RF14 / RN05, RN08 / RNF04: histórico só para o orientador atual."""
+    if not orientador.eh_orientador:
+        raise PermissionDenied("Apenas orientadores podem consultar este histórico.")
+    _exigir_orientador_ativo(orientador, tcc)
+    return tcc

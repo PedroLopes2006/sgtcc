@@ -20,6 +20,8 @@ from . import services
 from .models import Entrega, Perfil, StatusTema, TCC, Tema, Usuario
 from .permissions import EhAluno, EhOrientador
 from .serializers import (
+    HistoricoTCCSerializer,
+    ReatribuicaoSerializer,
     CadastroSerializer,
     CriacaoEntregaSerializer,
     EnvioDeVersaoSerializer,
@@ -335,3 +337,58 @@ def meus_eventos(request):
     tcc = TCC.objects.filter(aluno=request.user).first()
     eventos = tcc.eventos.all() if tcc else []
     return Response(EventoSerializer(eventos, many=True).data)
+
+# ---------------------------------------------------------------- US12
+class AprovarEntregaView(APIView):
+    """US12 CA1–CA2 / RF11, RF16–18 / RN05, RN06, RN10 / RNF04, RNF12."""
+    permission_classes = [IsAuthenticated, EhOrientador]
+
+    @traduzir_erros_de_dominio
+    def post(self, request, entrega_id):
+        """US12 CA1–CA2 / RF11, RF16–18 / RN05, RN06, RN10 / RNF04, RNF12."""
+        entrega = get_object_or_404(Entrega, pk=entrega_id)
+        entrega = services.aprovar_entrega(orientador=request.user, entrega=entrega)
+        return Response(EntregaSerializer(entrega, context={"request": request}).data)
+
+
+# ---------------------------------------------------------------- US13
+class EnviarABancaView(APIView):
+    """US13 CA1 / RF12 / RN12, RN06, RN10, RN05 / RNF04."""
+    permission_classes = [IsAuthenticated, EhOrientador]
+
+    @traduzir_erros_de_dominio
+    def post(self, request, entrega_id):
+        """US13 CA1 / RF12 / RN12, RN06, RN10, RN05 / RNF04."""
+        entrega = get_object_or_404(Entrega, pk=entrega_id)
+        entrega = services.enviar_a_banca_entrega(orientador=request.user, entrega=entrega)
+        return Response(EntregaSerializer(entrega, context={"request": request}).data)
+
+
+# ---------------------------------------------------------------- US15
+class ReatribuirOrientadorView(APIView):
+    """US15 CA1–CA3 / RF14 / RN05, RN08, RN09, RN15, RN10 / RNF04."""
+    permission_classes = [IsAuthenticated, EhOrientador]
+
+    @traduzir_erros_de_dominio
+    def post(self, request, tcc_id):
+        """US15 CA1–CA3 / RF14 / RN05, RN08, RN09, RN15, RN10 / RNF04."""
+        serializer = ReatribuicaoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        tcc = get_object_or_404(TCC, pk=tcc_id)
+        nova = services.reatribuir_orientador(
+            orientador=request.user, tcc=tcc,
+            novo_orientador=serializer.validated_data["novo_orientador"],
+        )
+        return Response({"id": nova.pk, "orientador": nova.orientador_id}, status=201)
+
+
+class HistoricoOrientandoView(APIView):
+    """US15 CA2 / RF14 / RN05, RN08 / RNF04."""
+    permission_classes = [IsAuthenticated, EhOrientador]
+
+    @traduzir_erros_de_dominio
+    def get(self, request, tcc_id):
+        """US15 CA2 / RF14 / RN05, RN08 / RNF04."""
+        tcc = get_object_or_404(TCC, pk=tcc_id)
+        tcc = services.consultar_historico(orientador=request.user, tcc=tcc)
+        return Response(HistoricoTCCSerializer(tcc, context={"request": request}).data)
