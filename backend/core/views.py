@@ -27,6 +27,7 @@ from .serializers import (
     EnvioDeVersaoSerializer,
     EntregaSerializer,
     EventoSerializer,
+    ItemFilaRevisaoSerializer,
     LoginSerializer,
     OrientadorResumoSerializer,
     OrientandoSerializer,
@@ -392,3 +393,22 @@ class HistoricoOrientandoView(APIView):
         tcc = get_object_or_404(TCC, pk=tcc_id)
         tcc = services.consultar_historico(orientador=request.user, tcc=tcc)
         return Response(HistoricoTCCSerializer(tcc, context={"request": request}).data)
+
+
+# ---------------------------------------------------------------- US09 — fila de revisão
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, EhOrientador])
+def fila_revisao(request):
+    """
+    US09 CA1 e CA2 — GET /api/fila-revisao/
+
+    RNF04: exclusivo de orientadores. RN05 e RN06 (só orientandos ativos, só a
+    primeira entrega pendente de cada aluno) e a ordem de chegada são aplicadas
+    em services.fila_de_revisao. Sem pendência, devolve a lista vazia (CA2).
+    """
+    entregas = services.fila_de_revisao(orientador=request.user)
+    return Response(
+        ItemFilaRevisaoSerializer(entregas, many=True, context={"request": request}).data
+    )
