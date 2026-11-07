@@ -5,9 +5,9 @@ import { iniciais } from '../formato'
 /**
  * Casca do app: barra lateral fixa à esquerda, conteúdo à direita.
  *
- * Os itens que ainda não existem (Linha do tempo, Perfil, Fila de revisão)
- * aparecem desativados em vez de virarem links quebrados — eles entram nos
- * próximos sprints, junto das US correspondentes.
+ * Os itens que ainda não existem (Linha do tempo, Perfil) aparecem desativados
+ * em vez de virarem links quebrados — eles entram nos próximos sprints, junto
+ * das US correspondentes.
  */
 export default function Layout({ itens, children }) {
   const { usuario, sair } = useAuth()

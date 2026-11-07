@@ -52,3 +52,17 @@ export const ROTULO_STATUS_TEMA = {
   aprovado: 'Tema aprovado',
   ajuste_solicitado: 'Ajuste solicitado',
 }
+
+/**
+ * US09 — "Enviada há N dias", contando dias de calendário (ontem à noite já é
+ * "há 1 dia"). Sem data, devolve null e a tela não mostra o trecho.
+ */
+export function enviadaHa(valor, agora = new Date()) {
+  if (!valor) return null
+  const d = new Date(valor)
+  if (Number.isNaN(d.getTime())) return null
+  const inicioDoDia = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
+  const dias = Math.round((inicioDoDia(agora) - inicioDoDia(d)) / 86400000)
+  if (dias <= 0) return 'Enviada hoje'
+  return dias === 1 ? 'Enviada há 1 dia' : `Enviada há ${dias} dias`
+}
