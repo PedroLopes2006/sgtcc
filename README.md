@@ -12,12 +12,14 @@ Frederico Mariani, Pedro Augusto, Felipe Regiani, Carlos Augusto, Paulo Sérgio,
 | US04 | Aprovar ou ajustar tema | Completa (CA1–CA3) |
 | US05 | Criar entrega | Completa (CA1–CA2) |
 | US06 | Upload de versão | Completa (CA1–CA4) |
+| US07 | Histórico de versões | Completa (CA1–CA2) |
 | US08 | Sinalizar pronta para revisão | Completa (CA1–CA3) |
 | US10 | Marcar em revisão | Completa (CA1–CA2) |
 | US11 | Solicitar correção | Completa (CA1–CA3) |
 | US12 | Aprovar/concluir entrega | Completa (CA1–CA2; aviso via Evento) |
 | US13 | Enviar à banca | Completa (CA1) |
 | US15 | Reatribuir orientador e herdar histórico | Completa (CA1–CA3) |
+| US16 | Timeline do aluno | Completa (CA1) |
 
 Conforme o recorte combinado para o sprint:
 
@@ -42,12 +44,14 @@ Resumo do que cada US entrega e de quais requisitos da especificação (RF, RN e
 | US04 | O orientador aprova o tema ou pede ajuste, com justificativa obrigatória | RF04 | RN05, RN07, RN10 | RNF04 |
 | US05 | O aluno cria uma entrega (título e prazo) em "rascunho", só com o tema aprovado | RF05 | RN02 | RNF04 |
 | US06 | O aluno envia uma versão em PDF, com número incremental; depois de uma correção, a entrega volta a "rascunho" | RF06 | RN03, RN10, RN13 | RNF04 |
+| US07 | O aluno consulta todas as versões de cada entrega em ordem cronológica e abre qualquer arquivo enviado | RF07 | — | RNF04 |
 | US08 | O aluno sinaliza a entrega como "pronta para revisão" (exige ao menos uma versão) e o orientador é avisado | RF08 | RN04, RN10 | RNF04 |
 | US10 | O orientador abre a primeira entrega pendente, se estiver "pronta para revisão", e ela passa a "em revisão"; o aluno é avisado; em qualquer outro estado, ou em outra entrega, a ação é recusada | RF16\*, RF17, RF18 | RN05, RN06, RN10 | RNF04, RNF12 |
 | US11 | Com a primeira entrega pendente "em revisão", o orientador registra um comentário obrigatório e pede correção: ela passa a "correção solicitada", o aluno é avisado e lê o comentário; o comentário fica ligado à versão avaliada | RF10, RF11 (parte), RF16\*, RF17, RF18 | RN05, RN06, RN07, RN10, RN14 | RNF04, RNF12 |
 | US12 | Conclui a primeira entrega pendente em revisão, grava a data e o aviso e libera a próxima etapa | RF11, RF16\*, RF17, RF18 | RN05, RN06, RN10 | RNF04, RNF12 |
 | US13 | Envia uma entrega concluída à banca, com registro do encerramento formal; a tela a encontra por `entrega_para_banca` | RF12 | RN12, RN06, RN10, RN05 | RNF04 |
 | US15 | O orientador atual indica outro; encerra o vínculo anterior e cria o novo em transação, preservando tema, entregas, versões, comentários e eventos | RF14 | RN08, RN09, RN15, RN10, RN05 | RNF04 |
+| US16 | O aluno consulta a timeline cronológica dos eventos registrados no seu TCC | RF15 | RN10 | RNF04, RNF12 |
 
 \* RF16: nesta etapa só o gatilho, o `Evento` gravado no log. O envio pelo Telegram é a US02.
 
@@ -68,10 +72,10 @@ As telas seguem o [protótipo do Sprint 2](https://www.figma.com/design/S2vvHsgS
 Três divergências conscientes:
 
 1. **Sem etapas fixas.** O protótipo mostra "Progresso: 1 de 5 entregas" e uma coluna "Fase atual", sugerindo um roteiro de 5 etapas pré-definidas. A US05 diz que o aluno cria as entregas que quiser, com título livre — e a User Story manda. Aqui o total é quantas entregas existem, e a fase atual é a primeira entrega ainda em andamento.
-2. **A avaliação do tema sai da tabela de orientandos**, num modal, como no protótipo — não há fila de temas separada. A "Fila de revisão" desenhada no Figma é de *entregas* (US09) e entra num próximo sprint; por isso o item aparece desativado na barra lateral, junto de Linha do tempo e Perfil.
-3. **A revisão acontece na tabela de orientandos**, e não na tela de Revisão do protótipo. No Figma, "Iniciar revisão" fica na Fila de revisão e na tela de Revisão da entrega (versões, comentários, "Novo comentário", "Solicitar correção" e "Aprovar entrega"). Como a fila (US09) e o histórico de versões (US07) ainda não existem, os botões e o modal da US10 e da US11 ficam na tabela de orientandos. Os textos seguem o protótipo ("Novo comentário", "Descreva o que precisa ser ajustado", "Escreva um comentário para solicitar correção.", "Seu orientador pediu correção"); quando a tela de Revisão entrar, o modal sai e a lógica é a mesma.
+2. **A avaliação do tema sai da tabela de orientandos**, num modal, como no protótipo — não há fila de temas separada. A "Fila de revisão" desenhada no Figma é de *entregas* (US09) e entra num próximo sprint; por isso o item aparece desativado na barra lateral, junto de Perfil.
+3. **A revisão acontece na tabela de orientandos**, e não na tela de Revisão do protótipo. No Figma, "Iniciar revisão" fica na Fila de revisão e na tela de Revisão da entrega (versões, comentários, "Novo comentário", "Solicitar correção" e "Aprovar entrega"). Como a fila (US09) ainda não existe, os botões e o modal da US10 e da US11 ficam na tabela de orientandos. Os textos seguem o protótipo ("Novo comentário", "Descreva o que precisa ser ajustado", "Escreva um comentário para solicitar correção.", "Seu orientador pediu correção"); quando a tela de Revisão entrar, o modal sai e a lógica é a mesma.
 
-Telas do protótipo ainda não implementadas, porque pertencem a US fora deste sprint: detalhe da entrega, fila de revisão, linha do tempo e perfil.
+Telas do protótipo ainda não implementadas, porque pertencem a US fora deste sprint: detalhe da entrega, fila de revisão e perfil.
 
 ## Stack
 
@@ -210,7 +214,7 @@ A US15 recebe `{"novo_orientador": <id>}` na reatribuição. Apenas o orientador
 | POST | `/api/temas/<id>/solicitar-ajuste/` | US04 CA2 | orientador |
 | GET | `/api/temas/pendentes/` | US04 (não usado pelo front) | orientador |
 | GET, POST | `/api/entregas/` | US05 | aluno |
-| POST | `/api/entregas/<id>/versoes/` | US06 CA1–CA4 | aluno |
+| GET, POST | `/api/entregas/<id>/versoes/` | US07 CA1–CA2; US06 CA1–CA4 | aluno (dono da entrega) |
 | POST | `/api/entregas/<id>/sinalizar-pronta/` | US08 CA1–CA3 | aluno |
 | POST | `/api/entregas/<id>/iniciar-revisao/` | US10 CA1, CA2 | orientador |
 | POST | `/api/entregas/<id>/solicitar-correcao/` | US11 CA1–CA3 | orientador |
@@ -218,7 +222,7 @@ A US15 recebe `{"novo_orientador": <id>}` na reatribuição. Apenas o orientador
 | POST | `/api/entregas/<id>/enviar-a-banca/` | US13 CA1 | orientador ativo |
 | POST | `/api/orientandos/<tcc_id>/reatribuir/` | US15 CA1, CA3 | orientador ativo |
 | GET | `/api/orientandos/<tcc_id>/historico/` | US15 CA2 | orientador ativo |
-| GET | `/api/eventos/` | base da US16 | aluno |
+| GET | `/api/eventos/` | US16 CA1 | aluno |
 
 **Acesso do orientador ao arquivo.** Não há rota própria: cada entrega em `GET /api/orientandos/` traz `versao_atual.arquivo_url`, o link do PDF da versão atual. Como a rota só lista os TCCs com Orientação ativa do orientador logado (RN05), o link só chega a ele; depois de uma troca de orientador, só o novo o recebe. Em produção é uma URL assinada do Supabase Storage, válida por 1 hora (recarregar a tela gera outra). Em desenvolvimento, com os arquivos em disco, a URL aponta para o `/media/` do runserver, servido só com `DJANGO_DEBUG=1` e sem conferir quem pede.
 
@@ -271,8 +275,7 @@ As regras de negócio ficam em `services.py`, fora das views. Isso mantém a API
 
 ## Próximos passos
 
-1. **US07** — histórico de versões de uma entrega.
-2. **US09** — fila de revisão.
-3. **US02 e RF16** — bot do Telegram consumindo os `Evento` já gravados.
-4. **US14 e US16** — painel com prazos vencidos destacados e timeline.
+1. **US09** — fila de revisão.
+2. **US02 e RF16** — bot do Telegram consumindo os `Evento` já gravados.
+3. **US14** — painel com prazos vencidos destacados.
 

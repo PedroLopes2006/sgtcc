@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
 import EnviarVersao from '../../components/EnviarVersao'
 import Estado from '../../components/Estado'
@@ -110,6 +110,9 @@ export default function Entregas() {
                     Enviar versão
                   </button>
                 )}
+                <Link className="contorno" to={`/aluno/entregas/${entrega.id}/versoes`}>
+                  Histórico de versões
+                </Link>
                 {/* US08 — a API diz se a entrega pode ser sinalizada (RN04). */}
                 {entrega.pode_sinalizar && (
                   <button

@@ -5,7 +5,7 @@ import { iniciais } from '../formato'
 /**
  * Casca do app: barra lateral fixa à esquerda, conteúdo à direita.
  *
- * Os itens que ainda não existem (Linha do tempo, Perfil, Fila de revisão)
+ * Os itens que ainda não existem (Perfil e Fila de revisão)
  * aparecem desativados em vez de virarem links quebrados — eles entram nos
  * próximos sprints, junto das US correspondentes.
  */

@@ -36,7 +36,7 @@ export default function AreaAluno() {
       para: '/aluno/entregas',
       contador: tcc?.entregas?.length || undefined,
     },
-    { rotulo: 'Linha do tempo', icone: '◷' },
+    { rotulo: 'Linha do tempo', icone: '◷', para: '/aluno/linha-do-tempo' },
     { rotulo: 'Perfil', icone: '◎' },
   ]
 
