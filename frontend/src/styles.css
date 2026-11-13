@@ -384,7 +384,8 @@ button.texto:hover:not(:disabled) {
 }
 
 /* Uma cor para cada estado, a mesma em qualquer tela. O atraso não troca a cor:
-   ele aparece no texto "vencido" e na data. */
+   ele aparece no texto "vencido", na data e, no painel do orientador, no
+   .marcador-vencido ao lado do prazo (US14). */
 
 /* entrega */
 .ponto.rascunho {
@@ -553,6 +554,18 @@ button.texto:hover:not(:disabled) {
 
 .prazo-vencido {
   color: var(--vermelho);
+}
+
+/* US14 CA2 — ponto vermelho ao lado do prazo vencido, como no protótipo.
+   É separado do .ponto do estado, que não troca de cor com o atraso. */
+.marcador-vencido {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--vermelho);
+  vertical-align: middle;
 }
 
 .numerico {
@@ -837,4 +850,10 @@ button.texto:hover:not(:disabled) {
 }
 .aviso-correcao span {
   color: var(--texto-suave);
+}
+
+/* ------------------------------------------------- fila de revisão (US09) */
+
+.fila-revisao .meta .estado {
+  vertical-align: middle;
 }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
 import Estado from '../../components/Estado'
-import Layout from '../../components/Layout'
+import LayoutOrientador from '../../components/LayoutOrientador'
 import LinkVersao from '../../components/LinkVersao'
 import Modal from '../../components/Modal'
 import { dataCurta, iniciais } from '../../formato'
@@ -12,7 +12,7 @@ import { dataCurta, iniciais } from '../../formato'
  *
  * Não existe uma "fila de temas" separada: o orientador vê todos os
  * orientandos e age na linha de quem está com tema pendente. A "Fila de
- * revisão" do protótipo é de entregas (US09), e entra num próximo sprint.
+ * revisão" do protótipo é de entregas (US09) e tem tela própria (FilaRevisao).
  *
  * US10 — a entrega pronta para revisão ganha "Iniciar revisão" na linha.
  * US11 — a entrega em revisão ganha "Solicitar correção", num modal com o
@@ -80,20 +80,14 @@ export default function Orientandos() {
   }
 
   const pendentes = linhas.filter((l) => l.aguarda_avaliacao_de_tema).length
-  const itens = [
-    { rotulo: 'Fila de revisão', icone: '▤' },
-    {
-      rotulo: 'Orientandos',
-      icone: '◍',
-      para: '/orientador',
-      exato: true,
-      contador: linhas.length || undefined,
-    },
-    { rotulo: 'Perfil', icone: '◎' },
-  ]
+  // US09 — a fila é a mesma regra de `entrega_para_revisao` (só a primeira pendente,
+  // se estiver pronta), então o contador sai destes dados, sem outra requisição.
+  const naFila = linhas.filter(
+    (l) => l.entrega_para_revisao?.estado === 'pronto_para_revisao',
+  ).length
 
   return (
-    <Layout itens={itens}>
+    <LayoutOrientador orientandos={linhas.length} fila={naFila}>
       <div className="cabecalho-pagina">
         <h1>Orientandos</h1>
         {pendentes > 0 && (
@@ -147,7 +141,17 @@ export default function Orientandos() {
                     ? '—'
                     : `${linha.progresso.concluidas} de ${linha.progresso.total}`}
                 </td>
+                {/* US14 CA2 — prazo vencido: data em vermelho e um ponto vermelho próprio,
+                    separado do ponto do estado (que mantém a cor do estado). */}
                 <td className={linha.prazo_vencido ? 'numerico prazo-vencido' : 'numerico'}>
+                  {linha.prazo_vencido && (
+                    <span
+                      className="marcador-vencido"
+                      role="img"
+                      aria-label="Prazo vencido"
+                      title="Prazo vencido"
+                    />
+                  )}
                   {dataCurta(linha.prazo)}
                 </td>
                 <td>
@@ -235,7 +239,7 @@ export default function Orientandos() {
           }}
         />
       )}
-    </Layout>
+    </LayoutOrientador>
   )
 }
 

@@ -52,6 +52,8 @@ urlpatterns = [
     # ---------------------------------------------------------------- US15
     path("orientandos/<int:tcc_id>/reatribuir/", views.ReatribuirOrientadorView.as_view(), name="reatribuir-orientador"),
     path("orientandos/<int:tcc_id>/historico/", views.HistoricoOrientandoView.as_view(), name="historico-orientando"),
+    # US09 — fila de revisão
+    path("fila-revisao/", views.fila_revisao, name="fila-revisao"),
     # log / base da timeline
     path("eventos/", views.meus_eventos, name="eventos"),
 ]

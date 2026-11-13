@@ -400,3 +400,43 @@ class HistoricoTCCSerializer(TCCSerializer):
 
     class Meta(TCCSerializer.Meta):
         fields = TCCSerializer.Meta.fields + ["eventos", "orientacoes"]
+
+
+# ---------------------------------------------------------------- US09 — fila de revisão
+
+
+class ItemFilaRevisaoSerializer(serializers.ModelSerializer):
+    """
+    US09 — um item da "Fila de revisão": aluno, entrega, prazo e versão atual.
+
+    `pronta_em` vem de services.fila_de_revisao (data do último Evento
+    ENTREGA_PRONTA); com ela a tela mostra "Enviada há N dias". O link do PDF
+    sai completo quando a view passa o `request` no contexto.
+    """
+
+    aluno = OrientadorResumoSerializer(source="tcc.aluno", read_only=True)
+    tcc = serializers.IntegerField(source="tcc_id", read_only=True)
+    tema = serializers.CharField(source="tcc.tema.titulo", read_only=True, default=None)
+    atrasada = serializers.BooleanField(read_only=True)
+    versao_atual = serializers.SerializerMethodField()
+    pronta_em = serializers.DateTimeField(read_only=True, default=None)
+
+    class Meta:
+        model = Entrega
+        fields = [
+            "id",
+            "titulo",
+            "estado",
+            "prazo",
+            "atrasada",
+            "tcc",
+            "aluno",
+            "tema",
+            "versao_atual",
+            "pronta_em",
+        ]
+        read_only_fields = fields
+
+    def get_versao_atual(self, entrega):
+        versao = entrega.versao_atual
+        return VersaoSerializer(versao, context=self.context).data if versao else None
