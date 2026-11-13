@@ -7,9 +7,26 @@ import { ROTULO_ESTADO_ENTREGA, dataCurta } from '../../formato'
 import { useTcc } from './AreaAluno'
 
 /**
+ * US11 / RF10 — o que o aluno lê numa entrega com correção solicitada: todos os
+ * comentários da versão que o orientador avaliou (o pedido de correção e os
+ * que vieram depois, RN14), do mais antigo ao mais novo. Sem a lista completa,
+ * cai no último comentário.
+ */
+function comentariosDaCorrecao(entrega) {
+  const todos = entrega.comentarios?.length
+    ? entrega.comentarios
+    : entrega.ultimo_comentario
+      ? [entrega.ultimo_comentario]
+      : []
+  const daVersao = todos.filter((c) => c.versao === entrega.versao_atual?.numero)
+  return daVersao.length ? daVersao : todos
+}
+
+/**
  * US05 — lista de entregas e porta de entrada para criar uma nova.
  * US06 — envio de versão a partir dela.
  * US08 — cada entrega que já pode ser sinalizada como pronta ganha o botão para isso.
+ * US11 — a entrega com correção solicitada mostra os comentários do orientador.
  */
 export default function Entregas() {
   const { tcc, recarregar } = useTcc()
@@ -89,18 +106,19 @@ export default function Entregas() {
                   {entrega.versao_atual && ` · versão ${entrega.versao_atual.numero}`}
                   {entrega.atrasada && ' · vencido'}
                 </div>
-                {/* US11 — o aluno lê o que o orientador pediu para corrigir. */}
-                {entrega.estado === 'correcao_solicitada' && entrega.ultimo_comentario && (
-                  <div className="comentario-correcao">
-                    <div>{entrega.ultimo_comentario.texto}</div>
-                    <div className="rotulo">
-                      {entrega.ultimo_comentario.autor?.nome}
-                      {entrega.ultimo_comentario.versao &&
-                        ` · versão ${entrega.ultimo_comentario.versao}`}
-                      {` · ${dataCurta(entrega.ultimo_comentario.data_criacao)}`}
+                {/* US11 / RF10 — o aluno lê o que o orientador pediu para corrigir: todos os
+                    comentários da versão em correção, o pedido e os que vieram depois (RN14). */}
+                {entrega.estado === 'correcao_solicitada' &&
+                  comentariosDaCorrecao(entrega).map((comentario) => (
+                    <div className="comentario-correcao" key={comentario.id}>
+                      <div>{comentario.texto}</div>
+                      <div className="rotulo">
+                        {comentario.autor?.nome}
+                        {comentario.versao && ` · versão ${comentario.versao}`}
+                        {` · ${dataCurta(comentario.data_criacao)}`}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ))}
               </div>
              <div className="acoes-linha">
                 <Estado codigo={entrega.estado} rotulo={ROTULO_ESTADO_ENTREGA[entrega.estado]} />

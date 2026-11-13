@@ -48,10 +48,14 @@ export default function HistoricoVersoes() {
         </div>
       ) : (
         <ol className="lista lista-versoes">
-          {versoes.map((versao) => (
+          {/* A API devolve em ordem cronológica; a tela mostra a mais nova primeiro, como no protótipo. */}
+          {[...versoes].reverse().map((versao, posicao) => (
             <li key={versao.id}>
               <div>
-                <div className="titulo">Versão {versao.numero}</div>
+                <div className="titulo">
+                  Versão {versao.numero}
+                  {posicao === 0 && <span className="meta"> · atual</span>}
+                </div>
                 <div className="meta">{versao.nome_original} · Enviada em {dataCurta(versao.data_envio)}</div>
               </div>
               <LinkVersao versao={versao} titulo={entrega?.titulo} />

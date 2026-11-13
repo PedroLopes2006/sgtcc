@@ -1,8 +1,8 @@
 """
 Regras de negócio dos Sprints 3 e 4.
 
-Notificações (US03 CA2, US03 CA4, US04 CA3, US08 CA3, US10 CA1, US11 CA3): cada
-ponto registra um Evento; o envio é a US02.
+Notificações (US03 CA2, US03 CA4, US04 CA3, US08 CA3, US10 CA1, US11 CA3 e o
+comentário adicional da US11): cada ponto registra um Evento; o envio é a US02.
 """
 from pathlib import Path
 
@@ -420,6 +420,55 @@ def solicitar_correcao_entrega(*, orientador, entrega, comentario):
         entrega=entrega,
     )
     return entrega
+
+
+@transaction.atomic
+def adicionar_comentario_entrega(*, orientador, entrega, comentario):
+    """
+    US11 / RF10 — adicionar um comentário a uma entrega, sem mudar o estado dela.
+
+    É o caminho para complementar ou corrigir o que o orientador escreveu: o
+    comentário anterior nunca é editado (RN14), então o ajuste vira um novo.
+    Só vale com a entrega "em revisão" ou com "correção solicitada", que é
+    quando há uma revisão em curso.
+    RN05: só o orientador ativo do TCC age sobre a entrega.
+    RN06: as entregas são revisadas em ordem; só a primeira pendente do aluno.
+    RN07: o comentário é obrigatório (sem texto, não há o que registrar).
+    RN14: o Comentario é criado e nunca alterado nem removido.
+    RF10: o Comentario fica vinculado à entrega e à versão avaliada.
+    RF16 / RF18 / RNF12: o aluno é notificado por um Evento, só de inclusão.
+    """
+    _exigir_orientador_ativo(orientador, entrega.tcc)
+    # RN07 — sem texto não há comentário.
+    if not (comentario or "").strip():
+        raise ValidationError({"comentario": "O comentário é obrigatório."})
+    # RF10 — comentar só faz sentido durante a revisão, antes ou depois do pedido de correção.
+    if entrega.estado not in (EstadoEntrega.EM_REVISAO, EstadoEntrega.CORRECAO_SOLICITADA):
+        raise ValidationError(
+            {
+                "detail": 'Só é possível comentar uma entrega "em revisão" '
+                'ou com "correção solicitada".'
+            }
+        )
+    # RN06 — as entregas são revisadas em ordem: só a primeira pendente.
+    _exigir_primeira_entrega_pendente(entrega)
+
+    texto = comentario.strip()
+    # RF10 / RN14 — o comentário aponta a versão avaliada e nunca é editado.
+    novo = Comentario.objects.create(
+        entrega=entrega, versao=entrega.versao_atual, autor=orientador, texto=texto
+    )
+
+    # RF16 / RF18 — o aluno é notificado e recebe o texto junto, como na correção.
+    registrar_evento(
+        entrega.tcc,
+        TipoEvento.COMENTARIO_ADICIONADO,
+        f'Comentário adicionado na entrega "{entrega.titulo}": {texto}',
+        usuario=orientador,
+        entrega=entrega,
+    )
+    return novo
+
 
 # ---------------------------------------------------------------- US12
 

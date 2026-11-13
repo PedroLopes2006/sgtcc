@@ -13,6 +13,7 @@ const TIPOS_EVENTO = {
   upload: { rotulo: 'Versão enviada', icone: 'envio' },
   entrega_em_revisao: { rotulo: 'Entrega em revisão', icone: 'revisao' },
   correcao_solicitada: { rotulo: 'Correção solicitada', icone: 'comentario' },
+  comentario_adicionado: { rotulo: 'Comentário adicionado', icone: 'comentario' },
   entrega_concluida: { rotulo: 'Entrega concluída', icone: 'aprovacao' },
   entrega_enviada_a_banca: { rotulo: 'Entrega enviada à banca', icone: 'envio' },
   troca_orientador: { rotulo: 'Orientador alterado', icone: 'troca' },

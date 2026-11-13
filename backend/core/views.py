@@ -23,12 +23,14 @@ from .serializers import (
     HistoricoTCCSerializer,
     ReatribuicaoSerializer,
     CadastroSerializer,
+    ComentarioSerializer,
     CriacaoEntregaSerializer,
     EnvioDeVersaoSerializer,
     EntregaSerializer,
     EventoSerializer,
     ItemFilaRevisaoSerializer,
     LoginSerializer,
+    NovoComentarioSerializer,
     OrientadorResumoSerializer,
     OrientandoSerializer,
     PropostaTemaSerializer,
@@ -338,6 +340,31 @@ class SolicitarCorrecaoView(APIView):
             comentario=serializer.validated_data["comentario"],
         )
         return Response(EntregaSerializer(entrega).data)
+
+
+class ComentarioAdicionalView(APIView):
+    """
+    US11 / RF10 — POST /api/entregas/<id>/comentarios/
+
+    Registra um comentário a mais na entrega, sem mudar o estado dela.
+    RNF04: exclusivo de orientadores. RN05, RN06 e RN07 são aplicadas no service.
+    RN14: comentários só são criados; não há rota para editar ou remover.
+    """
+
+    permission_classes = [IsAuthenticated, EhOrientador]
+
+    @traduzir_erros_de_dominio
+    def post(self, request, entrega_id):
+        serializer = NovoComentarioSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        entrega = get_object_or_404(Entrega, id=entrega_id)
+        comentario = services.adicionar_comentario_entrega(
+            orientador=request.user,
+            entrega=entrega,
+            comentario=serializer.validated_data["comentario"],
+        )
+        return Response(ComentarioSerializer(comentario).data, status=status.HTTP_201_CREATED)
 
 
 # ---------------------------------------------------------------- log

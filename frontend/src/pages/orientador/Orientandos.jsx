@@ -18,6 +18,10 @@ import { dataCurta, iniciais } from '../../formato'
  * US11 — a entrega em revisão ganha "Solicitar correção", num modal com o
  * comentário obrigatório (RN07). Quem diz qual entrega espera o orientador é
  * a API (`entrega_para_revisao`); a tela só liga o botão do estado certo.
+ * US11 / RF10 — "Adicionar comentário" registra um comentário a mais, sem mudar
+ * o estado, para complementar ou corrigir o anterior (RN14: o comentário nunca
+ * é editado). A entrega vem em `entrega_para_comentario`, só a primeira pendente
+ * (RN06), em revisão ou com correção solicitada.
  *
  * Junto dos botões, o link "Abrir versão N" leva ao PDF da versão atual dessa
  * entrega, para o orientador ler o documento antes de decidir.
@@ -31,6 +35,7 @@ export default function Orientandos() {
   const [aviso, setAviso] = useState('')
   const [avaliando, setAvaliando] = useState(null)
   const [corrigindo, setCorrigindo] = useState(null)
+  const [comentando, setComentando] = useState(null)
   const [iniciando, setIniciando] = useState(null) // id da entrega em andamento
 
   const carregar = useCallback(async () => {
@@ -205,6 +210,16 @@ export default function Orientandos() {
                         Solicitar correção
                       </button>
                     )}
+                    {/* US11 / RF10 / RN14 — comentário a mais, sem mudar o estado (RN06). */}
+                    {linha.entrega_para_comentario && (
+                      <button
+                        className="contorno"
+                        onClick={() => setComentando(linha)}
+                        aria-label={`Adicionar comentário em ${linha.entrega_para_comentario.titulo}`}
+                      >
+                        Adicionar comentário
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -235,6 +250,18 @@ export default function Orientandos() {
             const { titulo } = corrigindo.entrega_para_revisao
             setCorrigindo(null)
             setAviso(`Correção solicitada em "${titulo}". O aluno foi avisado.`)
+            await carregar()
+          }}
+        />
+      )}
+      {comentando && (
+        <ModalComentarioAdicional
+          linha={comentando}
+          aoFechar={() => setComentando(null)}
+          aoConcluir={async () => {
+            const { titulo } = comentando.entrega_para_comentario
+            setComentando(null)
+            setAviso(`Comentário adicionado em "${titulo}". O aluno foi avisado.`)
             await carregar()
           }}
         />
@@ -314,6 +341,97 @@ function ModalSolicitarCorrecao({ linha, aoFechar, aoConcluir }) {
           </button>
           <button type="submit" disabled={enviando}>
             {enviando ? 'Enviando…' : 'Solicitar correção'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+/**
+ * US11 / RF10 — comentário a mais, sem mudar o estado da entrega.
+ *
+ * RN14: o comentário anterior nunca é editado, então o ajuste vira um novo. A
+ * lista do que já foi escrito aparece acima do campo, só para leitura.
+ * RN07: o texto é obrigatório; a mensagem aparece ao tentar enviar vazio.
+ */
+function ModalComentarioAdicional({ linha, aoFechar, aoConcluir }) {
+  const { aluno, entrega_para_comentario: entrega } = linha
+  const anteriores = entrega.comentarios || []
+  const [comentario, setComentario] = useState('')
+  const [erro, setErro] = useState('')
+  const [enviando, setEnviando] = useState(false)
+
+  async function enviar(evento) {
+    evento.preventDefault()
+    if (!comentario.trim()) {
+      setErro('Escreva um comentário para adicioná-lo.')
+      return
+    }
+    setErro('')
+    setEnviando(true)
+    try {
+      await api.post(`/entregas/${entrega.id}/comentarios/`, { comentario })
+      await aoConcluir()
+    } catch (e) {
+      setErro(mensagemDeErro(e, 'Não foi possível adicionar o comentário.'))
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <Modal titulo="Adicionar comentário" aoFechar={aoFechar}>
+      <div className="modal-autor">
+        <span className="avatar">{iniciais(aluno?.nome)}</span>
+        <div>
+          <div>{aluno?.nome}</div>
+          <div className="quando">{entrega.titulo}</div>
+        </div>
+      </div>
+
+      {anteriores.length > 0 && (
+        <div className="bloco-leitura">
+          <div className="rotulo">Comentários anteriores</div>
+          {anteriores.map((anterior) => (
+            <div className="comentario-correcao" key={anterior.id}>
+              <div>{anterior.texto}</div>
+              <div className="rotulo">
+                {anterior.autor?.nome}
+                {anterior.versao && ` · versão ${anterior.versao}`}
+                {` · ${dataCurta(anterior.data_criacao)}`}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {erro && <p className="erro">{erro}</p>}
+
+      <form onSubmit={enviar}>
+        <div className="campo">
+          <label htmlFor="comentario-adicional">Novo comentário</label>
+          <textarea
+            id="comentario-adicional"
+            rows={5}
+            value={comentario}
+            onChange={(e) => {
+              setComentario(e.target.value)
+              setErro('')
+            }}
+            placeholder="Complemente ou corrija o que já escreveu"
+          />
+          <p className="ajuda">
+            Os comentários anteriores não são alterados. O aluno recebe este junto com a
+            notificação.
+          </p>
+        </div>
+
+        <div className="barra-acoes">
+          <button type="button" className="contorno" onClick={aoFechar} disabled={enviando}>
+            Cancelar
+          </button>
+          <button type="submit" disabled={enviando}>
+            {enviando ? 'Enviando…' : 'Adicionar comentário'}
           </button>
         </div>
       </form>

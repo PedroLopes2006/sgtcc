@@ -36,6 +36,7 @@ Conforme o recorte combinado para o sprint:
 - **A fila de revisão (US09) tem tela própria** (`/orientador/fila`), com o item habilitado na barra lateral e o contador de pendências. Ela lista as entregas prontas para revisão dos orientandos ativos, por ordem de chegada (a data do último `Evento` de sinalização; depois de uma correção, a entrega sinalizada de novo volta para o fim). Só entra a primeira entrega pendente de cada aluno, então o "Iniciar revisão" da fila nunca bate na regra de ordem. A prioridade alta, média e baixa do protótipo ficou de fora, porque pede um campo novo no banco. O menu do orientador passou para `LayoutOrientador`, usado pelas duas telas.
 - **O painel do orientador (US14) é a tabela de Orientandos.** Cada linha traz tema, fase atual e prazo dos orientandos com Orientação ativa. O prazo vencido aparece com a data em vermelho e um ponto vermelho ao lado, como no protótipo. Esse ponto é separado do ponto do estado, que mantém a cor do estado. O prazo mostrado é o da fase atual, e uma entrega concluída não conta como atraso.
 - **O comentário da correção** fica gravado ligado à entrega e à versão avaliada (RF10), nunca é editado nem removido (RN14), e o aluno o lê na lista de entregas enquanto a entrega estiver em "correção solicitada".
+- **O orientador pode acrescentar comentários (RF10), mas não editar o anterior (RN14).** Com a entrega "em revisão" ou com "correção solicitada", o botão **"Adicionar comentário"** da tabela de orientandos registra um comentário a mais, sem mudar o estado, para complementar ou corrigir o que já escreveu. O modal mostra os comentários anteriores só para leitura, o texto é obrigatório (RN07), vale só para a primeira entrega pendente (RN06) e o aluno é avisado por um `Evento` (RF16, RF18). O aluno lê, na entrega, todos os comentários da versão em correção.
 
 ## O que cada US aplica
 
@@ -48,16 +49,16 @@ Resumo do que cada US entrega e de quais requisitos da especificação (RF, RN e
 | US04 | O orientador aprova o tema ou pede ajuste, com justificativa obrigatória | RF04 | RN05, RN07, RN10 | RNF04 |
 | US05 | O aluno cria uma entrega (título e prazo) em "rascunho", só com o tema aprovado | RF05 | RN02 | RNF04 |
 | US06 | O aluno envia uma versão em PDF, com número incremental; depois de uma correção, a entrega volta a "rascunho" | RF06 | RN03, RN10, RN13 | RNF04 |
-| US07 | O aluno consulta todas as versões de cada entrega em ordem cronológica e abre qualquer arquivo enviado | RF07 | — | RNF04 |
+| US07 | O aluno consulta todas as versões de cada entrega, da mais nova para a mais antiga como no protótipo (a API devolve em ordem cronológica), com a atual marcada, e abre qualquer arquivo enviado | RF07 | — | RNF04 |
 | US08 | O aluno sinaliza a entrega como "pronta para revisão" (exige ao menos uma versão) e o orientador é avisado | RF08 | RN04, RN10 | RNF04 |
 | US10 | O orientador abre a primeira entrega pendente, se estiver "pronta para revisão", e ela passa a "em revisão"; o aluno é avisado; em qualquer outro estado, ou em outra entrega, a ação é recusada | RF16\*, RF17, RF18 | RN05, RN06, RN10 | RNF04, RNF12 |
-| US11 | Com a primeira entrega pendente "em revisão", o orientador registra um comentário obrigatório e pede correção: ela passa a "correção solicitada", o aluno é avisado e lê o comentário; o comentário fica ligado à versão avaliada | RF10, RF11 (parte), RF16\*, RF17, RF18 | RN05, RN06, RN07, RN10, RN14 | RNF04, RNF12 |
+| US11 | Com a primeira entrega pendente "em revisão", o orientador registra um comentário obrigatório e pede correção: ela passa a "correção solicitada", o aluno é avisado e lê o comentário; o comentário fica ligado à versão avaliada; o orientador pode acrescentar novos comentários, sem editar os anteriores | RF10, RF11 (parte), RF16\*, RF17, RF18 | RN05, RN06, RN07, RN10, RN14 | RNF04, RNF12 |
 | US09 | O orientador vê a fila das entregas prontas para revisão dos orientandos ativos, por ordem de chegada (só a primeira pendente de cada aluno), e inicia a revisão dali; sem pendência, vê a mensagem de fila vazia | RF09 | RN05, RN06 | RNF02, RNF04 |
 | US12 | Conclui a primeira entrega pendente em revisão, grava a data e o aviso e libera a próxima etapa | RF11, RF16\*, RF17, RF18 | RN05, RN06, RN10 | RNF04, RNF12 |
 | US13 | Envia uma entrega concluída à banca, com registro do encerramento formal; a tela a encontra por `entrega_para_banca` | RF12 | RN12, RN06, RN10, RN05 | RNF04 |
 | US14 | O orientador vê no painel todos os orientandos ativos, com tema, fase atual e prazo; o prazo vencido é destacado com a data em vermelho e um ponto vermelho próprio | RF13 | RN05 | RNF02, RNF04 |
 | US15 | O orientador atual indica outro; encerra o vínculo anterior e cria o novo em transação, preservando tema, entregas, versões, comentários e eventos | RF14 | RN08, RN09, RN15, RN10, RN05 | RNF04 |
-| US16 | O aluno consulta a timeline cronológica dos eventos registrados no seu TCC | RF15 | RN10 | RNF04, RNF12 |
+| US16 | O aluno consulta a timeline dos eventos registrados no seu TCC, do mais novo para o mais antigo como no protótipo (a API devolve em ordem cronológica) | RF15 | RN10 | RNF04, RNF12 |
 
 \* RF16: nesta etapa só o gatilho, o `Evento` gravado no log. O envio pelo Telegram é a US02.
 
@@ -65,8 +66,8 @@ Resumo do que cada US entrega e de quais requisitos da especificação (RF, RN e
 
 | Tipo | Atendidos | Parciais |
 |------|-----------|----------|
-| RF | 01, 03, 04, 05, 06, 07, 08, 09, 11, 12, 13, 14, 15, 17, 18 | 10 (o comentário só nasce ao solicitar correção), 16 (grava o `Evento`, sem envio) |
-| RNF | 03, 04, 05, 06, 09, 13 | 12 (o log é só de inclusão por convenção, sem trava técnica nos modelos) |
+| RF | 01, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 17, 18 | 16 (grava o `Evento`, sem envio) |
+| RNF | 03, 04, 05, 06, 09, 12, 13 | — |
 | RN | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 13, 14, 15 | — |
 
 No código, cada função de `services.py` cita no docstring o CA e as regras que aplica, e os testes citam a regra que cada um confere.
@@ -195,8 +196,8 @@ Um detalhe de ordem: o `VITE_API_URL` entra no bundle durante o build, não é l
 ## Testes
 
 ```bash
-cd backend && python manage.py test core   # 171 testes
-cd frontend && npm test                    # 53 testes
+cd backend && python manage.py test core   # 199 testes
+cd frontend && npm test                    # 61 testes
 ```
 
 No backend, um teste por critério de aceite mais as regras de negócio envolvidas, organizados por US em `backend/core/tests/`. O `test_fluxo_revisao.py` percorre a entrega inteira pela API (US06, US08, US10 e US11), de rascunho até a correção e de volta. No frontend, testes de fumaça (Vitest + Testing Library) que montam cada tela e conferem os textos do protótipo e as regras visíveis — botão desabilitado sem tema aprovado, justificativa obrigatória no modal.
@@ -225,6 +226,7 @@ A US15 recebe `{"novo_orientador": <id>}` na reatribuição. Apenas o orientador
 | GET | `/api/fila-revisao/` | US09 CA1, CA2 | orientador |
 | POST | `/api/entregas/<id>/iniciar-revisao/` | US10 CA1, CA2 | orientador |
 | POST | `/api/entregas/<id>/solicitar-correcao/` | US11 CA1–CA3 | orientador |
+| POST | `/api/entregas/<id>/comentarios/` | US11 / RF10 (comentário adicional) | orientador |
 | POST | `/api/entregas/<id>/aprovar/` | US12 CA1–CA2 | orientador ativo |
 | POST | `/api/entregas/<id>/enviar-a-banca/` | US13 CA1 | orientador ativo |
 | POST | `/api/orientandos/<tcc_id>/reatribuir/` | US15 CA1, CA3 | orientador ativo |
@@ -275,14 +277,9 @@ As regras de negócio ficam em `services.py`, fora das views. Isso mantém a API
 | RN10 — toda mudança gera evento | `registrar_evento` |
 | RN12 — envio à banca só após conclusão | `enviar_a_banca_entrega` |
 | RN13 — número de versão nunca reutilizado | contador `Entrega.versoes_enviadas` + constraint no banco |
-| RN14 — comentário nunca é editado nem removido | `Comentario` só é criado em `solicitar_correcao_entrega`; a API não tem rota para alterá-lo |
+| RN14 — comentário nunca é editado nem removido | `Comentario` só é criado em `solicitar_correcao_entrega` e `adicionar_comentario_entrega`; a API não tem rota para alterá-lo nem removê-lo, e o ajuste vira um comentário novo |
 | RN15 — orientação ativa desde a proposta | `propor_tema` |
 | RNF03 — senha com hash | `UsuarioManager.set_password` |
 | RNF04 — acesso por perfil | `core/permissions.py` |
-
-## Próximos passos
-
-1. **US02 e RF16** — bot do Telegram consumindo os `Evento` já gravados.
-2. **Tela de Revisão do protótipo** — junta versões, comentários e as ações do orientador (iniciar revisão, solicitar correção e aprovar entrega), no lugar dos botões e modais da tabela de orientandos.
-3. **Prioridade na fila de revisão** — alta, média e baixa, que só o orientador vê; pede um campo novo no banco.
+| RNF12 — histórico de eventos imutável | `Evento` só é criado em `registrar_evento`; a API não tem rota para alterá-lo nem apagá-lo |
 

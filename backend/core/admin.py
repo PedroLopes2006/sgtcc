@@ -1,6 +1,24 @@
 from django.contrib import admin
 
-from .models import Entrega, Evento, Orientacao, TCC, Tema, Usuario, Versao
+from .models import Comentario, Entrega, Evento, Orientacao, TCC, Tema, Usuario, Versao
+
+
+class SomenteLeituraAdmin(admin.ModelAdmin):
+    """
+    RN14 / RNF12 — registros que só se consultam.
+
+    O log de eventos e os comentários de correção são só de inclusão: nascem
+    pelas ações do sistema e nunca são criados, alterados nem apagados à mão.
+    """
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Usuario)
@@ -34,13 +52,23 @@ class EntregaAdmin(admin.ModelAdmin):
 
 
 @admin.register(Evento)
-class EventoAdmin(admin.ModelAdmin):
-    list_display = ("tcc", "tipo", "data_hora")
+class EventoAdmin(SomenteLeituraAdmin):
+    """Log do ciclo de vida do TCC (RN10, RNF12): somente leitura."""
+
+    list_display = ("tcc", "tipo", "entrega", "usuario_relacionado", "data_hora")
     list_filter = ("tipo",)
+
+
+@admin.register(Comentario)
+class ComentarioAdmin(SomenteLeituraAdmin):
+    """Comentários de correção (US11, RF10): somente leitura, conforme a RN14."""
+
+    list_display = ("entrega", "versao", "autor", "data_criacao")
+
 
 @admin.register(Versao)
 class VersaoAdmin(admin.ModelAdmin):
-    """Provisório: permite criar uma versão à mão para t/home/felipe/Documentos/Projetos/SGTCC/sgtcc/backend/core/admin.pyestar a US08 até a US06 entrar."""
+    """Versões enviadas pelos alunos (US06), para consulta."""
 
-    list_display = ("entrega", "numero", "data_envio")
+    list_display = ("entrega", "numero", "enviado_por", "data_envio")
 

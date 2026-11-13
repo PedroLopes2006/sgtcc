@@ -56,6 +56,9 @@ class TipoEvento(models.TextChoices):
     ENTREGA_EM_REVISAO = "entrega_em_revisao", "Entrega em revisão"
     # US11 CA3 — RN10 / RF18: gatilho da notificação ao aluno (RF16).
     CORRECAO_SOLICITADA = "correcao_solicitada", "Correção solicitada"
+    # US11 / RF10 — RN10 / RF18: comentário adicional do orientador (RN14: novo comentário
+    # em vez de editar o anterior); gatilho da notificação ao aluno (RF16).
+    COMENTARIO_ADICIONADO = "comentario_adicionado", "Comentário adicionado"
     # US12 / US13 — RN10: conclusão e encerramento formal.
     ENTREGA_CONCLUIDA = "entrega_concluida", "Entrega concluída"
     ENTREGA_ENVIADA_A_BANCA = "entrega_enviada_a_banca", "Entrega enviada à banca"
@@ -306,8 +309,10 @@ class Comentario(models.Model):
     """
     Parecer do orientador sobre uma Entrega (RF10).
 
-    US11 — registrado ao solicitar correção (RN07).
-    RN14 — não é editado nem removido: a API não expõe nenhuma rota para isso.
+    US11 — registrado ao solicitar correção (RN07) ou, depois, como comentário
+    adicional do orientador (RF10).
+    RN14 — não é editado nem removido: a API não expõe nenhuma rota para isso, e
+    o ajuste de um comentário vira um comentário novo.
     RF10 — pode apontar a Versão avaliada; se a versão for apagada (RN13), o
     comentário permanece, só perde o vínculo.
     """

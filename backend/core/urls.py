@@ -45,6 +45,12 @@ urlpatterns = [
         views.SolicitarCorrecaoView.as_view(),
         name="solicitar-correcao",
     ),
+    # US11 / RF10 — comentário adicional, sem mudar o estado
+    path(
+        "entregas/<int:entrega_id>/comentarios/",
+        views.ComentarioAdicionalView.as_view(),
+        name="adicionar-comentario",
+    ),
     # ---------------------------------------------------------------- US12
     path("entregas/<int:entrega_id>/aprovar/", views.AprovarEntregaView.as_view(), name="aprovar-entrega"),
     # ---------------------------------------------------------------- US13

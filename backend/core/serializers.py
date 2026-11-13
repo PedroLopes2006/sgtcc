@@ -186,10 +186,16 @@ class EntregaSerializer(serializers.ModelSerializer):
     pode_sinalizar = serializers.BooleanField(source="pode_ser_sinalizada", read_only=True)
     # US11 — o aluno precisa ler o que o orientador pediu para corrigir.
     ultimo_comentario = serializers.SerializerMethodField()
+    # US11 / RF10 — todos os comentários da entrega, do mais antigo ao mais novo (RN14: só crescem).
+    comentarios = serializers.SerializerMethodField()
 
     def get_ultimo_comentario(self, entrega):
         comentario = entrega.comentarios.select_related("autor", "versao").last()
         return ComentarioSerializer(comentario).data if comentario else None
+
+    def get_comentarios(self, entrega):
+        comentarios = entrega.comentarios.select_related("autor", "versao")
+        return ComentarioSerializer(comentarios, many=True).data
 
     class Meta:
         model = Entrega
@@ -206,6 +212,7 @@ class EntregaSerializer(serializers.ModelSerializer):
             "versao_atual",
             "pode_sinalizar",
             "ultimo_comentario",
+            "comentarios",
         ]
         read_only_fields = fields
 
@@ -225,6 +232,12 @@ class CriacaoEntregaSerializer(serializers.Serializer):
 
 class SolicitacaoCorrecaoSerializer(serializers.Serializer):
     """US11 CA2 / RN07 — o comentário é obrigatório."""
+
+    comentario = serializers.CharField(allow_blank=False, trim_whitespace=True)
+
+
+class NovoComentarioSerializer(serializers.Serializer):
+    """US11 / RF10 — entrada do comentário adicional; o texto é obrigatório (RN07)."""
 
     comentario = serializers.CharField(allow_blank=False, trim_whitespace=True)
 
@@ -268,6 +281,8 @@ class OrientandoSerializer(serializers.ModelSerializer):
     # ---------------------------------------------------------------- US13
     entrega_para_banca = serializers.SerializerMethodField()
     entrega_para_revisao = serializers.SerializerMethodField()
+    # US11 / RF10 — a entrega que aceita um comentário a mais.
+    entrega_para_comentario = serializers.SerializerMethodField()
 
     class Meta:
         model = TCC
@@ -283,6 +298,7 @@ class OrientandoSerializer(serializers.ModelSerializer):
             "prazo_vencido",
             "aguarda_avaliacao_de_tema",
             "entrega_para_revisao",
+            "entrega_para_comentario",
             "entrega_para_banca",
         ]
 
@@ -351,6 +367,23 @@ class OrientandoSerializer(serializers.ModelSerializer):
             if entrega.estado in EstadoEntrega.encerrados():
                 continue
             if entrega.estado in (EstadoEntrega.PRONTO_PARA_REVISAO, EstadoEntrega.EM_REVISAO):
+                return EntregaSerializer(entrega, context=self.context).data
+            return None
+        return None
+
+    def get_entrega_para_comentario(self, tcc):
+        """
+        US11 / RF10 — a entrega que aceita um comentário adicional.
+
+        RN06 — só a primeira pendente, como na revisão. Ela precisa estar "em
+        revisão" ou com "correção solicitada" (o comentário a mais serve para
+        complementar o pedido sem editar o anterior, RN14). Vem com a lista de
+        comentários, para o orientador ler o que já escreveu antes de acrescentar.
+        """
+        for entrega in tcc.entregas.all():
+            if entrega.estado in EstadoEntrega.encerrados():
+                continue
+            if entrega.estado in (EstadoEntrega.EM_REVISAO, EstadoEntrega.CORRECAO_SOLICITADA):
                 return EntregaSerializer(entrega, context=self.context).data
             return None
         return None

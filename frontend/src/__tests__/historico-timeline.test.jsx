@@ -46,6 +46,29 @@ it('US07: mostra todas as versões e permite abrir uma versão antiga', async ()
   expect(api.get).toHaveBeenCalledWith('/entregas/7/versoes/')
 })
 
+it('US07: lista a versão mais nova primeiro e marca qual é a atual', async () => {
+  vi.spyOn(api, 'get').mockResolvedValue({
+    data: [
+      { id: 1, numero: 1, nome_original: 'v1.pdf', data_envio: '2026-10-01T12:00:00Z', arquivo_url: 'https://arquivos.test/v1.pdf' },
+      { id: 2, numero: 2, nome_original: 'v2.pdf', data_envio: '2026-10-05T12:00:00Z', arquivo_url: 'https://arquivos.test/v2.pdf' },
+      { id: 3, numero: 3, nome_original: 'v3.pdf', data_envio: '2026-10-09T12:00:00Z', arquivo_url: 'https://arquivos.test/v3.pdf' },
+    ],
+  })
+
+  render(
+    <AuthProvider><MemoryRouter initialEntries={['/aluno/entregas/7/versoes']}><Routes>
+      <Route path="/aluno/entregas/:entregaId/versoes" element={<HistoricoVersoes />} />
+    </Routes></MemoryRouter></AuthProvider>,
+  )
+
+  const itens = await screen.findAllByRole('listitem')
+  expect(itens.map((item) => item.querySelector('.titulo').textContent)).toEqual([
+    'Versão 3 · atual',
+    'Versão 2',
+    'Versão 1',
+  ])
+})
+
 it('US16: mostra os eventos com data, tipo e descrição', async () => {
   vi.spyOn(api, 'get').mockResolvedValue({
     data: [{ id: 1, tipo: 'upload', descricao: 'Versão 1 enviada em "Introdução".', data_hora: '2026-10-02T14:30:00Z' }],
