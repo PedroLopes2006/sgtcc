@@ -512,6 +512,154 @@ button.texto:hover:not(:disabled) {
   font-size: 12px;
 }
 
+.vazio-compacto {
+  padding: 56px 20px;
+}
+
+.lista-versoes {
+  list-style: decimal;
+  padding-left: 22px;
+}
+
+.lista-versoes li::marker {
+  color: var(--texto-fraco);
+  font-size: 12px;
+}
+
+/* ---------------------------------------------------------- linha do tempo */
+
+.pagina-timeline {
+  max-width: 760px;
+}
+
+.timeline-resumo {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--texto-suave);
+  font-size: 12px;
+}
+
+.linha-do-tempo {
+  list-style: none;
+  margin: 0 0 0 13px;
+  padding: 0 0 0 27px;
+  border-left: 1px solid var(--borda);
+}
+
+.evento-timeline {
+  position: relative;
+}
+
+.evento-timeline:last-child .timeline-registro {
+  border-bottom: 0;
+}
+
+.marcador-timeline {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  left: -41px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 1px solid var(--borda-forte);
+  border-radius: 2px;
+  background: var(--bg-app);
+  color: var(--texto-suave);
+}
+
+.marcador-timeline svg {
+  width: 15px;
+  height: 15px;
+}
+
+.marcador-timeline.icone-envio {
+  color: #3567a5;
+}
+
+.marcador-timeline.icone-pronta {
+  color: #287c78;
+}
+
+.marcador-timeline.icone-revisao {
+  color: #78609d;
+}
+
+.marcador-timeline.icone-comentario {
+  color: #aa702b;
+}
+
+.marcador-timeline.icone-aprovacao {
+  color: #40804d;
+}
+
+.marcador-timeline.icone-tema,
+.marcador-timeline.icone-criacao {
+  color: #63758b;
+}
+
+.marcador-timeline.icone-troca {
+  color: #986879;
+}
+
+.timeline-registro {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--borda);
+  overflow-wrap: anywhere;
+}
+
+.timeline-cabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.timeline-cabecalho h2 {
+  margin: 0;
+  color: var(--texto);
+  font-size: 14px;
+}
+
+.timeline-cabecalho time {
+  color: var(--texto-suave);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.timeline-registro p {
+  margin: 6px 0 10px;
+  color: var(--texto-suave);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.timeline-autor {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  color: var(--texto-suave);
+  font-size: 12px;
+}
+
+.timeline-identidade {
+  color: var(--texto);
+  font-weight: 500;
+}
+
+@media (max-width: 480px) {
+  .timeline-cabecalho {
+    flex-direction: column;
+  }
+}
+
 /* ---------------------------------------------------------------- tabela */
 
 .tabela {

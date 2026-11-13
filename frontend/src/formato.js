@@ -9,6 +9,17 @@ export function dataCurta(valor) {
   return `${d.getDate()} ${MESES[d.getMonth()]}`
 }
 
+/** Data e horário de um evento, no fuso horário local de quem consulta. */
+export function dataHoraCurta(valor) {
+  if (!valor) return '—'
+  const d = new Date(valor)
+  if (Number.isNaN(d.getTime())) return '—'
+  return `${dataCurta(valor)} · ${d.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`
+}
+
 export function iniciais(nome = '') {
   const partes = nome.trim().split(/\s+/).filter(Boolean)
   if (partes.length === 0) return '?'

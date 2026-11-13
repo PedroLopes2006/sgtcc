@@ -5,6 +5,8 @@ import Cadastro from './pages/Cadastro'
 import Login from './pages/Login'
 import AreaAluno from './pages/aluno/AreaAluno'
 import Entregas from './pages/aluno/Entregas'
+import HistoricoVersoes from './pages/aluno/HistoricoVersoes'
+import LinhaDoTempo from './pages/aluno/LinhaDoTempo'
 import MeuTCC from './pages/aluno/MeuTCC'
 import NovaEntrega from './pages/aluno/NovaEntrega'
 import ProporTema from './pages/aluno/ProporTema'
@@ -38,6 +40,8 @@ export default function App() {
             <Route path="propor" element={<ProporTema />} />
             <Route path="entregas" element={<Entregas />} />
             <Route path="entregas/nova" element={<NovaEntrega />} />
+            <Route path="entregas/:entregaId/versoes" element={<HistoricoVersoes />} />
+            <Route path="linha-do-tempo" element={<LinhaDoTempo />} />
           </Route>
 
           <Route

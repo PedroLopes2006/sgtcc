@@ -259,10 +259,19 @@ class SinalizarProntaView(APIView):
 
 
 class VersoesView(APIView):
-    """US06 — POST /api/entregas/<id>/versoes/"""
+    """US06 (envio) e US07 (histórico) de versões de uma entrega."""
 
     permission_classes = [IsAuthenticated, EhAluno]
     parser_classes = [MultiPartParser, FormParser]
+
+    def get(self, request, entrega_id):
+        """US07 CA1–CA2: lista os arquivos da própria entrega, do mais antigo ao mais novo."""
+        entrega = get_object_or_404(Entrega.objects.select_related("tcc"), id=entrega_id)
+        if entrega.tcc.aluno_id != request.user.id:
+            raise PermissionDenied("Esta entrega não pertence a você.")
+
+        versoes = entrega.versoes.order_by("data_envio", "id")
+        return Response(VersaoSerializer(versoes, many=True, context={"request": request}).data)
 
     @traduzir_erros_de_dominio
     def post(self, request, entrega_id):
@@ -277,7 +286,10 @@ class VersoesView(APIView):
         )
         entrega.refresh_from_db()
         return Response(
-            {"versao": VersaoSerializer(versao).data, "entrega": EntregaSerializer(entrega).data},
+            {
+                "versao": VersaoSerializer(versao, context={"request": request}).data,
+                "entrega": EntregaSerializer(entrega, context={"request": request}).data,
+            },
             status=status.HTTP_201_CREATED,
         )
 
