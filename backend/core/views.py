@@ -4,6 +4,8 @@ Endpoints dos Sprints 3 e 4 — US01, US03, US04, US05, US06, US08, US10 e US11.
 As views ficam finas de propósito: validam entrada, chamam core.services e
 devolvem o estado resultante. As regras de negócio estão em services.py.
 """
+from functools import wraps
+
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.shortcuts import get_object_or_404
@@ -22,7 +24,10 @@ from .permissions import EhAluno, EhOrientador
 from .serializers import (
     HistoricoTCCSerializer,
     ReatribuicaoSerializer,
+    AvisoSerializer,
     CadastroSerializer,
+    NovaSenhaSerializer,
+    NovoNomeSerializer,
     ComentarioSerializer,
     CriacaoEntregaSerializer,
     EnvioDeVersaoSerializer,
@@ -49,6 +54,7 @@ from .serializers import (
 def traduzir_erros_de_dominio(funcao):
     """Converte as exceções do Django levantadas em services para erros da API."""
 
+    @wraps(funcao)
     def wrapper(*args, **kwargs):
         try:
             return funcao(*args, **kwargs)
@@ -83,11 +89,56 @@ class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
 
 
+@api_view(["GET", "PATCH"])
+@permission_classes([IsAuthenticated])
+@traduzir_erros_de_dominio
+def eu(request):
+    """
+    Dados do usuário logado — o front usa o perfil para escolher o painel.
+
+    EXTRA (fora dos requisitos): PATCH troca só o nome. E-mail e perfil não mudam (RNF04).
+    """
+    if request.method == "PATCH":
+        dados = NovoNomeSerializer(data=request.data)
+        dados.is_valid(raise_exception=True)
+        services.atualizar_nome(usuario=request.user, nome=dados.validated_data["nome"])
+    return Response(UsuarioSerializer(request.user).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@traduzir_erros_de_dominio
+def alterar_senha(request):
+    """EXTRA (fora dos requisitos) — troca a senha conferindo a atual. RNF03."""
+    dados = NovaSenhaSerializer(data=request.data)
+    dados.is_valid(raise_exception=True)
+    services.alterar_senha(usuario=request.user, **dados.validated_data)
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def eu(request):
-    """Dados do usuário logado — o front usa o perfil para escolher o painel."""
-    return Response(UsuarioSerializer(request.user).data)
+def avisos(request):
+    """
+    EXTRA (fora dos requisitos) — a aba de Avisos, alternativa ao Telegram (US02).
+
+    Lê os `Evento` do log (RN10, RF18) que interessam ao usuário (RNF04).
+    """
+    itens, nao_lidos, vistos_ate = services.avisos_do_usuario(request.user)
+    return Response(
+        {
+            "nao_lidos": nao_lidos,
+            "avisos": AvisoSerializer(itens, many=True, context={"vistos_ate": vistos_ate}).data,
+        }
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def marcar_avisos_lidos(request):
+    """EXTRA (fora dos requisitos) — marca todos os avisos de agora como vistos."""
+    services.marcar_avisos_como_lidos(request.user)
+    return Response({"nao_lidos": 0})
 
 
 @api_view(["GET"])

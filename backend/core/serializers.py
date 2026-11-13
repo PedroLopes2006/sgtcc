@@ -1,8 +1,10 @@
 """Serializers do Sprint 3."""
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
+from rest_framework.exceptions import APIException, AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from . import services
 from .models import (
     Comentario,
     Entrega,
@@ -21,7 +23,8 @@ from .models import (
 class UsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
-        fields = ["id", "nome", "email", "perfil", "telegram_chat_id"]
+        # `data_cadastro` alimenta o "Membro desde" da tela de Perfil (só leitura).
+        fields = ["id", "nome", "email", "perfil", "telegram_chat_id", "data_cadastro"]
         read_only_fields = fields
 
 
@@ -67,6 +70,18 @@ class CadastroSerializer(serializers.ModelSerializer):
         )
 
 
+class LoginBloqueado(APIException):
+    """EXTRA — 429: muitas tentativas erradas para este e-mail."""
+
+    status_code = 429
+    default_code = "login_bloqueado"
+
+    def __init__(self, minutos):
+        super().__init__(
+            f"Muitas tentativas de entrar. Tente de novo em {minutos} minuto(s)."
+        )
+
+
 class LoginSerializer(TokenObtainPairSerializer):
     """
     US01 CA3 e CA4.
@@ -87,8 +102,20 @@ class LoginSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
-        attrs[self.username_field] = attrs.get(self.username_field, "").strip().lower()
-        dados = super().validate(attrs)
+        email = attrs.get(self.username_field, "").strip().lower()
+        attrs[self.username_field] = email
+
+        # EXTRA — fora dos requisitos: depois de 8 senhas erradas seguidas o e-mail
+        # fica bloqueado por um tempo. A resposta é igual exista a conta ou não (CA4).
+        minutos = services.minutos_de_bloqueio_do_login(email)
+        if minutos:
+            raise LoginBloqueado(minutos)
+        try:
+            dados = super().validate(attrs)
+        except AuthenticationFailed:
+            services.registrar_falha_de_login(email)
+            raise
+        services.limpar_falhas_de_login(email)
         # CA3 — o front usa o perfil para direcionar ao painel correto.
         dados["usuario"] = UsuarioSerializer(self.user).data
         return dados
@@ -526,3 +553,37 @@ class NovaPrioridadeSerializer(serializers.Serializer):
     """EXTRA (protótipo) — entrada da prioridade: alta, media, baixa ou sem_prioridade."""
 
     prioridade = serializers.ChoiceField(choices=["alta", "media", "baixa", "sem_prioridade"])
+
+
+class AvisoSerializer(serializers.ModelSerializer):
+    """
+    EXTRA — fora dos requisitos do documento: um item da aba de Avisos.
+
+    É um `Evento` do log (RN10, RF18) visto por quem precisa saber dele. `nao_lido`
+    compara com o "visto até" do usuário, que a view passa no contexto.
+    """
+
+    de = serializers.CharField(source="usuario_relacionado.nome", default=None, read_only=True)
+    entrega_id = serializers.IntegerField(read_only=True)
+    nao_lido = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Evento
+        fields = ["id", "tipo", "descricao", "data_hora", "de", "entrega_id", "nao_lido"]
+
+    def get_nao_lido(self, evento):
+        vistos_ate = self.context.get("vistos_ate")
+        return vistos_ate is None or evento.data_hora > vistos_ate
+
+
+class NovoNomeSerializer(serializers.Serializer):
+    """EXTRA — PATCH /api/auth/eu/: só o nome pode mudar."""
+
+    nome = serializers.CharField(max_length=150)
+
+
+class NovaSenhaSerializer(serializers.Serializer):
+    """EXTRA — POST /api/auth/alterar-senha/."""
+
+    senha_atual = serializers.CharField(write_only=True, style={"input_type": "password"})
+    nova_senha = serializers.CharField(write_only=True, style={"input_type": "password"})

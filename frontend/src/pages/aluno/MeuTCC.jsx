@@ -77,6 +77,11 @@ export default function MeuTCC() {
                       : `${concluidas} de ${entregas.length} ${
                           entregas.length === 1 ? 'entrega concluída' : 'entregas concluídas'
                         }`}
+                    {entregas.length > 0 && (
+                      <span className="barra-progresso" aria-hidden="true">
+                        <span style={{ width: `${Math.round((concluidas / entregas.length) * 100)}%` }} />
+                      </span>
+                    )}
                   </dd>
                 </div>
               </>

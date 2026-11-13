@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { mensagemDeErro } from '../api'
 import { painelDoPerfil, useAuth } from '../auth'
+import AlternarTema from '../components/AlternarTema'
+import PainelMarca from '../components/PainelMarca'
 
 /** US01 CA3 e CA4. */
 export default function Login() {
@@ -32,6 +34,8 @@ export default function Login() {
 
   return (
     <div className="tela-acesso">
+      <AlternarTema className="alternar-flutuante" />
+      <PainelMarca />
       <form className="cartao-acesso" onSubmit={aoEnviar}>
         <h1>Entrar</h1>
         <p className="legenda">Acesse para acompanhar seu TCC.</p>

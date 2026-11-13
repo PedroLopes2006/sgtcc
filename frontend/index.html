@@ -3,7 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <title>SGTCC — Sistema de Gestão de TCC</title>
+    <!-- Aplica o tema (claro ou escuro) antes do primeiro desenho, para a tela não piscar.
+         Escolha guardada primeiro; sem escolha, vale o tema do computador. Veja src/tema.js. -->
+    <script>
+      try {
+        var tema = localStorage.getItem('sgtcc.tema')
+        if (tema !== 'claro' && tema !== 'escuro') {
+          tema = matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro'
+        }
+        document.documentElement.dataset.tema = tema
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

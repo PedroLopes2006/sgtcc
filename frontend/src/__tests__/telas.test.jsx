@@ -436,6 +436,7 @@ describe('Arquivo da versão para o orientador', () => {
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
 
     // US11 — quem pede correção precisa do documento à mão.
+    await userEvent.click(screen.getByRole('button', { name: /Mais ações de/ }))
     await userEvent.click(screen.getByRole('button', { name: /Solicitar correção/ }))
     const modal = screen.getByRole('dialog')
     expect(within(modal).getByRole('link', { name: /Abrir versão 2/ })).toHaveAttribute(
@@ -450,6 +451,8 @@ describe('Arquivo da versão para o orientador', () => {
 
     expect(await screen.findByText('Bruno Alves')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Abrir versão/ })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /Mais ações de/ }))
 
     await userEvent.click(screen.getByRole('button', { name: /Solicitar correção/ }))
     expect(

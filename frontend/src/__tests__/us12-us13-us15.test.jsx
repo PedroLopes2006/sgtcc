@@ -32,17 +32,35 @@ function montar(historico = false) {
     </Routes>
   </MemoryRouter></AuthProvider>)
 }
+/**
+ * Responde às buscas da tela em ordem (a primeira carga, depois as recargas, que
+ * repetem a última). O contador de avisos da barra lateral usa outra rota e tem a
+ * sua resposta fixa, para não gastar uma das respostas da sequência.
+ */
+function respostasEmSequencia(...respostas) {
+  const restantes = [...respostas]
+  return vi.spyOn(api, 'get').mockImplementation((url) => {
+    if (url === '/avisos/') return Promise.resolve({ data: { nao_lidos: 0, avisos: [] } })
+    return Promise.resolve(restantes.length > 1 ? restantes.shift() : restantes[0])
+  })
+}
 it('US12: aprova e atualiza o painel com a próxima entrega (CA1–CA2 / RN06)', async () => {
-  const get = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [linha] }).mockResolvedValue({ data: [{ ...linha, fase_atual: 'Metodologia', entrega_para_revisao: null }] })
+  const get = respostasEmSequencia(
+    { data: [linha] },
+    { data: [{ ...linha, fase_atual: 'Metodologia', entrega_para_revisao: null }] },
+  )
   const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
   montar()
   await userEvent.click(await screen.findByRole('button', { name: 'Aprovar entrega Introdução' }))
   expect(post).toHaveBeenCalledWith('/entregas/7/aprovar/')
   expect(await screen.findByText('Metodologia')).toBeInTheDocument()
-  expect(get).toHaveBeenCalledTimes(2)
+  expect(get.mock.calls.filter(([url]) => url !== '/avisos/')).toHaveLength(2)
 })
 it('US13: encontra concluída fora da revisão e envia à banca (CA1 / RN12)', async () => {
-  vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [{ ...linha, entrega_para_revisao: null, entrega_para_banca: { ...entrega, estado: 'concluida' } }] }).mockResolvedValue({ data: [] })
+  respostasEmSequencia(
+    { data: [{ ...linha, entrega_para_revisao: null, entrega_para_banca: { ...entrega, estado: 'concluida' } }] },
+    { data: [] },
+  )
   const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
   montar()
   await userEvent.click(await screen.findByRole('button', { name: 'Enviar à banca Introdução' }))
@@ -61,6 +79,7 @@ it('US15: escolhe outro orientador e remove a linha após a troca (CA1 / RN05, R
   vi.spyOn(api, 'get').mockImplementation(url => Promise.resolve({ data: url === '/orientadores/' ? [orientador, { id: 9, nome: 'Ana' }] : [linha] }))
   const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
   montar()
+  await userEvent.click(await screen.findByRole('button', { name: 'Mais ações de Lucas' }))
   await userEvent.click(await screen.findByRole('button', { name: 'Reatribuir' }))
   await userEvent.selectOptions(await screen.findByLabelText('Orientador'), '9')
   vi.mocked(api.get).mockResolvedValue({ data: [] })

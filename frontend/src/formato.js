@@ -77,3 +77,41 @@ export function enviadaHa(valor, agora = new Date()) {
   if (dias <= 0) return 'Enviada hoje'
   return dias === 1 ? 'Enviada há 1 dia' : `Enviada há ${dias} dias`
 }
+
+const MESES_POR_EXTENSO = [
+  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+]
+
+/** Identifica o dia (no fuso de quem consulta) de um instante, para agrupar eventos. */
+export function chaveDoDia(valor) {
+  const d = new Date(valor)
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
+
+/**
+ * Rótulo de um dia na linha do tempo: "Hoje", "Ontem" ou "12 de novembro" (com
+ * o ano quando não é o atual). Conta dias de calendário, como `enviadaHa`.
+ */
+export function rotuloDoDia(valor, agora = new Date()) {
+  const d = new Date(valor)
+  if (Number.isNaN(d.getTime())) return '—'
+  const inicioDoDia = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
+  const dias = Math.round((inicioDoDia(agora) - inicioDoDia(d)) / 86400000)
+  if (dias === 0) return 'Hoje'
+  if (dias === 1) return 'Ontem'
+  const base = `${d.getDate()} de ${MESES_POR_EXTENSO[d.getMonth()]}`
+  return d.getFullYear() === agora.getFullYear() ? base : `${base} de ${d.getFullYear()}`
+}
+
+/** "novembro de 2026", para o "Membro desde" do perfil. */
+export function mesEAno(valor) {
+  const d = new Date(valor)
+  if (Number.isNaN(d.getTime())) return '—'
+  return `${MESES_POR_EXTENSO[d.getMonth()]} de ${d.getFullYear()}`
+}
+
+/** Sem acento e em minúsculas, para a busca achar "Introducao" ao digitar "introdução". */
+export function semAcento(texto) {
+  return (texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+}

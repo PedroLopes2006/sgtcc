@@ -84,11 +84,18 @@ describe('Revisão do orientador (US10 e US11)', () => {
     expect(
       screen.getByRole('button', { name: 'Iniciar revisão de Referencial teórico' }),
     ).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Iniciar revisão/ })).toHaveLength(1)
+
+    // "Solicitar correção" fica no menu "Mais ações", só na linha cuja entrega está em revisão.
+    await userEvent.click(screen.getByRole('button', { name: 'Mais ações de Bruno Alves' }))
     expect(
       screen.getByRole('button', { name: 'Solicitar correção de Metodologia' }),
     ).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: /Iniciar revisão/ })).toHaveLength(1)
     expect(screen.getAllByRole('button', { name: /Solicitar correção/ })).toHaveLength(1)
+
+    // Na linha da Carla (entrega só pronta), o menu não oferece correção.
+    await userEvent.click(screen.getByRole('button', { name: 'Mais ações de Carla Dias' }))
+    expect(screen.queryByRole('button', { name: /Solicitar correção/ })).not.toBeInTheDocument()
   })
 
   it('inicia a revisão, avisa que o aluno foi notificado e recarrega a tabela (US10 CA1)', async () => {
@@ -103,7 +110,7 @@ describe('Revisão do orientador (US10 e US11)', () => {
     expect(
       await screen.findByText('Revisão de "Referencial teórico" iniciada. O aluno foi avisado.'),
     ).toBeInTheDocument()
-    await waitFor(() => expect(get).toHaveBeenCalledTimes(2)) // carga inicial + recarga
+    await waitFor(() => expect(get.mock.calls.filter(([url]) => url !== '/avisos/')).toHaveLength(2)) // carga inicial + recarga
   })
 
   it('mostra a mensagem da API quando a transição é recusada (US10 CA2)', async () => {
@@ -124,6 +131,7 @@ describe('Revisão do orientador (US10 e US11)', () => {
     renderizarPainel([EM_REVISAO])
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
 
+    await userEvent.click(await screen.findByRole('button', { name: 'Mais ações de Bruno Alves' }))
     await userEvent.click(
       await screen.findByRole('button', { name: 'Solicitar correção de Metodologia' }),
     )
@@ -149,6 +157,7 @@ describe('Revisão do orientador (US10 e US11)', () => {
     const get = renderizarPainel([EM_REVISAO])
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
 
+    await userEvent.click(await screen.findByRole('button', { name: 'Mais ações de Bruno Alves' }))
     await userEvent.click(
       await screen.findByRole('button', { name: 'Solicitar correção de Metodologia' }),
     )
@@ -165,7 +174,7 @@ describe('Revisão do orientador (US10 e US11)', () => {
       await screen.findByText('Correção solicitada em "Metodologia". O aluno foi avisado.'),
     ).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    await waitFor(() => expect(get).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(get.mock.calls.filter(([url]) => url !== '/avisos/')).toHaveLength(2))
   })
 })
 

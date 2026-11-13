@@ -118,6 +118,9 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     data_cadastro = models.DateTimeField(default=timezone.now)
+    # EXTRA — fora dos requisitos do documento: a aba de Avisos. Marca até quando o
+    # usuário já viu os avisos; o que for mais novo que isto conta como não lido.
+    avisos_lidos_em = models.DateTimeField("avisos vistos até", null=True, blank=True)
 
     objects = UsuarioManager()
 
@@ -408,3 +411,25 @@ class Evento(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()} em {self.data_hora:%d/%m/%Y %H:%M}"
+
+
+class TentativaLogin(models.Model):
+    """
+    EXTRA — fora dos requisitos do documento: limite de tentativas de login.
+
+    Conta quantas senhas erradas seguidas houve para um e-mail. Ao chegar ao limite
+    (veja `services.LIMITE_TENTATIVAS_LOGIN`) o login daquele e-mail fica bloqueado
+    por um tempo. É guardado por e-mail digitado, exista a conta ou não, para a
+    resposta não revelar se o e-mail está cadastrado (US01 CA4, RNF03).
+    """
+
+    email = models.EmailField("e-mail", unique=True)
+    falhas = models.PositiveIntegerField(default=0)
+    bloqueado_ate = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "tentativa de login"
+        verbose_name_plural = "tentativas de login"
+
+    def __str__(self):
+        return f"{self.email}: {self.falhas} falha(s)"

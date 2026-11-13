@@ -67,19 +67,42 @@ Resumo do que cada US entrega e de quais requisitos da especificação (RF, RN e
 | Tipo | Atendidos | Parciais |
 |------|-----------|----------|
 | RF | 01, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 17, 18 | 16 (grava o `Evento`, sem envio) |
-| RNF | 03, 04, 05, 06, 09, 12, 13 | — |
+| RNF | 01 (medido em teste, veja abaixo), 03, 04, 05, 06, 09, 11, 12, 13, 14 (exportação, veja abaixo) | — |
 | RN | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 13, 14, 15 | — |
 
 No código, cada função de `services.py` cita no docstring o CA e as regras que aplica, e os testes citam a regra que cada um confere.
 
+**O que falta é só o Telegram (US02):** vincular o `chat_id` (RF02), enviar as notificações (RF16), registrar a notificação que não foi entregue por falta de canal (RN11) e a classe `Notificação` do diagrama, que nasce junto. Hoje o RF16 só grava o `Evento`, e a aba de Avisos mostra esses eventos dentro do sistema. Os demais RF, RN e RNF estão cobertos por código e por teste, com duas ressalvas que dependem do ambiente final:
+
+- **RNF01 (3 segundos):** `test_rnf01_desempenho.py` mede login, upload de um PDF de 1 MB e cada mudança de estado da entrega na API, e todos ficam bem abaixo do limite. Esse teste não inclui a hospedagem: no plano gratuito do Render, a primeira chamada depois de o serviço dormir leva cerca de 1 minuto.
+- **RNF08 (Chrome, Firefox e Edge):** o código usa só recursos comuns do navegador e não precisa de aplicativo, mas ainda não foi aberto nos três. Conferir à mão antes da apresentação.
+
+O RNF11 (falha de aviso não travar a ação) vale hoje por construção, porque o aviso é só um registro no banco; quando o Telegram entrar, o envio precisa ficar dentro de um `try/except`.
+
+### Exportação periódica dos dados (RNF14)
+
+O comando `exportar_dados` grava todo o conteúdo do banco (usuários, TCCs, temas, entregas, versões, comentários e eventos) num JSON datado e apaga as exportações mais antigas. As senhas saem só como hash (RNF03).
+
+```bash
+docker compose exec backend python manage.py exportar_dados                  # grava em backend/exportacoes/
+docker compose exec backend python manage.py exportar_dados --manter 30      # guarda as 30 últimas (padrão: 14)
+docker compose exec backend python manage.py exportar_dados --pasta /caminho # outra pasta
+```
+
+Para a exportação ser **periódica**, é só agendar o comando: no Linux, uma linha no `cron` (por exemplo, todo dia às 3h: `0 3 * * * cd /app && python manage.py exportar_dados`); no Windows, o Agendador de Tarefas chamando o mesmo comando. Como o plano gratuito do Render não tem shell nem agendador, em produção a exportação se faz do computador da equipe, com `DATABASE_URL` apontando para o banco, ou pelo painel do Supabase. A pasta `backend/exportacoes/` fica fora do Git, porque tem dados das pessoas. Os PDFs enviados não entram no arquivo: ficam no Supabase Storage (ou em `backend/media`, local) e devem ser copiados à parte. Para restaurar: `python manage.py loaddata <arquivo>.json`.
+
 ### Extras do protótipo (fora dos requisitos do documento)
 
-Duas funcionalidades vêm **só do protótipo do Figma**. **Elas não fazem parte dos requisitos da especificação do Sprint 1**: não há US, RF, RN nem RNF para elas. Foram feitas como complemento e estão marcadas como `EXTRA` no código, nos docstrings e nos nomes dos testes.
+Estas funcionalidades **não fazem parte dos requisitos da especificação do Sprint 1**: não há US, RF, RN nem RNF para elas. As duas primeiras vêm do protótipo do Figma; as outras foram acrescentadas como melhoria. Todas estão marcadas como `EXTRA` no código, nos docstrings e nos nomes dos testes.
 
 | Extra | O que faz |
 |-------|-----------|
 | Tela de Revisão do orientador | Reúne numa tela só (`/orientador/entregas/<id>`) o que as US07, US10, US11, US12 e US13 já fazem: ver as versões e os comentários da entrega, iniciar a revisão, pedir correção, acrescentar comentário, aprovar e enviar à banca. Quem diz o que pode ser feito agora é a API (`acoes`), com as mesmas regras dos services (RN06). Na Fila, o "Iniciar revisão" leva a ela; na tabela de orientandos, o link "Abrir revisão" também. |
 | Prioridade na fila de revisão | Na Fila de revisão (US09), o orientador marca cada entrega como alta, média, baixa ou sem prioridade. A marcação é só dele (por orientador e por entrega), o aluno nunca a vê, ela não muda a ordem de chegada e não gera evento. |
+| Aba de Avisos | Item "Avisos" na barra lateral, com o contador do que ainda não foi visto. Mostra o que o RF16 pede que seja avisado, lendo os mesmos `Evento` do log (RN10, RF18) que o Telegram (US02) vai consumir: o aluno vê o que o orientador fez (tema aprovado ou com ajuste, revisão iniciada, correção, comentário, conclusão, banca, troca de orientador); o orientador vê o que depende dele (tema proposto ou reenviado, entrega pronta, orientando recebido por troca). Quem fez a ação não recebe aviso dela, e o orientador novo não recebe como novo o que aconteceu antes de assumir (RN08). Ao abrir a aba, tudo vira "visto" (só se guarda até quando a pessoa viu). Cada aviso leva à tela certa. |
+| Perfil editável | Na tela de Perfil, o usuário troca o próprio nome e a senha (pede a senha atual, exige 8 caracteres e passa pelas mesmas regras de senha do cadastro). E-mail e perfil não mudam (RNF04). |
+| Limite de tentativas de login | Depois de 8 senhas erradas seguidas para o mesmo e-mail, o login desse e-mail fica bloqueado por 15 minutos (resposta 429), mesmo com a senha certa. Vale para qualquer e-mail digitado, exista a conta ou não, então não revela quais contas existem (US01 CA4). Um login certo zera a contagem. |
+| Filtros e celular em Orientandos | Filtros "Todos", "Para revisar", "Temas a avaliar" e "Em atraso", com a contagem de cada um, e busca por aluno ou tema (sem diferenciar acento nem maiúscula). No celular, a tabela vira uma lista de cartões, um por aluno. Os filtros só escondem linhas já carregadas: a API continua mandando no que existe e na ordem. |
 
 ## Relação com o protótipo do Figma
 
@@ -91,7 +114,22 @@ Três divergências conscientes:
 2. **A avaliação do tema sai da tabela de orientandos**, num modal, como no protótipo — não há fila de temas separada. A "Fila de revisão" desenhada no Figma é de *entregas* (US09) e tem tela própria; só o Perfil ainda aparece desativado na barra lateral.
 3. **A revisão acontece na tabela de orientandos, e a tela de Revisão do protótipo é um extra.** No Figma, "Iniciar revisão" fica na Fila de revisão e na tela de Revisão da entrega (versões, comentários, "Novo comentário", "Solicitar correção" e "Aprovar entrega"). Os botões e modais da tabela de orientandos são o que cumpre as US10 a US13. A tela de Revisão foi feita depois, como complemento fora dos requisitos (veja *Extras do protótipo*), e a tabela manteve os atalhos. Os textos seguem o protótipo ("Novo comentário", "Descreva o que precisa ser ajustado", "Escreva um comentário para solicitar correção.", "Seu orientador pediu correção").
 
-Telas do protótipo ainda não implementadas, porque pertencem a US fora deste sprint: perfil.
+A tela de Perfil, que estava desativada, agora existe (conta, resumo, aparência e Telegram). O formulário de vincular o Telegram aparece desabilitado até a US02, a próxima etapa.
+
+## Identidade visual e modo escuro
+
+O visual é sóbrio e leve. Cinzas de pedra, levemente quentes, em oito tons (fundo, barra lateral, superfícies, bordas e três graus de texto), uma ação primária grafite e nenhuma cor decorativa. **Só duas coisas ganham cor, porque carregam significado:** o estado de cada tema e entrega (os pontinhos) e a prioridade na fila de revisão.
+
+- **Fontes do próprio sistema, sem download:** títulos com serifa (Iowan Old Style, Palatino ou Georgia, conforme o computador) e texto sem serifa (`system-ui`). Não há fonte, imagem nem biblioteca de estilo externa, e o CSS inteiro tem cerca de 29 kB (6 kB comprimido).
+- **Modo escuro:** o botão "Modo escuro" fica na barra lateral e nas telas de entrar e criar conta. Na primeira visita vale o tema do computador; depois vale a escolha, guardada no navegador. O `index.html` aplica o tema antes do primeiro desenho, para a tela não piscar.
+- **Como funciona:** todas as cores são variáveis de CSS em `src/styles.css`. O modo escuro troca os valores, não as regras (atributo `data-tema` do `<html>`, lógica em `src/tema.js`). Um teste confere que os dois temas definem as mesmas variáveis.
+- **Contraste:** as cores de estado e de prioridade ficam um pouco mais claras no modo escuro, para manter a leitura. O atraso não troca a cor do estado: aparece no texto "vencido" e na data.
+- **Acabamento:** ícones em SVG na barra lateral, que fica fixa ao rolar; listas e tabelas em cartão; estados como "chips"; faixa de números no topo de Orientandos e da Fila; barras finas de progresso; avisos e erros em faixa com marca lateral; entrar e criar conta com um painel de marca ao lado, só em telas largas. Tudo é CSS e SVG pequeno, e a entrada suave do conteúdo e as transições são desligadas para quem pede menos movimento.
+- **Menos poluição na tabela de Orientandos:** a ação principal de cada linha (avaliar o tema, iniciar a revisão, aprovar, enviar à banca) fica à vista, e as demais (solicitar correção, adicionar comentário, histórico e reatribuir) ficam no botão "Mais ações".
+- **Avisos que somem sozinhos:** a confirmação de uma ação ("Revisão iniciada. O aluno foi avisado.") aparece num aviso discreto no canto e some em alguns segundos. Erros continuam em faixa, porque a pessoa precisa lê-los.
+- **Aluno:** cada entrega mostra a mini linha de etapas (Preparo, Envio, Revisão, Aprovação, Banca), e a linha do tempo agrupa os eventos por dia ("Hoje", "Ontem", "12 de novembro").
+- **Orientador:** a Fila de revisão tem busca por aluno ou entrega, sem diferenciar acento nem maiúscula.
+- **Perfil:** a tela existe para aluno e orientador. Mostra a conta (nome, e-mail, perfil e "Membro desde", que vem de `GET /api/auth/eu/`), um resumo do trabalho (do aluno: orientador, tema, progresso e fase atual; do orientador: os números da fila e dos orientandos), a escolha de aparência (claro, escuro ou automático, que acompanha o computador), o botão de sair e, como extra, a troca do nome e da senha. O cartão do Telegram mostra a situação real (vinculado ou não), mas o formulário fica desabilitado até a US02.
 
 ## Stack
 
@@ -205,8 +243,8 @@ Um detalhe de ordem: o `VITE_API_URL` entra no bundle durante o build, não é l
 ## Testes
 
 ```bash
-cd backend && python manage.py test core   # 230 testes
-cd frontend && npm test                    # 81 testes
+cd backend && python manage.py test core   # 267 testes
+cd frontend && npm test                    # 187 testes
 ```
 
 No backend, um teste por critério de aceite mais as regras de negócio envolvidas, organizados por US em `backend/core/tests/`. O `test_fluxo_revisao.py` percorre a entrega inteira pela API (US06, US08, US10 e US11), de rascunho até a correção e de volta. No frontend, testes de fumaça (Vitest + Testing Library) que montam cada tela e conferem os textos do protótipo e as regras visíveis — botão desabilitado sem tema aprovado, justificativa obrigatória no modal.
@@ -220,7 +258,11 @@ A US15 recebe `{"novo_orientador": <id>}` na reatribuição. Apenas o orientador
 | POST | `/api/auth/registrar/` | US01 CA1, CA2 | público |
 | POST | `/api/auth/login/` | US01 CA3, CA4 | público |
 | POST | `/api/auth/refresh/` | — | público |
-| GET | `/api/auth/eu/` | — | autenticado |
+| GET | `/api/auth/eu/` | dados da conta para o Perfil (inclui `data_cadastro`) | autenticado |
+| PATCH | `/api/auth/eu/` | **EXTRA** (fora dos requisitos): trocar o nome | autenticado |
+| POST | `/api/auth/alterar-senha/` | **EXTRA** (fora dos requisitos): trocar a senha | autenticado |
+| GET | `/api/avisos/` | **EXTRA** (fora dos requisitos): aba de Avisos | autenticado |
+| POST | `/api/avisos/marcar-lidos/` | **EXTRA** (fora dos requisitos): marcar os avisos como vistos | autenticado |
 | GET | `/api/orientadores/` | US03 CA1 | autenticado |
 | GET | `/api/meu-tcc/` | — | aluno |
 | POST | `/api/temas/` | US03 CA1–CA3 | aluno |
@@ -254,7 +296,8 @@ A US15 recebe `{"novo_orientador": <id>}` na reatribuição. Apenas o orientador
 backend/
   config/            configurações, URLs raiz
   core/
-    models.py        Usuario, TCC, Tema, Orientacao, Entrega, Versao, Comentario, Evento, PrioridadeRevisao (extra)
+    models.py        Usuario, TCC, Tema, Orientacao, Entrega, Versao, Comentario, Evento, PrioridadeRevisao (extra), TentativaLogin (extra)
+    management/      criar_admin, seed_demo, exportar_dados (RNF14)
     services.py      regras de negócio — é aqui que mora a lógica das US
     serializers.py   validação de entrada e formato de saída
     views.py         endpoints finos, só orquestram services
@@ -266,7 +309,7 @@ frontend/
     auth.jsx         contexto de autenticação
     formato.js       datas, iniciais e cores de estado
     components/      Layout (barra lateral), LayoutOrientador (menu do orientador), Estado, Modal, RotaProtegida, EnviarVersao, LinkVersao
-    pages/           Login, Cadastro
+    pages/           Login, Cadastro, Avisos (extra)
       aluno/         AreaAluno, MeuTCC, ProporTema, Entregas, NovaEntrega
       orientador/    Orientandos (tabela + modais de avaliação de tema e de correção), FilaRevisao (US09), RevisaoEntrega (extra)
     __tests__/       testes de fumaça das telas

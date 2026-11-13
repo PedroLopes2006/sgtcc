@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
 import EnviarVersao from '../../components/EnviarVersao'
+import EtapasEntrega from '../../components/EtapasEntrega'
 import Estado from '../../components/Estado'
+import Toast from '../../components/Toast'
 import { ROTULO_ESTADO_ENTREGA, dataCurta } from '../../formato'
 import { useTcc } from './AreaAluno'
 
@@ -82,7 +84,7 @@ export default function Entregas() {
           </div>
         ))}
 
-      {aviso && <p className="aviso">{aviso}</p>}
+      <Toast mensagem={aviso} aoFechar={() => setAviso('')} />
       {erro && <p className="erro">{erro}</p>}
 
 
@@ -106,6 +108,7 @@ export default function Entregas() {
                   {entrega.versao_atual && ` · versão ${entrega.versao_atual.numero}`}
                   {entrega.atrasada && ' · vencido'}
                 </div>
+                <EtapasEntrega estado={entrega.estado} />
                 {/* US11 / RF10 — o aluno lê o que o orientador pediu para corrigir: todos os
                     comentários da versão em correção, o pedido e os que vieram depois (RN14). */}
                 {entrega.estado === 'correcao_solicitada' &&

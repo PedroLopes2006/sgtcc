@@ -1,6 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import RotaProtegida from './components/RotaProtegida'
 import { AuthProvider, painelDoPerfil, useAuth } from './auth'
+import LayoutOrientador from './components/LayoutOrientador'
+import Avisos from './pages/Avisos'
 import Cadastro from './pages/Cadastro'
 import Login from './pages/Login'
 import AreaAluno from './pages/aluno/AreaAluno'
@@ -9,10 +11,12 @@ import HistoricoVersoes from './pages/aluno/HistoricoVersoes'
 import LinhaDoTempo from './pages/aluno/LinhaDoTempo'
 import MeuTCC from './pages/aluno/MeuTCC'
 import NovaEntrega from './pages/aluno/NovaEntrega'
+import PerfilAluno from './pages/aluno/PerfilAluno'
 import ProporTema from './pages/aluno/ProporTema'
 import HistoricoOrientando from './pages/orientador/HistoricoOrientando'
 import FilaRevisao from './pages/orientador/FilaRevisao'
 import Orientandos from './pages/orientador/Orientandos'
+import PerfilOrientador from './pages/orientador/PerfilOrientador'
 import RevisaoEntrega from './pages/orientador/RevisaoEntrega'
 
 function Raiz() {
@@ -43,6 +47,8 @@ export default function App() {
             <Route path="entregas/nova" element={<NovaEntrega />} />
             <Route path="entregas/:entregaId/versoes" element={<HistoricoVersoes />} />
             <Route path="linha-do-tempo" element={<LinhaDoTempo />} />
+            <Route path="avisos" element={<Avisos />} />
+            <Route path="perfil" element={<PerfilAluno />} />
           </Route>
 
           <Route
@@ -59,6 +65,27 @@ export default function App() {
             element={
               <RotaProtegida perfil="orientador">
                 <FilaRevisao />
+              </RotaProtegida>
+            }
+          />
+
+          {/* EXTRA (fora dos requisitos) — aba de Avisos */}
+          <Route
+            path="/orientador/avisos"
+            element={
+              <RotaProtegida perfil="orientador">
+                <LayoutOrientador>
+                  <Avisos />
+                </LayoutOrientador>
+              </RotaProtegida>
+            }
+          />
+
+          <Route
+            path="/orientador/perfil"
+            element={
+              <RotaProtegida perfil="orientador">
+                <PerfilOrientador />
               </RotaProtegida>
             }
           />

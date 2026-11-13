@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { mensagemDeErro } from '../api'
 import { painelDoPerfil, useAuth } from '../auth'
+import AlternarTema from '../components/AlternarTema'
+import PainelMarca from '../components/PainelMarca'
 
 /** US01 CA1 e CA2. */
 export default function Cadastro() {
@@ -37,6 +39,8 @@ export default function Cadastro() {
 
   return (
     <div className="tela-acesso">
+      <AlternarTema className="alternar-flutuante" />
+      <PainelMarca />
       <form className="cartao-acesso" onSubmit={aoEnviar}>
         <h1>Criar conta</h1>
         <p className="legenda">Preencha seus dados para começar.</p>

@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
 import Estado from '../../components/Estado'
+import Indicadores from '../../components/Indicadores'
 import LayoutOrientador from '../../components/LayoutOrientador'
 import LinkVersao from '../../components/LinkVersao'
-import { dataCurta, enviadaHa, iniciais } from '../../formato'
+import { dataCurta, enviadaHa, iniciais, semAcento } from '../../formato'
 
 /**
  * US09 — Fila de revisão (RF09, RN05, RN06, RNF02, RNF04).
@@ -29,6 +30,7 @@ export default function FilaRevisao() {
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const [iniciando, setIniciando] = useState(null) // id da entrega em andamento
+  const [busca, setBusca] = useState('')
 
   const carregar = useCallback(async () => {
     try {
@@ -73,6 +75,12 @@ export default function FilaRevisao() {
     }
   }
 
+  // Busca no que a tela já carregou (aluno e entrega); a fila e a ordem seguem as da API.
+  const termo = semAcento(busca.trim())
+  const visiveis = termo
+    ? itens.filter((item) => semAcento(`${item.aluno?.nome} ${item.titulo}`).includes(termo))
+    : itens
+
   return (
     // A página sempre informa o contador da fila (0 enquanto carrega, e o menu
     // esconde o zero), para o menu não buscar a mesma lista outra vez.
@@ -83,6 +91,24 @@ export default function FilaRevisao() {
 
       {erro && <p className="erro">{erro}</p>}
 
+      {/* Números de relance. A fila já vem da mais antiga para a mais nova (RN06 e US09). */}
+      {!carregando && itens.length > 0 && (
+        <Indicadores
+          itens={[
+            { rotulo: 'Aguardando', valor: itens.length },
+            {
+              rotulo: 'Espera mais antiga',
+              valor: enviadaHa(itens[0].pronta_em)?.replace('Enviada ', '') ?? '—',
+            },
+            {
+              rotulo: 'Em atraso',
+              valor: itens.filter((i) => i.atrasada).length,
+              alerta: itens.some((i) => i.atrasada),
+            },
+          ]}
+        />
+      )}
+
       {carregando ? (
         <p className="carregando">Carregando…</p>
       ) : itens.length === 0 ? (
@@ -92,8 +118,24 @@ export default function FilaRevisao() {
           <span>Quando um aluno sinalizar uma entrega como pronta, ela aparece aqui.</span>
         </div>
       ) : (
+        <>
+        <div className="busca">
+          <input
+            type="search"
+            aria-label="Buscar na fila"
+            placeholder="Buscar por aluno ou entrega"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </div>
+        {visiveis.length === 0 ? (
+          <div className="vazio vazio-compacto">
+            <strong>Nenhum resultado</strong>
+            <span>Nada na fila combina com “{busca.trim()}”.</span>
+          </div>
+        ) : (
         <ul className="lista fila-revisao">
-          {itens.map((item) => {
+          {visiveis.map((item) => {
             const enviada = enviadaHa(item.pronta_em)
             return (
               <li key={item.id}>
@@ -122,6 +164,7 @@ export default function FilaRevisao() {
                   <select
                     className="seletor-prioridade"
                     aria-label={`Prioridade de ${item.titulo}`}
+                    data-prioridade={item.prioridade || 'nenhuma'}
                     value={item.prioridade || 'sem_prioridade'}
                     onChange={(e) => definirPrioridade(item, e.target.value)}
                   >
@@ -144,6 +187,8 @@ export default function FilaRevisao() {
             )
           })}
         </ul>
+        )}
+        </>
       )}
     </LayoutOrientador>
   )

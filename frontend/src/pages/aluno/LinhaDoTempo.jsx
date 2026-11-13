@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import api, { mensagemDeErro } from '../../api'
 import { useAuth } from '../../auth'
-import { dataHoraCurta } from '../../formato'
+import { chaveDoDia, dataHoraCurta, rotuloDoDia } from '../../formato'
 
 const TIPOS_EVENTO = {
   tema_proposto: { rotulo: 'Tema proposto', icone: 'tema' },
@@ -79,13 +79,23 @@ export default function LinhaDoTempo() {
             <span>Mais recentes primeiro</span>
           </div>
           <ol className="linha-do-tempo">
-            {eventos.map((evento) => {
+            {eventos.map((evento, posicao) => {
               const tipo = TIPOS_EVENTO[evento.tipo] || { rotulo: evento.tipo, icone: 'tema' }
               const autor = evento.usuario_relacionado
               const meuEvento = autor?.id === usuario?.id
+              // Os eventos já vêm do mais novo para o mais antigo; um cabeçalho abre cada dia.
+              const novoDia =
+                posicao === 0 ||
+                chaveDoDia(evento.data_hora) !== chaveDoDia(eventos[posicao - 1].data_hora)
 
               return (
-                <li key={evento.id} className="evento-timeline">
+                <Fragment key={evento.id}>
+                {novoDia && (
+                  <li className="dia-timeline" role="presentation">
+                    {rotuloDoDia(evento.data_hora)}
+                  </li>
+                )}
+                <li className="evento-timeline">
                   <span className={`marcador-timeline icone-${tipo.icone}`}><IconeEvento tipo={tipo.icone} /></span>
                   <article className="timeline-registro" aria-label={tipo.rotulo}>
                     <div className="timeline-cabecalho">
@@ -101,6 +111,7 @@ export default function LinhaDoTempo() {
                     </div>
                   </article>
                 </li>
+                </Fragment>
               )
             })}
           </ol>

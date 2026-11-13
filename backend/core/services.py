@@ -4,12 +4,14 @@ Regras de negócio dos Sprints 3 e 4.
 Notificações (US03 CA2, US03 CA4, US04 CA3, US08 CA3, US10 CA1, US11 CA3 e o
 comentário adicional da US11): cada ponto registra um Evento; o envio é a US02.
 """
+from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
-from django.db.models import Max
+from django.db.models import F, Max
 from django.utils import timezone
 
 from .models import (
@@ -22,6 +24,7 @@ from .models import (
     Perfil,
     PrioridadeRevisao,
     StatusTema,
+    TentativaLogin,
     TCC,
     Tema,
     TipoEvento,
@@ -693,3 +696,137 @@ def definir_prioridade(*, orientador, entrega, nivel):
         orientador=orientador, entrega=entrega, defaults={"nivel": nivel}
     )
     return nivel
+
+
+# ---------------------------------------------------------------- EXTRA: avisos
+# EXTRA — fora dos requisitos do documento. É a alternativa dentro do sistema ao envio
+# pelo Telegram (US02): a aba de Avisos lê os mesmos `Evento` que são o gatilho do
+# RF16 (RN10, RF18). Não cria dado novo além de "visto até quando", e não impede
+# nenhuma ação se falhar (RNF11).
+
+# O orientador só é avisado do que depende dele; o resto do log ele já vê nas telas.
+TIPOS_DE_AVISO_DO_ORIENTADOR = (
+    TipoEvento.TEMA_PROPOSTO,
+    TipoEvento.TEMA_REENVIADO,
+    TipoEvento.ENTREGA_PRONTA,
+    TipoEvento.TROCA_ORIENTADOR,
+)
+LIMITE_DE_AVISOS = 30
+
+
+def eventos_de_aviso(usuario):
+    """Eventos que viram aviso para o usuário, do mais novo para o mais antigo. RNF04."""
+    if usuario.eh_aluno:
+        eventos = Evento.objects.filter(tcc__aluno=usuario)
+    elif usuario.eh_orientador:
+        # Só o que aconteceu depois que ele assumiu o TCC (RN08: o histórico anterior é
+        # preservado, mas não vira aviso novo).
+        eventos = Evento.objects.filter(
+            tcc__orientacoes__orientador=usuario,
+            tcc__orientacoes__ativa=True,
+            data_hora__gte=F("tcc__orientacoes__data_inicio"),
+            tipo__in=TIPOS_DE_AVISO_DO_ORIENTADOR,
+        )
+    else:
+        return Evento.objects.none()
+    # Quem fez a ação não precisa ser avisado dela.
+    return (
+        eventos.exclude(usuario_relacionado=usuario)
+        .select_related("usuario_relacionado", "entrega")
+        .order_by("-data_hora", "-id")
+    )
+
+
+def avisos_do_usuario(usuario):
+    """Os últimos avisos e quantos ainda não foram vistos."""
+    todos = eventos_de_aviso(usuario)
+    vistos_ate = usuario.avisos_lidos_em
+    nao_lidos = todos.filter(data_hora__gt=vistos_ate).count() if vistos_ate else todos.count()
+    return list(todos[:LIMITE_DE_AVISOS]), nao_lidos, vistos_ate
+
+
+def marcar_avisos_como_lidos(usuario):
+    """Marca tudo o que existe agora como visto."""
+    usuario.avisos_lidos_em = timezone.now()
+    usuario.save(update_fields=["avisos_lidos_em"])
+    return usuario.avisos_lidos_em
+
+
+# ---------------------------------------------------------------- EXTRA: perfil editável
+# EXTRA — fora dos requisitos do documento. A senha continua guardada só como hash (RNF03).
+TAMANHO_MINIMO_DA_SENHA = 8
+
+
+def atualizar_nome(*, usuario, nome):
+    """Troca o nome exibido da conta. E-mail e perfil não mudam (RNF04)."""
+    nome = (nome or "").strip()
+    if not nome:
+        raise ValidationError({"nome": "Informe o nome."})
+    if len(nome) > 150:
+        raise ValidationError({"nome": "O nome pode ter no máximo 150 caracteres."})
+    usuario.nome = nome
+    usuario.save(update_fields=["nome"])
+    return usuario
+
+
+def alterar_senha(*, usuario, senha_atual, nova_senha):
+    """Troca a senha depois de conferir a atual. RNF03."""
+    if not usuario.check_password(senha_atual or ""):
+        raise ValidationError({"senha_atual": "A senha atual não confere."})
+    if len(nova_senha or "") < TAMANHO_MINIMO_DA_SENHA:
+        raise ValidationError(
+            {"nova_senha": f"A nova senha precisa ter ao menos {TAMANHO_MINIMO_DA_SENHA} caracteres."}
+        )
+    if nova_senha == senha_atual:
+        raise ValidationError({"nova_senha": "A nova senha precisa ser diferente da atual."})
+    # As mesmas regras de senha do cadastro (US01).
+    try:
+        validate_password(nova_senha, usuario)
+    except ValidationError as erro:
+        raise ValidationError({"nova_senha": list(erro.messages)})
+    usuario.set_password(nova_senha)
+    usuario.save(update_fields=["password"])
+    return usuario
+
+
+# ---------------------------------------------------------------- EXTRA: limite de tentativas
+# EXTRA — fora dos requisitos do documento. Dificulta adivinhar senha (RNF03). Vale para
+# qualquer e-mail digitado, exista ou não, para não revelar quais contas existem (US01 CA4).
+LIMITE_TENTATIVAS_LOGIN = 8
+MINUTOS_DE_BLOQUEIO_DO_LOGIN = 15
+
+
+def _normalizar_email(email):
+    return (email or "").strip().lower()
+
+
+def minutos_de_bloqueio_do_login(email):
+    """Quantos minutos faltam para liberar o login deste e-mail (0 se não está bloqueado)."""
+    tentativa = TentativaLogin.objects.filter(email=_normalizar_email(email)).first()
+    if not tentativa or not tentativa.bloqueado_ate:
+        return 0
+    restante = (tentativa.bloqueado_ate - timezone.now()).total_seconds()
+    if restante <= 0:
+        # Passou o tempo: recomeça do zero.
+        tentativa.delete()
+        return 0
+    return int(restante // 60) + 1
+
+
+@transaction.atomic
+def registrar_falha_de_login(email):
+    """Soma uma senha errada; no limite, bloqueia o e-mail por um tempo."""
+    email = _normalizar_email(email)
+    if not email:
+        return
+    tentativa, _ = TentativaLogin.objects.select_for_update().get_or_create(email=email)
+    tentativa.falhas += 1
+    if tentativa.falhas >= LIMITE_TENTATIVAS_LOGIN:
+        tentativa.bloqueado_ate = timezone.now() + timedelta(minutes=MINUTOS_DE_BLOQUEIO_DO_LOGIN)
+        tentativa.falhas = 0
+    tentativa.save()
+
+
+def limpar_falhas_de_login(email):
+    """Um login certo zera a contagem."""
+    TentativaLogin.objects.filter(email=_normalizar_email(email)).delete()

@@ -2,10 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
 import Estado from '../../components/Estado'
+import Indicadores from '../../components/Indicadores'
 import LayoutOrientador from '../../components/LayoutOrientador'
 import LinkVersao from '../../components/LinkVersao'
+import MenuMais from '../../components/MenuMais'
 import Modal from '../../components/Modal'
-import { dataCurta, iniciais } from '../../formato'
+import Toast from '../../components/Toast'
+import { dataCurta, iniciais, semAcento } from '../../formato'
 
 /**
  * US04 — a avaliação do tema sai desta tabela, num modal, como no protótipo.
@@ -37,6 +40,8 @@ export default function Orientandos() {
   const [corrigindo, setCorrigindo] = useState(null)
   const [comentando, setComentando] = useState(null)
   const [iniciando, setIniciando] = useState(null) // id da entrega em andamento
+  const [filtro, setFiltro] = useState('todos')
+  const [busca, setBusca] = useState('')
 
   const carregar = useCallback(async () => {
     try {
@@ -85,11 +90,33 @@ export default function Orientandos() {
   }
 
   const pendentes = linhas.filter((l) => l.aguarda_avaliacao_de_tema).length
+  const emAtraso = linhas.filter((l) => l.prazo_vencido).length
   // US09 — a fila é a mesma regra de `entrega_para_revisao` (só a primeira pendente,
   // se estiver pronta), então o contador sai destes dados, sem outra requisição.
   const naFila = linhas.filter(
     (l) => l.entrega_para_revisao?.estado === 'pronto_para_revisao',
   ).length
+
+  // EXTRA (fora dos requisitos) — filtros e busca sobre o que a tela já carregou.
+  // Quem manda no que existe e na ordem é a API; aqui só se esconde o que não interessa.
+  const filtros = [
+    { codigo: 'todos', rotulo: 'Todos', quantos: linhas.length },
+    { codigo: 'revisar', rotulo: 'Para revisar', quantos: naFila },
+    { codigo: 'temas', rotulo: 'Temas a avaliar', quantos: pendentes },
+    { codigo: 'atraso', rotulo: 'Em atraso', quantos: emAtraso },
+  ]
+  const passaNoFiltro = {
+    todos: () => true,
+    revisar: (l) => l.entrega_para_revisao?.estado === 'pronto_para_revisao',
+    temas: (l) => l.aguarda_avaliacao_de_tema,
+    atraso: (l) => l.prazo_vencido,
+  }[filtro]
+  const termo = semAcento(busca.trim())
+  const visiveis = linhas.filter(
+    (l) =>
+      passaNoFiltro(l) &&
+      (!termo || semAcento(`${l.aluno?.nome} ${l.tema?.titulo || ''}`).includes(termo)),
+  )
 
   return (
     <LayoutOrientador orientandos={linhas.length} fila={naFila}>
@@ -103,8 +130,20 @@ export default function Orientandos() {
         )}
       </div>
 
-      {aviso && <p className="aviso">{aviso}</p>}
+      <Toast mensagem={aviso} aoFechar={() => setAviso('')} />
       {erro && <p className="erro">{erro}</p>}
+
+      {/* Números de relance, tirados dos mesmos dados da tabela (sem nova requisição). */}
+      {!carregando && linhas.length > 0 && (
+        <Indicadores
+          itens={[
+            { rotulo: 'Orientandos ativos', valor: linhas.length },
+            { rotulo: 'Para revisar', valor: naFila },
+            { rotulo: 'Temas a avaliar', valor: pendentes },
+            { rotulo: 'Em atraso', valor: emAtraso, alerta: emAtraso > 0 },
+          ]}
+        />
+      )}
 
       {carregando ? (
         <p className="carregando">Carregando…</p>
@@ -114,7 +153,39 @@ export default function Orientandos() {
           <span>Quando um aluno indicar você ao propor o tema, ele aparece aqui.</span>
         </div>
       ) : (
-        <table className="tabela">
+        <>
+        <div className="filtros-barra">
+          <div className="filtros" role="group" aria-label="Filtrar orientandos">
+            {filtros.map(({ codigo, rotulo, quantos }) => (
+              <button
+                key={codigo}
+                type="button"
+                className="filtro"
+                aria-pressed={filtro === codigo}
+                onClick={() => setFiltro(codigo)}
+              >
+                {rotulo}
+                <span className="filtro-numero">{quantos}</span>
+              </button>
+            ))}
+          </div>
+          <div className="busca">
+            <input
+              type="search"
+              aria-label="Buscar orientando"
+              placeholder="Buscar por aluno ou tema"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+          </div>
+        </div>
+        {visiveis.length === 0 ? (
+          <div className="vazio vazio-compacto">
+            <strong>Nenhum orientando com esse filtro</strong>
+            <span>Troque o filtro ou limpe a busca para ver os outros.</span>
+          </div>
+        ) : (
+        <table className="tabela tabela-cartoes">
           <thead>
             <tr>
               <th>Orientando</th>
@@ -126,9 +197,9 @@ export default function Orientandos() {
             </tr>
           </thead>
           <tbody>
-            {linhas.map((linha) => (
+            {visiveis.map((linha) => (
               <tr key={linha.id}>
-                <td>
+                <td data-rotulo="Orientando">
                   <div className="celula-aluno">
                     <span className="avatar">{iniciais(linha.aluno?.nome)}</span>
                     <div>
@@ -137,18 +208,29 @@ export default function Orientandos() {
                     </div>
                   </div>
                 </td>
-                <td>{linha.fase_atual}</td>
-                <td>
+                <td data-rotulo="Fase atual">{linha.fase_atual}</td>
+                <td data-rotulo="Estado">
                   <Estado codigo={linha.estado.codigo} rotulo={linha.estado.rotulo} />
                 </td>
-                <td className="numerico">
-                  {linha.progresso.total === 0
-                    ? '—'
-                    : `${linha.progresso.concluidas} de ${linha.progresso.total}`}
+                <td className="numerico" data-rotulo="Progresso">
+                  {linha.progresso.total === 0 ? (
+                    '—'
+                  ) : (
+                    <div className="progresso-celula">
+                      <span>{`${linha.progresso.concluidas} de ${linha.progresso.total}`}</span>
+                      <span className="barra-progresso" aria-hidden="true">
+                        <span
+                          style={{
+                            width: `${Math.round((linha.progresso.concluidas / linha.progresso.total) * 100)}%`,
+                          }}
+                        />
+                      </span>
+                    </div>
+                  )}
                 </td>
                 {/* US14 CA2 — prazo vencido: data em vermelho e um ponto vermelho próprio,
                     separado do ponto do estado (que mantém a cor do estado). */}
-                <td className={linha.prazo_vencido ? 'numerico prazo-vencido' : 'numerico'}>
+                <td className={linha.prazo_vencido ? 'numerico prazo-vencido' : 'numerico'} data-rotulo="Prazo">
                   {linha.prazo_vencido && (
                     <span
                       className="marcador-vencido"
@@ -159,11 +241,8 @@ export default function Orientandos() {
                   )}
                   {dataCurta(linha.prazo)}
                 </td>
-                <td>
+                <td className="celula-acoes">
                   <div className="acoes-linha">
-                    {/* US15 CA1–CA2 / RF14 / RN08 / RNF04 */}
-                    <Link to={`/orientador/orientandos/${linha.id}/historico`}>Histórico</Link>
-                    <button className="contorno" onClick={() => setReatribuindo(linha)}>Reatribuir</button>
                     {/* US12 CA1–CA2 / RN06 */}
                     {linha.entrega_para_revisao?.estado === 'em_revisao' && (
                       <button onClick={() => concluirAcao(linha.entrega_para_revisao, 'aprovar')}
@@ -210,32 +289,42 @@ export default function Orientandos() {
                         {iniciando === linha.entrega_para_revisao.id ? 'Iniciando…' : 'Iniciar revisão'}
                       </button>
                     )}
-                    {/* US11 CA1 — só a entrega em revisão pede correção (RN06). */}
-                    {linha.entrega_para_revisao?.estado === 'em_revisao' && (
-                      <button
-                        className="contorno"
-                        onClick={() => setCorrigindo(linha)}
-                        aria-label={`Solicitar correção de ${linha.entrega_para_revisao.titulo}`}
-                      >
-                        Solicitar correção
+                    {/* O que se faz menos, ou só às vezes, fica no "Mais ações". */}
+                    <MenuMais rotulo={`Mais ações de ${linha.aluno?.nome}`}>
+                      {/* US11 CA1 — só a entrega em revisão pede correção (RN06). */}
+                      {linha.entrega_para_revisao?.estado === 'em_revisao' && (
+                        <button
+                          className="contorno"
+                          onClick={() => setCorrigindo(linha)}
+                          aria-label={`Solicitar correção de ${linha.entrega_para_revisao.titulo}`}
+                        >
+                          Solicitar correção
+                        </button>
+                      )}
+                      {/* US11 / RF10 / RN14 — comentário a mais, sem mudar o estado (RN06). */}
+                      {linha.entrega_para_comentario && (
+                        <button
+                          className="contorno"
+                          onClick={() => setComentando(linha)}
+                          aria-label={`Adicionar comentário em ${linha.entrega_para_comentario.titulo}`}
+                        >
+                          Adicionar comentário
+                        </button>
+                      )}
+                      {/* US15 CA1–CA2 / RF14 / RN08 / RNF04 */}
+                      <Link to={`/orientador/orientandos/${linha.id}/historico`}>Histórico</Link>
+                      <button className="contorno" onClick={() => setReatribuindo(linha)}>
+                        Reatribuir
                       </button>
-                    )}
-                    {/* US11 / RF10 / RN14 — comentário a mais, sem mudar o estado (RN06). */}
-                    {linha.entrega_para_comentario && (
-                      <button
-                        className="contorno"
-                        onClick={() => setComentando(linha)}
-                        aria-label={`Adicionar comentário em ${linha.entrega_para_comentario.titulo}`}
-                      >
-                        Adicionar comentário
-                      </button>
-                    )}
+                    </MenuMais>
                   </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        )}
+        </>
       )}
 
       {reatribuindo && (

@@ -40,6 +40,14 @@ export function AuthProvider({ children }) {
         }
       },
 
+      // EXTRA (fora dos requisitos) — depois de trocar o nome no Perfil, o menu e o
+      // que ficou guardado no navegador passam a mostrar o nome novo.
+      atualizarUsuario(dados) {
+        const novo = { ...usuario, ...dados }
+        localStorage.setItem('sgtcc.usuario', JSON.stringify(novo))
+        setUsuario(novo)
+      },
+
       sair() {
         localStorage.removeItem('sgtcc.access')
         localStorage.removeItem('sgtcc.refresh')

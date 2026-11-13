@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import api from '../api'
+import { useContadorDeAvisos } from '../avisos'
 import Layout from './Layout'
 
 /**
@@ -12,6 +13,7 @@ import Layout from './Layout'
  */
 export default function LayoutOrientador({ fila, orientandos, children }) {
   const [buscados, setBuscados] = useState({})
+  const avisosNaoLidos = useContadorDeAvisos()
 
   useEffect(() => {
     let ativo = true
@@ -53,7 +55,9 @@ export default function LayoutOrientador({ fila, orientandos, children }) {
       exato: true,
       contador: contadorOrientandos || undefined,
     },
-    { rotulo: 'Perfil', icone: '◎' },
+    // EXTRA (fora dos requisitos) — avisos dentro do sistema
+    { rotulo: 'Avisos', icone: '◔', para: '/orientador/avisos', contador: avisosNaoLidos || undefined },
+    { rotulo: 'Perfil', icone: '◎', para: '/orientador/perfil' },
   ]
 
   return <Layout itens={itens}>{children}</Layout>

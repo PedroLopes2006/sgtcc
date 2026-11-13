@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useOutletContext } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
+import { useContadorDeAvisos } from '../../avisos'
 import Layout from '../../components/Layout'
 
 /**
@@ -28,6 +29,8 @@ export default function AreaAluno() {
     recarregar()
   }, [recarregar])
 
+  const avisosNaoLidos = useContadorDeAvisos()
+
   const itens = [
     { rotulo: 'Meu TCC', icone: '▦', para: '/aluno', exato: true },
     {
@@ -37,7 +40,9 @@ export default function AreaAluno() {
       contador: tcc?.entregas?.length || undefined,
     },
     { rotulo: 'Linha do tempo', icone: '◷', para: '/aluno/linha-do-tempo' },
-    { rotulo: 'Perfil', icone: '◎' },
+    // EXTRA (fora dos requisitos) — avisos dentro do sistema
+    { rotulo: 'Avisos', icone: '◔', para: '/aluno/avisos', contador: avisosNaoLidos || undefined },
+    { rotulo: 'Perfil', icone: '◎', para: '/aluno/perfil' },
   ]
 
   return (

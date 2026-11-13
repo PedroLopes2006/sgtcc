@@ -1,13 +1,19 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { iniciais } from '../formato'
+import AlternarTema from './AlternarTema'
+import Icone, { ICONE_POR_SIMBOLO } from './Icone'
+
+/** O desenho do ícone, ou o próprio símbolo de texto quando não há desenho. */
+function icone(simbolo) {
+  return ICONE_POR_SIMBOLO[simbolo] ? <Icone nome={ICONE_POR_SIMBOLO[simbolo]} /> : simbolo
+}
 
 /**
  * Casca do app: barra lateral fixa à esquerda, conteúdo à direita.
  *
- * Os itens que ainda não existem (Perfil) aparecem desativados em vez de
- * virarem links quebrados — eles entram nos próximos sprints, junto das US
- * correspondentes.
+ * Um item sem `para` aparece desativado em vez de virar link quebrado; hoje todos
+ * os itens do menu têm destino.
  */
 export default function Layout({ itens, children }) {
   const { usuario, sair } = useAuth()
@@ -15,6 +21,10 @@ export default function Layout({ itens, children }) {
   return (
     <div className="app">
       <aside className="sidebar">
+        <div className="sidebar-marca">
+          <span className="marca-nome">SGTCC</span>
+        </div>
+
         <div className="sidebar-usuario">
           <span className="avatar">{iniciais(usuario.nome)}</span>
           <span>{usuario.nome}</span>
@@ -30,7 +40,7 @@ export default function Layout({ itens, children }) {
                 className={({ isActive }) => (isActive ? 'ativo' : undefined)}
               >
                 <span className="icone" aria-hidden="true">
-                  {item.icone}
+                  {icone(item.icone)}
                 </span>
                 {item.rotulo}
                 {item.contador != null && <span className="contador">{item.contador}</span>}
@@ -43,7 +53,7 @@ export default function Layout({ itens, children }) {
                 style={{ opacity: 0.45, cursor: 'default' }}
               >
                 <span className="icone" aria-hidden="true">
-                  {item.icone}
+                  {icone(item.icone)}
                 </span>
                 {item.rotulo}
               </a>
@@ -52,6 +62,7 @@ export default function Layout({ itens, children }) {
         </nav>
 
         <div className="sidebar-rodape">
+          <AlternarTema />
           <button className="texto" onClick={sair}>
             Sair
           </button>

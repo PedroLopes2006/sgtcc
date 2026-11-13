@@ -93,16 +93,25 @@ describe('Adicionar comentário (orientador)', () => {
     ])
 
     expect(await screen.findByText('Bruno Alves')).toBeInTheDocument()
+
+    // A ação fica no menu "Mais ações", só na linha cuja entrega aceita comentário.
+    await userEvent.click(screen.getByRole('button', { name: 'Mais ações de Bruno Alves' }))
     expect(
       screen.getByRole('button', { name: 'Adicionar comentário em Metodologia' }),
     ).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /Adicionar comentário/ })).toHaveLength(1)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Mais ações de Davi Souza' }))
+    expect(screen.queryByRole('button', { name: /Adicionar comentário/ })).not.toBeInTheDocument()
   })
 
   it('mostra o que já foi escrito, só para leitura, e exige o texto novo (RN07, RN14)', async () => {
     renderizarPainel([linha(1, 'Bruno Alves', entrega('correcao_solicitada', [COMENTARIO_1]))])
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
 
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Mais ações de Bruno Alves' }),
+    )
     await userEvent.click(
       await screen.findByRole('button', { name: 'Adicionar comentário em Metodologia' }),
     )
@@ -127,6 +136,9 @@ describe('Adicionar comentário (orientador)', () => {
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
 
     await userEvent.click(
+      await screen.findByRole('button', { name: 'Mais ações de Bruno Alves' }),
+    )
+    await userEvent.click(
       await screen.findByRole('button', { name: 'Adicionar comentário em Metodologia' }),
     )
     const modal = screen.getByRole('dialog')
@@ -142,7 +154,7 @@ describe('Adicionar comentário (orientador)', () => {
       await screen.findByText('Comentário adicionado em "Metodologia". O aluno foi avisado.'),
     ).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    await waitFor(() => expect(get).toHaveBeenCalledTimes(2)) // carga inicial + recarga
+    await waitFor(() => expect(get.mock.calls.filter(([url]) => url !== '/avisos/')).toHaveLength(2)) // carga inicial + recarga
   })
 
   it('mostra a mensagem da API quando o comentário é recusado', async () => {
@@ -151,6 +163,9 @@ describe('Adicionar comentário (orientador)', () => {
       response: { data: { detail: 'Só é possível comentar uma entrega "em revisão".' } },
     })
 
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Mais ações de Bruno Alves' }),
+    )
     await userEvent.click(
       await screen.findByRole('button', { name: 'Adicionar comentário em Metodologia' }),
     )

@@ -4,6 +4,7 @@ import api, { mensagemDeErro } from '../../api'
 import Estado from '../../components/Estado'
 import LayoutOrientador from '../../components/LayoutOrientador'
 import LinkVersao from '../../components/LinkVersao'
+import Toast from '../../components/Toast'
 import { ROTULO_ESTADO_ENTREGA, dataCurta } from '../../formato'
 
 /**
@@ -139,7 +140,7 @@ export default function RevisaoEntrega() {
           </div>
         </div>
 
-        {aviso && <p className="aviso">{aviso}</p>}
+        <Toast mensagem={aviso} aoFechar={() => setAviso('')} />
         {erro && <p className="erro">{erro}</p>}
 
         <section className="secao-revisao" aria-label="Versões">

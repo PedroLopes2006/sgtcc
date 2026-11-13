@@ -102,7 +102,7 @@ describe('Sinalizar pronta (US08)', () => {
     expect(
       await screen.findByText('"Referencial teórico" sinalizada. Seu orientador foi avisado.'),
     ).toBeInTheDocument()
-    await waitFor(() => expect(get).toHaveBeenCalledTimes(2)) // carga inicial + recarga
+    await waitFor(() => expect(get.mock.calls.filter(([url]) => url !== '/avisos/')).toHaveLength(2)) // carga inicial + recarga
   })
 
   it('mostra a mensagem da API quando a sinalização é recusada', async () => {
