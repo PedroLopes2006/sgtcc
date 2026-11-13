@@ -1,10 +1,10 @@
 /*
  * Identidade visual do SGTCC.
  *
- * Papel de arquivo acadêmico: cinzas de pedra, levemente quentes, uma ação
- * primária grafite e nenhuma cor decorativa. Só duas coisas ganham cor, porque
- * carregam significado: o estado de cada tema e entrega (os pontinhos) e a
- * prioridade na fila de revisão.
+ * Papel de arquivo acadêmico: cinzas de pedra, levemente quentes, e um único
+ * destaque verde-azulado (botões, item ativo, links, foco, progresso). Fora isso,
+ * só ganham cor as coisas que carregam significado: o estado de cada tema e
+ * entrega (os pontinhos) e a prioridade na fila de revisão.
  *
  * Tudo é feito com variáveis de CSS. O modo escuro troca os valores, não as
  * regras: o tema fica no atributo data-tema do <html> (veja src/tema.js).
@@ -31,16 +31,24 @@
   --texto-suave: #5f5a53;
   --texto-fraco: #837d74;
 
-  /* ação primária: grafite no claro, "papel" no escuro */
-  --acao: #1d1b19;
-  --acao-hover: #000000;
-  --acao-texto: #fcfbfa;
+  /* destaque: um verde-azulado contido, a única cor "de marca". Vai nos botões, no
+     item ativo do menu, nos links, no foco e nas barras de progresso. */
+  --destaque: #1f6f68;
+  --destaque-forte: #175a55;
+  --destaque-suave: #e4f0ee;
+  --destaque-borda: #b9d6d2;
+
+  /* ação primária */
+  --acao: #1f6f68;
+  --acao-hover: #175a55;
+  --acao-texto: #ffffff;
   --desativado-bg: #e3dfd9;
   --desativado-texto: #8a847b;
 
   /* foco, véu do modal e sombras */
-  --anel: rgba(29, 27, 25, 0.16);
+  --anel: rgba(31, 111, 104, 0.22);
   --veu: rgba(29, 27, 25, 0.4);
+  --sombra-leve: 0 1px 2px rgba(29, 27, 25, 0.06), 0 4px 14px rgba(29, 27, 25, 0.05);
   --sombra-cartao: 0 1px 2px rgba(29, 27, 25, 0.05), 0 12px 32px rgba(29, 27, 25, 0.07);
   --sombra-modal: 0 20px 50px rgba(29, 27, 25, 0.2);
 
@@ -100,14 +108,20 @@
   --texto-suave: #b0aaa1;
   --texto-fraco: #8b857c;
 
-  --acao: #ecebe7;
-  --acao-hover: #ffffff;
-  --acao-texto: #131211;
+  --destaque: #4fb8af;
+  --destaque-forte: #7dd3cb;
+  --destaque-suave: #16302d;
+  --destaque-borda: #285550;
+
+  --acao: #4fb8af;
+  --acao-hover: #7dd3cb;
+  --acao-texto: #0d1f1d;
   --desativado-bg: #2b2825;
   --desativado-texto: #77716a;
 
-  --anel: rgba(236, 235, 231, 0.22);
+  --anel: rgba(79, 184, 175, 0.32);
   --veu: rgba(0, 0, 0, 0.62);
+  --sombra-leve: 0 4px 16px rgba(0, 0, 0, 0.28);
   --sombra-cartao: 0 12px 32px rgba(0, 0, 0, 0.35);
   --sombra-modal: 0 20px 50px rgba(0, 0, 0, 0.55);
 
@@ -165,7 +179,7 @@ body {
 a:focus-visible,
 button:focus-visible,
 summary:focus-visible {
-  outline: 2px solid var(--texto);
+  outline: 2px solid var(--destaque);
   outline-offset: 2px;
 }
 
@@ -266,10 +280,9 @@ summary:focus-visible {
 }
 
 .sidebar nav a.ativo {
-  background: var(--bg-ativo);
-  color: var(--texto);
+  background: var(--destaque-suave);
+  color: var(--destaque-forte);
   font-weight: 600;
-  box-shadow: inset 2px 0 0 var(--texto);
 }
 
 .sidebar nav a .icone {
@@ -420,7 +433,7 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--texto);
+  border-color: var(--destaque);
   box-shadow: 0 0 0 3px var(--anel);
 }
 
@@ -457,8 +470,8 @@ textarea {
 }
 
 .segmentado button[aria-pressed='true'] {
-  background: var(--bg-ativo);
-  color: var(--texto);
+  background: var(--destaque-suave);
+  color: var(--destaque-forte);
   font-weight: 600;
 }
 
@@ -1815,7 +1828,7 @@ button.texto:hover:not(:disabled) {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: var(--texto);
+  background: var(--destaque);
 }
 
 .definicoes dd .barra-progresso {
@@ -2151,4 +2164,186 @@ button.texto:hover:not(:disabled) {
 .perfil-form-linha input {
   flex: 1 1 180px;
   min-width: 0;
+}
+
+/* ------------------------------------------------ mais vida: destaque, profundidade e movimento leve */
+
+/* Uma luz bem fraca do destaque no topo da página, que some ao descer. */
+.app {
+  background: radial-gradient(900px 320px at 75% -120px, var(--destaque-suave), transparent 70%);
+}
+
+/* Marca: um quadradinho com o destaque antes do nome. */
+.marca-nome {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.marca-nome::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--destaque), var(--destaque-forte));
+}
+
+/* Links soltos no texto ganham o destaque; botões e itens de menu têm cor própria. */
+a:not([class]) {
+  color: var(--destaque);
+  text-underline-offset: 3px;
+}
+
+a:not([class]):hover {
+  color: var(--destaque-forte);
+}
+
+.avatar {
+  background: var(--destaque-suave);
+  color: var(--destaque-forte);
+}
+
+.avatar.grande {
+  border-color: var(--destaque-borda);
+}
+
+/* Cartões com um pouco de profundidade, sem peso: é só uma sombra leve. */
+.tabela,
+.lista,
+.cartao-perfil,
+.aviso-item,
+.indicadores > div,
+.sidebar-usuario {
+  box-shadow: var(--sombra-leve);
+}
+
+.indicadores > div {
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.indicadores > div:hover {
+  border-color: var(--destaque-borda);
+}
+
+.indicadores dd {
+  color: var(--destaque-forte);
+}
+
+.indicadores dd.alerta {
+  color: var(--vermelho);
+}
+
+/* Contadores do menu: cinza, e o de Avisos, o único que pede atenção, no destaque. */
+.sidebar nav a.ativo .contador {
+  background: var(--superficie);
+  color: var(--destaque-forte);
+}
+
+.sidebar nav a[href$='/avisos'] .contador {
+  background: var(--destaque);
+  color: var(--acao-texto);
+}
+
+/* Aviso novo em destaque. */
+.aviso-item.novo {
+  background: var(--destaque-suave);
+  border-color: var(--destaque-borda);
+}
+
+.aviso-item.novo .aviso-marca {
+  background: var(--destaque);
+}
+
+.aviso-selo {
+  background: var(--destaque);
+  color: var(--acao-texto);
+}
+
+/* O documento desenhado dos estados vazios, com uma linha no destaque. */
+.vazio::before {
+  border-color: var(--destaque-borda);
+  background:
+    linear-gradient(var(--destaque), var(--destaque)) 8px 15px / 22px 2px no-repeat,
+    linear-gradient(var(--destaque-borda), var(--destaque-borda)) 8px 25px / 22px 2px no-repeat,
+    linear-gradient(var(--destaque-borda), var(--destaque-borda)) 8px 35px / 14px 2px no-repeat;
+}
+
+/* Um toque de movimento: o botão afunda um pouco ao clicar. */
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Os cartões de cada tela entram um depois do outro. Só a opacidade muda, como no resto. */
+.indicadores > div,
+.lista-avisos > li,
+.perfil-grade > section {
+  animation: entrada 0.35s ease-out backwards;
+}
+
+.indicadores > div:nth-child(2),
+.lista-avisos > li:nth-child(2),
+.perfil-grade > section:nth-child(2) {
+  animation-delay: 0.05s;
+}
+
+.indicadores > div:nth-child(3),
+.lista-avisos > li:nth-child(3),
+.perfil-grade > section:nth-child(3) {
+  animation-delay: 0.1s;
+}
+
+.indicadores > div:nth-child(4),
+.lista-avisos > li:nth-child(n + 4),
+.perfil-grade > section:nth-child(4) {
+  animation-delay: 0.15s;
+}
+
+/* Um pouco de ajuda no celular, sem redesenhar nada. */
+@media (max-width: 720px) {
+  .cabecalho-pagina {
+    flex-wrap: wrap;
+  }
+
+  .sidebar nav a {
+    white-space: nowrap;
+  }
+
+  .barra-acoes > button,
+  .barra-acoes > a {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  .fundo-modal {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 23px;
+  }
+
+  .conteudo {
+    padding: 20px 14px 40px;
+  }
+
+  .indicadores dd {
+    font-size: 22px;
+  }
+}
+
+/* Em telas de toque, alvos de pelo menos 40px de altura. */
+@media (pointer: coarse) {
+  button,
+  .filtro,
+  .sidebar nav a {
+    min-height: 40px;
+  }
+
+  a.contorno {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
 }
