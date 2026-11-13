@@ -9,6 +9,7 @@ from pathlib import Path
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.db.models import Max
 from django.utils import timezone
 
 from .models import (
@@ -499,3 +500,51 @@ def consultar_historico(*, orientador, tcc):
         raise PermissionDenied("Apenas orientadores podem consultar este histórico.")
     _exigir_orientador_ativo(orientador, tcc)
     return tcc
+
+
+# ---------------------------------------------------------------- US09 — fila de revisão
+
+
+def fila_de_revisao(*, orientador):
+    """
+    US09 — entregas aguardando a revisão do orientador, por ordem de chegada.
+
+    CA1 / RF09: as entregas "pronto_para_revisao" dos orientandos ativos dele.
+    CA2: sem pendência, a lista vem vazia (a tela mostra a mensagem de fila vazia).
+    RN05: só os TCCs com Orientação ativa do orientador; o ex-orientador não vê.
+    RN06: só a primeira entrega pendente de cada aluno, a mesma que o
+        "Iniciar revisão" (US10) aceita; as seguintes esperam a vez.
+    Ordem: da que ficou pronta há mais tempo para a mais recente, pela data do
+        último Evento ENTREGA_PRONTA da entrega (depois de uma correção, a
+        entrega é sinalizada de novo e volta para o fim da fila). Entrega sem
+        esse Evento (dados antigos ou criados à mão) fica no fim, sem data.
+
+    Cada entrega devolvida ganha o atributo `pronta_em` (datetime ou None).
+    """
+    tccs = (
+        TCC.objects.filter(orientacoes__orientador=orientador, orientacoes__ativa=True)
+        .select_related("aluno", "tema")
+        .prefetch_related("entregas__versoes")
+        .distinct()
+    )
+
+    entregas = []
+    for tcc in tccs:
+        primeira = next(
+            (e for e in tcc.entregas.all() if e.estado not in EstadoEntrega.encerrados()), None
+        )
+        if primeira is not None and primeira.estado == EstadoEntrega.PRONTO_PARA_REVISAO:
+            entregas.append(primeira)
+
+    prontas_em = dict(
+        Evento.objects.filter(entrega__in=entregas, tipo=TipoEvento.ENTREGA_PRONTA)
+        .values("entrega")
+        .annotate(ultima=Max("data_hora"))
+        .values_list("entrega", "ultima")
+    )
+    for entrega in entregas:
+        entrega.pronta_em = prontas_em.get(entrega.id)
+
+    agora = timezone.now()
+    entregas.sort(key=lambda e: (e.pronta_em is None, e.pronta_em or agora, e.id))
+    return entregas

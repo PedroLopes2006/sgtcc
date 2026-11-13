@@ -11,6 +11,7 @@ import MeuTCC from './pages/aluno/MeuTCC'
 import NovaEntrega from './pages/aluno/NovaEntrega'
 import ProporTema from './pages/aluno/ProporTema'
 import HistoricoOrientando from './pages/orientador/HistoricoOrientando'
+import FilaRevisao from './pages/orientador/FilaRevisao'
 import Orientandos from './pages/orientador/Orientandos'
 
 function Raiz() {
@@ -48,6 +49,15 @@ export default function App() {
             element={
               <RotaProtegida perfil="orientador">
                 <Orientandos />
+              </RotaProtegida>
+            }
+          />
+          {/* US09 — fila de revisão do orientador */}
+          <Route
+            path="/orientador/fila"
+            element={
+              <RotaProtegida perfil="orientador">
+                <FilaRevisao />
               </RotaProtegida>
             }
           />
