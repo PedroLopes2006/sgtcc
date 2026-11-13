@@ -345,6 +345,41 @@ class Comentario(models.Model):
         return f"Comentário de {self.autor.nome} em {self.entrega.titulo}"
 
 
+class NivelPrioridade(models.TextChoices):
+    """Níveis da prioridade de revisão. "Sem prioridade" é a ausência de registro."""
+
+    ALTA = "alta", "Alta"
+    MEDIA = "media", "Média"
+    BAIXA = "baixa", "Baixa"
+
+
+class PrioridadeRevisao(models.Model):
+    """
+    EXTRA — fora dos requisitos do documento: vem do protótipo do Figma.
+
+    Prioridade que o orientador dá a uma entrega da Fila de revisão (alta,
+    média ou baixa). É só dele: guarda-se por orientador e por entrega, e o
+    aluno nunca vê. Não há RF, RN nem US para isso na especificação do Sprint 1.
+    """
+
+    orientador = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name="prioridades")
+    entrega = models.ForeignKey(Entrega, on_delete=models.CASCADE, related_name="prioridades")
+    nivel = models.CharField(max_length=10, choices=NivelPrioridade.choices)
+
+    class Meta:
+        verbose_name = "prioridade de revisão"
+        verbose_name_plural = "prioridades de revisão"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["orientador", "entrega"],
+                name="uma_prioridade_por_orientador_e_entrega",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.get_nivel_display()} — {self.entrega.titulo} ({self.orientador.nome})"
+
+
 class Evento(models.Model):
     """
     Log imutável do ciclo de vida do TCC.

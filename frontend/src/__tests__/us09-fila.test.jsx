@@ -60,6 +60,7 @@ function renderizar(rota, respostas) {
         <Routes>
           <Route path="/orientador" element={<Orientandos />} />
           <Route path="/orientador/fila" element={<FilaRevisao />} />
+          <Route path="/orientador/entregas/:entregaId" element={<p>Tela de Revisão aberta</p>} />
         </Routes>
       </MemoryRouter>
     </AuthProvider>,
@@ -104,22 +105,25 @@ describe('Fila de revisão (US09)', () => {
     ).toBeInTheDocument()
   })
 
-  it('"Iniciar revisão" chama a US10 e recarrega a fila', async () => {
-    let fila = [DA_ANA, DO_LUCAS]
-    const get = renderizar('/orientador/fila', { '/fila-revisao/': () => fila })
-    const post = vi.spyOn(api, 'post').mockImplementation(async () => {
-      fila = [DO_LUCAS]
-      return { data: {} }
-    })
+  it('"Iniciar revisão" chama a US10 e leva à tela de Revisão da entrega', async () => {
+    renderizar('/orientador/fila', { '/fila-revisao/': [DA_ANA, DO_LUCAS] })
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
 
     await userEvent.click(
       await screen.findByRole('button', { name: 'Iniciar revisão de Metodologia' }),
     )
 
     await waitFor(() => expect(post).toHaveBeenCalledWith('/entregas/5/iniciar-revisao/'))
-    expect(await screen.findByText(/Revisão de "Metodologia" iniciada/)).toBeInTheDocument()
-    await waitFor(() => expect(screen.queryByText('Ana Lima · Metodologia')).not.toBeInTheDocument())
-    expect(get.mock.calls.filter(([url]) => url === '/fila-revisao/')).toHaveLength(2)
+    expect(await screen.findByText('Tela de Revisão aberta')).toBeInTheDocument()
+  })
+
+  it('o nome do aluno e da entrega leva à tela de Revisão', async () => {
+    renderizar('/orientador/fila', { '/fila-revisao/': [DA_ANA] })
+
+    expect(await screen.findByRole('link', { name: 'Ana Lima · Metodologia' })).toHaveAttribute(
+      'href',
+      '/orientador/entregas/5',
+    )
   })
 
   it('mostra o erro da API quando a revisão não pode ser iniciada', async () => {

@@ -454,6 +454,8 @@ class ItemFilaRevisaoSerializer(serializers.ModelSerializer):
     atrasada = serializers.BooleanField(read_only=True)
     versao_atual = serializers.SerializerMethodField()
     pronta_em = serializers.DateTimeField(read_only=True, default=None)
+    # EXTRA (protótipo, fora dos requisitos): a prioridade que este orientador deu à entrega.
+    prioridade = serializers.CharField(read_only=True, default=None)
 
     class Meta:
         model = Entrega
@@ -468,9 +470,59 @@ class ItemFilaRevisaoSerializer(serializers.ModelSerializer):
             "tema",
             "versao_atual",
             "pronta_em",
+            "prioridade",
         ]
         read_only_fields = fields
 
     def get_versao_atual(self, entrega):
         versao = entrega.versao_atual
         return VersaoSerializer(versao, context=self.context).data if versao else None
+
+
+# ---------------------------------------------------------------- EXTRA — tela de Revisão
+# Fora dos requisitos do documento: a tela de Revisão vem do protótipo do Figma.
+
+
+class RevisaoEntregaSerializer(EntregaSerializer):
+    """
+    EXTRA (protótipo) — a entrega aberta na tela de Revisão do orientador.
+
+    Reúne o que as US07, US10, US11, US12 e US13 já expõem em pedaços: o aluno,
+    o tema, todas as versões (da mais antiga à mais nova, RN13), os comentários
+    (herdados de EntregaSerializer, RF10) e, em `acoes`, o que o orientador pode
+    fazer agora, para a tela não decidir regra sozinha (RN06). Traz também a
+    prioridade que ESTE orientador deu à entrega (extra, só dele).
+    """
+
+    aluno = OrientadorResumoSerializer(source="tcc.aluno", read_only=True)
+    tema = serializers.CharField(source="tcc.tema.titulo", read_only=True, default=None)
+    versoes = serializers.SerializerMethodField()
+    acoes = serializers.SerializerMethodField()
+    prioridade = serializers.SerializerMethodField()
+
+    class Meta(EntregaSerializer.Meta):
+        fields = EntregaSerializer.Meta.fields + ["aluno", "tema", "versoes", "acoes", "prioridade"]
+        read_only_fields = fields
+
+    def get_versoes(self, entrega):
+        versoes = entrega.versoes.order_by("data_envio", "id")
+        return VersaoSerializer(versoes, many=True, context=self.context).data
+
+    def get_acoes(self, entrega):
+        from .services import acoes_da_revisao
+
+        return acoes_da_revisao(entrega)
+
+    def get_prioridade(self, entrega):
+        orientador = self.context["request"].user
+        registro = entrega.prioridades.filter(orientador=orientador).first()
+        return registro.nivel if registro else None
+
+
+# ---------------------------------------------------------------- EXTRA — prioridade na fila
+
+
+class NovaPrioridadeSerializer(serializers.Serializer):
+    """EXTRA (protótipo) — entrada da prioridade: alta, media, baixa ou sem_prioridade."""
+
+    prioridade = serializers.ChoiceField(choices=["alta", "media", "baixa", "sem_prioridade"])

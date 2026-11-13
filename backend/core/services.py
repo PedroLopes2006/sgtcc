@@ -17,8 +17,10 @@ from .models import (
     Entrega,
     EstadoEntrega,
     Evento,
+    NivelPrioridade,
     Orientacao,
     Perfil,
+    PrioridadeRevisao,
     StatusTema,
     TCC,
     Tema,
@@ -574,7 +576,9 @@ def fila_de_revisao(*, orientador):
         entrega é sinalizada de novo e volta para o fim da fila). Entrega sem
         esse Evento (dados antigos ou criados à mão) fica no fim, sem data.
 
-    Cada entrega devolvida ganha o atributo `pronta_em` (datetime ou None).
+    Cada entrega devolvida ganha o atributo `pronta_em` (datetime ou None) e, como
+    EXTRA do protótipo (fora dos requisitos), `prioridade`: a que ESTE orientador
+    deu a ela ("alta", "media", "baixa") ou None. A prioridade não muda a ordem.
     """
     tccs = (
         TCC.objects.filter(orientacoes__orientador=orientador, orientacoes__ativa=True)
@@ -597,9 +601,95 @@ def fila_de_revisao(*, orientador):
         .annotate(ultima=Max("data_hora"))
         .values_list("entrega", "ultima")
     )
+    prioridades = dict(
+        PrioridadeRevisao.objects.filter(orientador=orientador, entrega__in=entregas)
+        .values_list("entrega_id", "nivel")
+    )
     for entrega in entregas:
         entrega.pronta_em = prontas_em.get(entrega.id)
+        entrega.prioridade = prioridades.get(entrega.id)
 
     agora = timezone.now()
     entregas.sort(key=lambda e: (e.pronta_em is None, e.pronta_em or agora, e.id))
     return entregas
+
+
+# ---------------------------------------------------------------- EXTRA — tela de Revisão
+# Fora dos requisitos do documento: a tela de Revisão vem do protótipo do Figma.
+# Ela reúne, numa tela só, o que as US07, US10, US11, US12 e US13 já fazem.
+
+
+def acoes_da_revisao(entrega):
+    """
+    EXTRA (protótipo) — o que o orientador pode fazer agora com a entrega.
+
+    São as mesmas condições dos services que executam cada ação, reunidas aqui
+    para a tela não decidir regra sozinha (RN06):
+      iniciar_revisao   → "pronto_para_revisao" e é a primeira pendente (US10).
+      solicitar_correcao → "em_revisao" e é a primeira pendente (US11).
+      aprovar           → "em_revisao" e é a primeira pendente (US12).
+      comentar          → "em_revisao" ou "correcao_solicitada" e é a primeira
+                          pendente (comentário adicional da US11, RF10).
+      enviar_a_banca    → "concluida" (US13, RN12).
+    """
+    primeira = entrega.tcc.entregas.exclude(estado__in=EstadoEntrega.encerrados()).first()
+    e_a_vez = primeira is not None and primeira.pk == entrega.pk
+    return {
+        "iniciar_revisao": e_a_vez and entrega.estado == EstadoEntrega.PRONTO_PARA_REVISAO,
+        "solicitar_correcao": e_a_vez and entrega.estado == EstadoEntrega.EM_REVISAO,
+        "aprovar": e_a_vez and entrega.estado == EstadoEntrega.EM_REVISAO,
+        "comentar": e_a_vez
+        and entrega.estado in (EstadoEntrega.EM_REVISAO, EstadoEntrega.CORRECAO_SOLICITADA),
+        "enviar_a_banca": entrega.estado == EstadoEntrega.CONCLUIDA,
+    }
+
+
+def consultar_revisao(*, orientador, entrega):
+    """
+    EXTRA (protótipo) — a entrega aberta na tela de Revisão do orientador.
+
+    RN05: só o orientador com Orientação ativa no TCC da entrega a consulta; o
+    ex-orientador e os outros orientadores recebem acesso negado.
+    RNF04: exclusivo de orientadores (a view já barra o aluno).
+    """
+    if not orientador.eh_orientador:
+        raise PermissionDenied("Apenas orientadores podem abrir a revisão.")
+    _exigir_orientador_ativo(orientador, entrega.tcc)
+    return entrega
+
+
+# ---------------------------------------------------------------- EXTRA — prioridade na fila
+# Fora dos requisitos do documento: a prioridade vem do protótipo do Figma.
+
+SEM_PRIORIDADE = "sem_prioridade"
+
+
+@transaction.atomic
+def definir_prioridade(*, orientador, entrega, nivel):
+    """
+    EXTRA (protótipo) — marcar a prioridade de uma entrega na Fila de revisão.
+
+    O orientador escolhe "alta", "media" ou "baixa"; "sem_prioridade" remove a
+    marcação. A prioridade é só dele: fica por orientador e por entrega, e o
+    aluno nunca a vê. Não é mudança de estado, então não gera Evento (RN10 não
+    se aplica) e ninguém é notificado.
+    RN05: só o orientador ativo do TCC marca prioridade.
+    Entrega "concluída" ou "enviada à banca" não está mais na fila: é recusada.
+    Devolve o nível gravado, ou None quando a marcação foi removida.
+    """
+    if not orientador.eh_orientador:
+        raise PermissionDenied("Apenas orientadores podem marcar prioridade.")
+    _exigir_orientador_ativo(orientador, entrega.tcc)
+    if entrega.estado in EstadoEntrega.encerrados():
+        raise ValidationError({"detail": "Só se marca prioridade em uma entrega pendente."})
+
+    if nivel == SEM_PRIORIDADE:
+        PrioridadeRevisao.objects.filter(orientador=orientador, entrega=entrega).delete()
+        return None
+    if nivel not in NivelPrioridade.values:
+        raise ValidationError({"prioridade": "Escolha alta, média, baixa ou sem prioridade."})
+
+    PrioridadeRevisao.objects.update_or_create(
+        orientador=orientador, entrega=entrega, defaults={"nivel": nivel}
+    )
+    return nivel

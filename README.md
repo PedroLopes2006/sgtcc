@@ -72,6 +72,15 @@ Resumo do que cada US entrega e de quais requisitos da especificação (RF, RN e
 
 No código, cada função de `services.py` cita no docstring o CA e as regras que aplica, e os testes citam a regra que cada um confere.
 
+### Extras do protótipo (fora dos requisitos do documento)
+
+Duas funcionalidades vêm **só do protótipo do Figma**. **Elas não fazem parte dos requisitos da especificação do Sprint 1**: não há US, RF, RN nem RNF para elas. Foram feitas como complemento e estão marcadas como `EXTRA` no código, nos docstrings e nos nomes dos testes.
+
+| Extra | O que faz |
+|-------|-----------|
+| Tela de Revisão do orientador | Reúne numa tela só (`/orientador/entregas/<id>`) o que as US07, US10, US11, US12 e US13 já fazem: ver as versões e os comentários da entrega, iniciar a revisão, pedir correção, acrescentar comentário, aprovar e enviar à banca. Quem diz o que pode ser feito agora é a API (`acoes`), com as mesmas regras dos services (RN06). Na Fila, o "Iniciar revisão" leva a ela; na tabela de orientandos, o link "Abrir revisão" também. |
+| Prioridade na fila de revisão | Na Fila de revisão (US09), o orientador marca cada entrega como alta, média, baixa ou sem prioridade. A marcação é só dele (por orientador e por entrega), o aluno nunca a vê, ela não muda a ordem de chegada e não gera evento. |
+
 ## Relação com o protótipo do Figma
 
 As telas seguem o [protótipo do Sprint 2](https://www.figma.com/design/S2vvHsgShUZoAzaORCW7gb/SGTCC?node-id=2034-66): barra lateral fixa, ação primária preta, e os textos de interface (rótulos, ajudas e estados vazios) copiados de lá.
@@ -80,9 +89,9 @@ Três divergências conscientes:
 
 1. **Sem etapas fixas.** O protótipo mostra "Progresso: 1 de 5 entregas" e uma coluna "Fase atual", sugerindo um roteiro de 5 etapas pré-definidas. A US05 diz que o aluno cria as entregas que quiser, com título livre — e a User Story manda. Aqui o total é quantas entregas existem, e a fase atual é a primeira entrega ainda em andamento.
 2. **A avaliação do tema sai da tabela de orientandos**, num modal, como no protótipo — não há fila de temas separada. A "Fila de revisão" desenhada no Figma é de *entregas* (US09) e tem tela própria; só o Perfil ainda aparece desativado na barra lateral.
-3. **A revisão acontece na tabela de orientandos**, e não na tela de Revisão do protótipo. No Figma, "Iniciar revisão" fica na Fila de revisão e na tela de Revisão da entrega (versões, comentários, "Novo comentário", "Solicitar correção" e "Aprovar entrega"). Como a tela de Revisão ainda não existe (a fila, o histórico de versões e a linha do tempo já têm as suas), os botões e o modal da US10 e da US11 ficam na tabela de orientandos. Os textos seguem o protótipo ("Novo comentário", "Descreva o que precisa ser ajustado", "Escreva um comentário para solicitar correção.", "Seu orientador pediu correção"); quando a tela de Revisão entrar, o modal sai e a lógica é a mesma.
+3. **A revisão acontece na tabela de orientandos, e a tela de Revisão do protótipo é um extra.** No Figma, "Iniciar revisão" fica na Fila de revisão e na tela de Revisão da entrega (versões, comentários, "Novo comentário", "Solicitar correção" e "Aprovar entrega"). Os botões e modais da tabela de orientandos são o que cumpre as US10 a US13. A tela de Revisão foi feita depois, como complemento fora dos requisitos (veja *Extras do protótipo*), e a tabela manteve os atalhos. Os textos seguem o protótipo ("Novo comentário", "Descreva o que precisa ser ajustado", "Escreva um comentário para solicitar correção.", "Seu orientador pediu correção").
 
-Telas do protótipo ainda não implementadas, porque pertencem a US fora deste sprint: tela de Revisão da entrega e perfil.
+Telas do protótipo ainda não implementadas, porque pertencem a US fora deste sprint: perfil.
 
 ## Stack
 
@@ -196,8 +205,8 @@ Um detalhe de ordem: o `VITE_API_URL` entra no bundle durante o build, não é l
 ## Testes
 
 ```bash
-cd backend && python manage.py test core   # 206 testes
-cd frontend && npm test                    # 61 testes
+cd backend && python manage.py test core   # 230 testes
+cd frontend && npm test                    # 81 testes
 ```
 
 No backend, um teste por critério de aceite mais as regras de negócio envolvidas, organizados por US em `backend/core/tests/`. O `test_fluxo_revisao.py` percorre a entrega inteira pela API (US06, US08, US10 e US11), de rascunho até a correção e de volta. No frontend, testes de fumaça (Vitest + Testing Library) que montam cada tela e conferem os textos do protótipo e as regras visíveis — botão desabilitado sem tema aprovado, justificativa obrigatória no modal.
@@ -224,6 +233,8 @@ A US15 recebe `{"novo_orientador": <id>}` na reatribuição. Apenas o orientador
 | GET, POST | `/api/entregas/<id>/versoes/` | US07 CA1–CA2; US06 CA1–CA4 | aluno (dono da entrega) |
 | POST | `/api/entregas/<id>/sinalizar-pronta/` | US08 CA1–CA3 | aluno |
 | GET | `/api/fila-revisao/` | US09 CA1, CA2 | orientador |
+| GET | `/api/entregas/<id>/revisao/` | **EXTRA** (protótipo, fora dos requisitos): tela de Revisão | orientador ativo |
+| PUT | `/api/entregas/<id>/prioridade/` | **EXTRA** (protótipo, fora dos requisitos): prioridade na fila | orientador ativo |
 | POST | `/api/entregas/<id>/iniciar-revisao/` | US10 CA1, CA2 | orientador |
 | POST | `/api/entregas/<id>/solicitar-correcao/` | US11 CA1–CA3 | orientador |
 | POST | `/api/entregas/<id>/comentarios/` | US11 / RF10 (comentário adicional) | orientador |
@@ -243,7 +254,7 @@ A US15 recebe `{"novo_orientador": <id>}` na reatribuição. Apenas o orientador
 backend/
   config/            configurações, URLs raiz
   core/
-    models.py        Usuario, TCC, Tema, Orientacao, Entrega, Versao, Comentario, Evento
+    models.py        Usuario, TCC, Tema, Orientacao, Entrega, Versao, Comentario, Evento, PrioridadeRevisao (extra)
     services.py      regras de negócio — é aqui que mora a lógica das US
     serializers.py   validação de entrada e formato de saída
     views.py         endpoints finos, só orquestram services
@@ -257,7 +268,7 @@ frontend/
     components/      Layout (barra lateral), LayoutOrientador (menu do orientador), Estado, Modal, RotaProtegida, EnviarVersao, LinkVersao
     pages/           Login, Cadastro
       aluno/         AreaAluno, MeuTCC, ProporTema, Entregas, NovaEntrega
-      orientador/    Orientandos (tabela + modais de avaliação de tema e de correção), FilaRevisao (US09)
+      orientador/    Orientandos (tabela + modais de avaliação de tema e de correção), FilaRevisao (US09), RevisaoEntrega (extra)
     __tests__/       testes de fumaça das telas
 ```
 As regras de negócio ficam em `services.py`, fora das views. Isso mantém a API fina e permite testar os critérios de aceite sem passar por HTTP — vale manter esse padrão nos próximos sprints.

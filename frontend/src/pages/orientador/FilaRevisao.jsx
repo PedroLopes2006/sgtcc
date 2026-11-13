@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
 import Estado from '../../components/Estado'
 import LayoutOrientador from '../../components/LayoutOrientador'
@@ -14,15 +15,19 @@ import { dataCurta, enviadaHa, iniciais } from '../../formato'
  * daqui nunca bate na regra de ordem da US10.
  * CA2: sem pendência, a mensagem de fila vazia do protótipo.
  *
- * "Iniciar revisão" chama o mesmo endpoint da US10 e recarrega a lista: a
- * entrega passa a "em revisão" e sai da fila. Comentar e solicitar correção
- * continuam na tela de Orientandos até a tela de Revisão entrar.
+ * "Iniciar revisão" chama o mesmo endpoint da US10: a entrega passa a "em
+ * revisão", sai da fila, e o orientador segue para a tela de Revisão dela, onde
+ * comenta, pede correção ou aprova. O nome da entrega também leva a essa tela.
+ *
+ * EXTRA (protótipo do Figma, fora dos requisitos do documento): a prioridade
+ * alta, média ou baixa de cada item, que só o orientador vê. Ela não muda a
+ * ordem de chegada.
  */
 export default function FilaRevisao() {
+  const navegar = useNavigate()
   const [itens, setItens] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
-  const [aviso, setAviso] = useState('')
   const [iniciando, setIniciando] = useState(null) // id da entrega em andamento
 
   const carregar = useCallback(async () => {
@@ -42,20 +47,29 @@ export default function FilaRevisao() {
   }, [carregar])
 
   async function iniciarRevisao(item) {
-    setAviso('')
     setErro('')
     setIniciando(item.id)
     try {
       await api.post(`/entregas/${item.id}/iniciar-revisao/`)
-      setAviso(
-        `Revisão de "${item.titulo}" iniciada. O aluno foi avisado. ` +
-          'Para comentar ou solicitar correção, use a tela de Orientandos.',
-      )
-      await carregar()
+      navegar(`/orientador/entregas/${item.id}`)
     } catch (e) {
       setErro(mensagemDeErro(e, 'Não foi possível iniciar a revisão.'))
-    } finally {
       setIniciando(null)
+    }
+  }
+
+  /** EXTRA (protótipo, fora dos requisitos) — marca a prioridade só deste orientador. */
+  async function definirPrioridade(item, prioridade) {
+    setErro('')
+    try {
+      const { data } = await api.put(`/entregas/${item.id}/prioridade/`, { prioridade })
+      setItens((atuais) =>
+        atuais.map((outro) =>
+          outro.id === item.id ? { ...outro, prioridade: data.prioridade } : outro,
+        ),
+      )
+    } catch (e) {
+      setErro(mensagemDeErro(e, 'Não foi possível marcar a prioridade.'))
     }
   }
 
@@ -67,7 +81,6 @@ export default function FilaRevisao() {
         <h1>Fila de revisão</h1>
       </div>
 
-      {aviso && <p className="aviso">{aviso}</p>}
       {erro && <p className="erro">{erro}</p>}
 
       {carregando ? (
@@ -88,7 +101,9 @@ export default function FilaRevisao() {
                   <span className="avatar">{iniciais(item.aluno?.nome)}</span>
                   <div>
                     <div className="titulo">
-                      {item.aluno?.nome} · {item.titulo}
+                      <Link to={`/orientador/entregas/${item.id}`}>
+                        {item.aluno?.nome} · {item.titulo}
+                      </Link>
                     </div>
                     <div className="meta">
                       <Estado codigo="pronto_para_revisao" rotulo="Pronta para revisão" />
@@ -103,6 +118,18 @@ export default function FilaRevisao() {
                   </div>
                 </div>
                 <div className="acoes-linha">
+                  {/* EXTRA (protótipo, fora dos requisitos) — prioridade, só do orientador. */}
+                  <select
+                    className="seletor-prioridade"
+                    aria-label={`Prioridade de ${item.titulo}`}
+                    value={item.prioridade || 'sem_prioridade'}
+                    onChange={(e) => definirPrioridade(item, e.target.value)}
+                  >
+                    <option value="sem_prioridade">Sem prioridade</option>
+                    <option value="alta">Prioridade alta</option>
+                    <option value="media">Prioridade média</option>
+                    <option value="baixa">Prioridade baixa</option>
+                  </select>
                   <LinkVersao versao={item.versao_atual} titulo={item.titulo} />
                   <button
                     className="contorno"

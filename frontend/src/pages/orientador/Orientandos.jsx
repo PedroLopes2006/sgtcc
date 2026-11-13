@@ -189,6 +189,16 @@ export default function Orientandos() {
                       versao={linha.entrega_para_revisao?.versao_atual}
                       titulo={linha.entrega_para_revisao?.titulo}
                     />
+                    {/* EXTRA (protótipo, fora dos requisitos) — tela de Revisão da entrega. */}
+                    {(linha.entrega_para_revisao || linha.entrega_para_comentario) && (
+                      <Link
+                        className="contorno"
+                        to={`/orientador/entregas/${(linha.entrega_para_revisao || linha.entrega_para_comentario).id}`}
+                        aria-label={`Abrir revisão de ${(linha.entrega_para_revisao || linha.entrega_para_comentario).titulo}`}
+                      >
+                        Abrir revisão
+                      </Link>
+                    )}
                     {/* US10 CA1 — só a entrega pronta para revisão pode ser aberta (RN06). */}
                     {linha.entrega_para_revisao?.estado === 'pronto_para_revisao' && (
                       <button

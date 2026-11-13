@@ -60,6 +60,14 @@ urlpatterns = [
     path("orientandos/<int:tcc_id>/historico/", views.HistoricoOrientandoView.as_view(), name="historico-orientando"),
     # US09 — fila de revisão
     path("fila-revisao/", views.fila_revisao, name="fila-revisao"),
+    # EXTRA (protótipo, fora dos requisitos) — tela de Revisão do orientador
+    path("entregas/<int:entrega_id>/revisao/", views.RevisaoEntregaView.as_view(), name="revisao-entrega"),
+    # EXTRA (protótipo, fora dos requisitos) — prioridade na fila de revisão
+    path(
+        "entregas/<int:entrega_id>/prioridade/",
+        views.PrioridadeEntregaView.as_view(),
+        name="prioridade-entrega",
+    ),
     # log / base da timeline
     path("eventos/", views.meus_eventos, name="eventos"),
 ]

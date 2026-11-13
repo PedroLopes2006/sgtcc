@@ -30,11 +30,13 @@ from .serializers import (
     EventoSerializer,
     ItemFilaRevisaoSerializer,
     LoginSerializer,
+    NovaPrioridadeSerializer,
     NovoComentarioSerializer,
     OrientadorResumoSerializer,
     OrientandoSerializer,
     PropostaTemaSerializer,
     ReenvioTemaSerializer,
+    RevisaoEntregaSerializer,
     SolicitacaoAjusteSerializer,
     SolicitacaoCorrecaoSerializer,
     TCCSerializer,
@@ -455,3 +457,56 @@ def fila_revisao(request):
     return Response(
         ItemFilaRevisaoSerializer(entregas, many=True, context={"request": request}).data
     )
+
+
+# ---------------------------------------------------------------- EXTRA — tela de Revisão
+# Fora dos requisitos do documento: a tela de Revisão vem do protótipo do Figma.
+
+
+class RevisaoEntregaView(APIView):
+    """
+    EXTRA (protótipo) — GET /api/entregas/<id>/revisao/
+
+    A entrega aberta na tela de Revisão do orientador: aluno, versões,
+    comentários e as ações possíveis agora. Só leitura; as ações em si usam os
+    endpoints das US10, US11, US12 e US13.
+    RNF04: exclusivo de orientadores. RN05: só o orientador ativo do TCC.
+    """
+
+    permission_classes = [IsAuthenticated, EhOrientador]
+
+    @traduzir_erros_de_dominio
+    def get(self, request, entrega_id):
+        entrega = get_object_or_404(Entrega.objects.select_related("tcc__aluno"), id=entrega_id)
+        entrega = services.consultar_revisao(orientador=request.user, entrega=entrega)
+        return Response(RevisaoEntregaSerializer(entrega, context={"request": request}).data)
+
+
+# ---------------------------------------------------------------- EXTRA — prioridade na fila
+# Fora dos requisitos do documento: a prioridade vem do protótipo do Figma.
+
+
+class PrioridadeEntregaView(APIView):
+    """
+    EXTRA (protótipo) — PUT /api/entregas/<id>/prioridade/
+
+    O orientador marca a prioridade da entrega na Fila de revisão: alta, media,
+    baixa ou sem_prioridade. É só dele (o aluno nunca vê) e não é mudança de
+    estado, então não gera Evento.
+    RNF04: exclusivo de orientadores. RN05: só o orientador ativo do TCC.
+    """
+
+    permission_classes = [IsAuthenticated, EhOrientador]
+
+    @traduzir_erros_de_dominio
+    def put(self, request, entrega_id):
+        serializer = NovaPrioridadeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        entrega = get_object_or_404(Entrega, id=entrega_id)
+        nivel = services.definir_prioridade(
+            orientador=request.user,
+            entrega=entrega,
+            nivel=serializer.validated_data["prioridade"],
+        )
+        return Response({"prioridade": nivel})

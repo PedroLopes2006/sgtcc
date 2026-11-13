@@ -13,6 +13,7 @@ import ProporTema from './pages/aluno/ProporTema'
 import HistoricoOrientando from './pages/orientador/HistoricoOrientando'
 import FilaRevisao from './pages/orientador/FilaRevisao'
 import Orientandos from './pages/orientador/Orientandos'
+import RevisaoEntrega from './pages/orientador/RevisaoEntrega'
 
 function Raiz() {
   const { usuario } = useAuth()
@@ -58,6 +59,16 @@ export default function App() {
             element={
               <RotaProtegida perfil="orientador">
                 <FilaRevisao />
+              </RotaProtegida>
+            }
+          />
+
+          {/* EXTRA (protótipo, fora dos requisitos) — tela de Revisão do orientador */}
+          <Route
+            path="/orientador/entregas/:entregaId"
+            element={
+              <RotaProtegida perfil="orientador">
+                <RevisaoEntrega />
               </RotaProtegida>
             }
           />

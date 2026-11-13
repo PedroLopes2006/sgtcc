@@ -1005,3 +1005,16 @@ button.texto:hover:not(:disabled) {
 .fila-revisao .meta .estado {
   vertical-align: middle;
 }
+
+/* ------------------------------------------- tela de Revisão e prioridade (extras do protótipo) */
+
+.secao-revisao {
+  margin-top: 24px;
+}
+.secao-revisao h2 {
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+.seletor-prioridade {
+  font-size: 12px;
+}
