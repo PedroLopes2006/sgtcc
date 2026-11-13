@@ -123,7 +123,8 @@ class PropostaTemaSerializer(serializers.Serializer):
     orientador_id = serializers.IntegerField()
 
     def validate_orientador_id(self, valor):
-        if not Usuario.objects.filter(id=valor, perfil=Perfil.ORIENTADOR).exists():
+        # Mesma regra da lista que o aluno vê: o administrador não pode ser indicado.
+        if not Usuario.objects.orientadores_disponiveis().filter(id=valor).exists():
             raise serializers.ValidationError("Orientador não encontrado.")
         return valor
 
@@ -402,7 +403,7 @@ class OrientandoSerializer(serializers.ModelSerializer):
 class ReatribuicaoSerializer(serializers.Serializer):
     """US15 CA1 / RF14 / RN08, RN09, RN15 / RNF04: destino da reatribuição."""
     novo_orientador = serializers.PrimaryKeyRelatedField(
-        queryset=Usuario.objects.filter(perfil=Perfil.ORIENTADOR, is_active=True)
+        queryset=Usuario.objects.orientadores_disponiveis()
     )
 
 

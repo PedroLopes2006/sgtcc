@@ -91,8 +91,12 @@ def eu(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def listar_orientadores(request):
-    """US03 CA1 — o aluno precisa escolher entre orientadores cadastrados."""
-    orientadores = Usuario.objects.filter(perfil=Perfil.ORIENTADOR, is_active=True)
+    """
+    US03 CA1 — o aluno precisa escolher entre orientadores cadastrados.
+
+    A conta do administrador não entra na lista (veja `orientadores_disponiveis`).
+    """
+    orientadores = Usuario.objects.orientadores_disponiveis()
     return Response(OrientadorResumoSerializer(orientadores, many=True).data)
 
 

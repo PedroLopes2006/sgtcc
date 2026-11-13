@@ -94,6 +94,17 @@ class UsuarioManager(BaseUserManager):
         extra.setdefault("is_superuser", True)
         return self._create_user(email, nome, senha or password, perfil, **extra)
 
+    def orientadores_disponiveis(self):
+        """
+        Orientadores que podem ser escolhidos: na proposta de tema (US03 CA1) e
+        no destino de uma reatribuição (US15).
+
+        A conta do administrador (superusuário) nasce com perfil de orientador,
+        mas serve só à gestão pelo /admin: ela não entra na lista nem pode ser
+        indicada. Também ficam de fora as contas inativas.
+        """
+        return self.filter(perfil=Perfil.ORIENTADOR, is_active=True, is_superuser=False)
+
 
 class Usuario(AbstractBaseUser, PermissionsMixin):
     """Aluno ou orientador — entidade única para reaproveitar a autenticação."""

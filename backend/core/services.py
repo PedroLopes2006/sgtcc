@@ -48,7 +48,8 @@ def propor_tema(*, aluno, titulo, descricao, orientador):
         raise PermissionDenied("Apenas alunos podem propor tema.")
     if orientador is None:
         raise ValidationError({"orientador": "É obrigatório indicar um orientador."})
-    if orientador.perfil != Perfil.ORIENTADOR:
+    # A conta do administrador tem perfil de orientador, mas não pode ser indicada.
+    if orientador.perfil != Perfil.ORIENTADOR or orientador.is_superuser:
         raise ValidationError({"orientador": "O usuário indicado não é um orientador."})
     if TCC.objects.filter(aluno=aluno).exists():
         raise ValidationError(
@@ -530,7 +531,12 @@ def reatribuir_orientador(*, orientador, tcc, novo_orientador):
     _exigir_orientador_ativo(orientador, tcc)
     if not orientador.eh_orientador:
         raise PermissionDenied("Apenas orientadores podem reatribuir um TCC.")
-    if novo_orientador.perfil != Perfil.ORIENTADOR or not novo_orientador.is_active:
+    # O administrador não é um destino válido (veja `orientadores_disponiveis`).
+    if (
+        novo_orientador.perfil != Perfil.ORIENTADOR
+        or not novo_orientador.is_active
+        or novo_orientador.is_superuser
+    ):
         raise ValidationError({"novo_orientador": "Selecione um orientador ativo."})
     if novo_orientador.pk == orientador.pk:
         raise ValidationError({"novo_orientador": "Escolha um orientador diferente do atual."})

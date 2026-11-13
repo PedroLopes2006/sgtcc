@@ -196,7 +196,7 @@ Um detalhe de ordem: o `VITE_API_URL` entra no bundle durante o build, não é l
 ## Testes
 
 ```bash
-cd backend && python manage.py test core   # 199 testes
+cd backend && python manage.py test core   # 206 testes
 cd frontend && npm test                    # 61 testes
 ```
 
