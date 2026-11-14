@@ -10,6 +10,7 @@ urlpatterns = [
     path("auth/refresh/", TokenRefreshView.as_view(), name="refresh"),
     path("auth/eu/", views.eu, name="eu"),
     # EXTRA (fora dos requisitos) — perfil editável e aba de Avisos
+    path("auth/alterar-email/", views.alterar_email, name="alterar-email"),
     path("auth/alterar-senha/", views.alterar_senha, name="alterar-senha"),
     path("avisos/", views.avisos, name="avisos"),
     path("avisos/marcar-lidos/", views.marcar_avisos_lidos, name="marcar-avisos-lidos"),

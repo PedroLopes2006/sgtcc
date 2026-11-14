@@ -1,6 +1,6 @@
 /** US12 CA1–CA2, US13 CA1, US15 CA1–CA2 / RN05–06, RN08, RN12 / RNF04: fumaça. */
 import '@testing-library/jest-dom/vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -52,6 +52,7 @@ it('US12: aprova e atualiza o painel com a próxima entrega (CA1–CA2 / RN06)',
   const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
   montar()
   await userEvent.click(await screen.findByRole('button', { name: 'Aprovar entrega Introdução' }))
+  await confirmar('Aprovar entrega')
   expect(post).toHaveBeenCalledWith('/entregas/7/aprovar/')
   expect(await screen.findByText('Metodologia')).toBeInTheDocument()
   expect(get.mock.calls.filter(([url]) => url !== '/avisos/')).toHaveLength(2)
@@ -64,6 +65,7 @@ it('US13: encontra concluída fora da revisão e envia à banca (CA1 / RN12)', a
   const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
   montar()
   await userEvent.click(await screen.findByRole('button', { name: 'Enviar à banca Introdução' }))
+  await confirmar('Enviar à banca')
   expect(post).toHaveBeenCalledWith('/entregas/7/enviar-a-banca/')
   await waitFor(() => expect(screen.queryByRole('button', { name: /Enviar à banca/ })).not.toBeInTheDocument())
 })
@@ -72,6 +74,7 @@ it('US12: exibe erro e mantém a ação disponível para tentar novamente (CA1)'
   vi.spyOn(api, 'post').mockRejectedValue(new Error('falha'))
   montar()
   await userEvent.click(await screen.findByRole('button', { name: 'Aprovar entrega Introdução' }))
+  await confirmar('Aprovar entrega')
   expect(await screen.findByText('Não foi possível concluir a ação.')).toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Aprovar entrega Introdução' })).toBeEnabled()
 })
@@ -106,3 +109,9 @@ it('US15: acesso negado ao histórico não exibe dados (RN05 / RNF04)', async ()
   expect(await screen.findByText('Não foi possível carregar o histórico.')).toBeInTheDocument()
   expect(screen.queryByText('Lucas')).not.toBeInTheDocument()
 })
+
+/** Confirma a ação no diálogo que aparece antes de uma ação sem volta. */
+async function confirmar(nome) {
+  const dialogo = await screen.findByRole('dialog')
+  await userEvent.click(within(dialogo).getByRole('button', { name: nome }))
+}

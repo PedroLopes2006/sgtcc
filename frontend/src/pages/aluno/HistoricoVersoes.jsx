@@ -1,3 +1,4 @@
+import Carregando from '../../components/Carregando'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
@@ -39,8 +40,8 @@ export default function HistoricoVersoes() {
         </div>
       </div>
 
-      {erro ? <p className="erro">{erro}</p> : versoes === null ? (
-        <p className="carregando">Carregando…</p>
+      {erro ? <p className="erro" role="alert">{erro}</p> : versoes === null ? (
+        <Carregando />
       ) : versoes.length === 0 ? (
         <div className="vazio vazio-compacto">
           <strong>Nenhuma versão enviada</strong>

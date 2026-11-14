@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { mensagemDeErro } from '../api'
 import { painelDoPerfil, useAuth } from '../auth'
 import AlternarTema from '../components/AlternarTema'
+import { SimboloSGTCC } from '../components/Logo'
 import PainelMarca from '../components/PainelMarca'
 
 /** US01 CA1 e CA2. */
@@ -42,6 +43,7 @@ export default function Cadastro() {
       <AlternarTema className="alternar-flutuante" />
       <PainelMarca />
       <form className="cartao-acesso" onSubmit={aoEnviar}>
+        <SimboloSGTCC tamanho={36} />
         <h1>Criar conta</h1>
         <p className="legenda">Preencha seus dados para começar.</p>
 
@@ -99,9 +101,9 @@ export default function Cadastro() {
           </div>
         </div>
 
-        {erro && <p className="erro">{erro}</p>}
+        {erro && <p className="erro" role="alert">{erro}</p>}
 
-        <button type="submit" disabled={enviando}>
+        <button type="submit" className="seta" disabled={enviando} aria-busy={enviando}>
           {enviando ? 'Criando…' : 'Criar conta'}
         </button>
 

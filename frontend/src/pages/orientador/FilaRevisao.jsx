@@ -1,3 +1,4 @@
+import Carregando from '../../components/Carregando'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
@@ -5,7 +6,8 @@ import Estado from '../../components/Estado'
 import Indicadores from '../../components/Indicadores'
 import LayoutOrientador from '../../components/LayoutOrientador'
 import LinkVersao from '../../components/LinkVersao'
-import { dataCurta, enviadaHa, iniciais, semAcento } from '../../formato'
+import Avatar from '../../components/Avatar'
+import { dataCurta, enviadaHa, semAcento } from '../../formato'
 
 /**
  * US09 — Fila de revisão (RF09, RN05, RN06, RNF02, RNF04).
@@ -89,7 +91,7 @@ export default function FilaRevisao() {
         <h1>Fila de revisão</h1>
       </div>
 
-      {erro && <p className="erro">{erro}</p>}
+      {erro && <p className="erro" role="alert">{erro}</p>}
 
       {/* Números de relance. A fila já vem da mais antiga para a mais nova (RN06 e US09). */}
       {!carregando && itens.length > 0 && (
@@ -110,12 +112,18 @@ export default function FilaRevisao() {
       )}
 
       {carregando ? (
-        <p className="carregando">Carregando…</p>
+        <Carregando />
       ) : itens.length === 0 ? (
         // US09 CA2 — textos do protótipo.
         <div className="vazio">
           <strong>Nenhuma entrega aguardando revisão</strong>
           <span>Quando um aluno sinalizar uma entrega como pronta, ela aparece aqui.</span>
+          {/* EXTRA (fora dos requisitos): o estado vazio leva ao que dá para fazer enquanto isso. */}
+          <div>
+            <Link className="botao-link seta" to="/orientador">
+              Ver orientandos
+            </Link>
+          </div>
         </div>
       ) : (
         <>
@@ -140,7 +148,7 @@ export default function FilaRevisao() {
             return (
               <li key={item.id}>
                 <div className="celula-aluno">
-                  <span className="avatar">{iniciais(item.aluno?.nome)}</span>
+                  <Avatar nome={item.aluno?.nome} />
                   <div>
                     <div className="titulo">
                       <Link to={`/orientador/entregas/${item.id}`}>

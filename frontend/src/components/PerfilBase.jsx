@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import api, { mensagemDeErro } from '../api'
 import { useAuth } from '../auth'
-import { iniciais, mesEAno } from '../formato'
+import { mesEAno } from '../formato'
+import Avatar from './Avatar'
 import { useTema } from '../tema'
 import Estado from './Estado'
 
@@ -87,6 +88,43 @@ export default function PerfilBase({ textoTelegram, children }) {
     }
   }
 
+  // EXTRA (fora dos requisitos) — trocar o e-mail de login, pedindo a senha atual.
+  const [editandoEmail, setEditandoEmail] = useState(false)
+  const [novoEmail, setNovoEmail] = useState('')
+  const [senhaDoEmail, setSenhaDoEmail] = useState('')
+  const [salvandoEmail, setSalvandoEmail] = useState(false)
+
+  function cancelarEmail() {
+    setEditandoEmail(false)
+    setNovoEmail('')
+    setSenhaDoEmail('')
+    setMensagemNome('')
+  }
+
+  async function salvarEmail(evento) {
+    evento.preventDefault()
+    setMensagemNome('')
+    setSalvandoEmail(true)
+    try {
+      const { data } = await api.post('/auth/alterar-email/', {
+        email: novoEmail,
+        senha_atual: senhaDoEmail,
+      })
+      setUsuario((atual) => ({ ...atual, ...data }))
+      atualizarUsuario({ email: data.email })
+      setEditandoEmail(false)
+      setNovoEmail('')
+      setSenhaDoEmail('')
+      setErroNome(false)
+      setMensagemNome('E-mail atualizado. Use o novo para entrar.')
+    } catch (e) {
+      setErroNome(true)
+      setMensagemNome(mensagemDeErro(e, 'Não foi possível atualizar o e-mail.'))
+    } finally {
+      setSalvandoEmail(false)
+    }
+  }
+
   async function salvarSenha(evento) {
     evento.preventDefault()
     setMensagemSenha('')
@@ -110,9 +148,7 @@ export default function PerfilBase({ textoTelegram, children }) {
   return (
     <div className="perfil">
       <header className="perfil-cabecalho">
-        <span className="avatar grande" aria-hidden="true">
-          {iniciais(usuario.nome)}
-        </span>
+        <Avatar nome={usuario.nome} grande escondido />
         <div>
           <h1>{usuario.nome}</h1>
           <p className="perfil-sub">
@@ -189,7 +225,7 @@ export default function PerfilBase({ textoTelegram, children }) {
                       onChange={(e) => setNome(e.target.value)}
                       autoFocus
                     />
-                    <button type="submit" disabled={salvandoNome}>
+                    <button type="submit" disabled={salvandoNome} aria-busy={salvandoNome}>
                       {salvandoNome ? 'Salvando…' : 'Salvar'}
                     </button>
                     <button type="button" className="contorno" onClick={cancelarNome}>
@@ -208,7 +244,50 @@ export default function PerfilBase({ textoTelegram, children }) {
             </div>
             <div>
               <dt>E-mail</dt>
-              <dd>{usuario.email}</dd>
+              <dd>
+                {editandoEmail ? (
+                  <form className="perfil-form" onSubmit={salvarEmail}>
+                    <div className="campo">
+                      <label htmlFor="novo-email">Novo e-mail</label>
+                      <input
+                        id="novo-email"
+                        type="email"
+                        value={novoEmail}
+                        autoComplete="email"
+                        onChange={(e) => setNovoEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="campo">
+                      <label htmlFor="senha-do-email">Confirme com a sua senha</label>
+                      <input
+                        id="senha-do-email"
+                        type="password"
+                        value={senhaDoEmail}
+                        autoComplete="current-password"
+                        onChange={(e) => setSenhaDoEmail(e.target.value)}
+                        required
+                      />
+                      <p className="ajuda">Pedimos a senha porque o e-mail é o que você usa para entrar.</p>
+                    </div>
+                    <div className="perfil-form-linha">
+                      <button type="submit" disabled={salvandoEmail} aria-busy={salvandoEmail}>
+                        {salvandoEmail ? 'Salvando…' : 'Salvar e-mail'}
+                      </button>
+                      <button type="button" className="contorno" onClick={cancelarEmail}>
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    {usuario.email}{' '}
+                    <button type="button" className="texto" onClick={() => setEditandoEmail(true)}>
+                      Alterar e-mail
+                    </button>
+                  </>
+                )}
+              </dd>
             </div>
             <div>
               <dt>Perfil</dt>
@@ -266,7 +345,7 @@ export default function PerfilBase({ textoTelegram, children }) {
                 {mensagemSenha}
               </p>
             )}
-            <button type="submit" disabled={salvandoSenha}>
+            <button type="submit" disabled={salvandoSenha} aria-busy={salvandoSenha}>
               {salvandoSenha ? 'Salvando…' : 'Alterar senha'}
             </button>
           </form>

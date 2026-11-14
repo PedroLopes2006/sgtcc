@@ -210,10 +210,20 @@ describe('Variáveis de cor', () => {
 })
 
 describe('Peso da plataforma', () => {
-  it('não baixa fonte, imagem nem folha de estilo externa', () => {
+  it('só baixa duas famílias de fonte do Google Fonts, e nada de imagem nem folha de estilo própria', () => {
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8')
+    // O CSS não carrega nada por conta própria.
     expect(CSS).not.toMatch(/@font-face|@import|url\(/)
-    expect(html).not.toMatch(/<link[^>]+(stylesheet|font)/i)
-    expect(html).not.toMatch(/fonts\.(googleapis|gstatic)/)
+    // O HTML só chama o Google Fonts, com `display=swap` para o texto aparecer na hora.
+    const origens = [...html.matchAll(/<link[^>]+href="(https?:\/\/[^"]+)"/g)].map((m) => m[1])
+    expect(origens.length).toBeGreaterThan(0)
+    for (const origem of origens) {
+      expect(origem).toMatch(/^https:\/\/fonts\.(googleapis|gstatic)\.com/)
+    }
+    expect(html).toMatch(/display=swap/)
+    expect((html.match(/family=/g) || []).length).toBeLessThanOrEqual(2)
+    // E as fontes do sistema ficam como reserva.
+    expect(CSS).toMatch(/--fonte-texto:\s*'IBM Plex Sans',\s*system-ui/)
+    expect(CSS).toMatch(/--fonte-titulo:\s*'Newsreader',[^;]*serif/)
   })
 })

@@ -36,6 +36,11 @@ const DESENHOS = {
       <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.2 2.4 3.5 5.2" />
     </>
   ),
+  painel: (
+    <>
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    </>
+  ),
   sino: (
     <>
       <path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z" />
@@ -57,11 +62,19 @@ export const ICONE_POR_SIMBOLO = {
   '◍': 'pessoas',
   '◎': 'perfil',
   '◔': 'sino',
+  '◈': 'painel',
 }
 
-export default function Icone({ nome }) {
+/** Ícones de ação (fechar, abrir menu), desenhados no mesmo traço dos do menu. */
+DESENHOS.fechar = <path d="M6 6l12 12M18 6 6 18" />
+DESENHOS.baixo = <path d="m6 9 6 6 6-6" />
+
+/** `tamanho` em pixels, para os ícones que ficam dentro de botões; sem ele, o CSS do contêiner decide. */
+export default function Icone({ nome, tamanho }) {
   return (
     <svg
+      width={tamanho}
+      height={tamanho}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

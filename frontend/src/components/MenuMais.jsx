@@ -1,3 +1,4 @@
+import Icone from './Icone'
 import { useEffect, useRef, useState } from 'react'
 
 /**
@@ -36,7 +37,8 @@ export default function MenuMais({ rotulo, children }) {
         aria-label={rotulo}
         onClick={() => setAberto((atual) => !atual)}
       >
-        Mais ▾
+        Mais
+        <Icone nome="baixo" tamanho={14} />
       </button>
       {aberto && (
         <div className="menu-mais-lista" onClick={() => setAberto(false)}>

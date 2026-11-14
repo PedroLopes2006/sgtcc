@@ -15,9 +15,9 @@
   color-scheme: light;
 
   /* superfícies, do fundo da página ao que está mais "por cima" */
-  --bg-app: #fcfbfa;
+  --bg-app: #eeece7;
   --bg-sidebar: #f5f3f0;
-  --bg-sutil: #f8f6f3;
+  --bg-sutil: #f6f4f0;
   --superficie: #ffffff;
   --bg-hover: #efece8;
   --bg-ativo: #e7e3de;
@@ -43,12 +43,13 @@
   --acao-hover: #175a55;
   --acao-texto: #ffffff;
   --desativado-bg: #e3dfd9;
-  --desativado-texto: #8a847b;
+  --desativado-texto: #736d64;
 
   /* foco, véu do modal e sombras */
   --anel: rgba(31, 111, 104, 0.22);
   --veu: rgba(29, 27, 25, 0.4);
-  --sombra-leve: 0 1px 2px rgba(29, 27, 25, 0.06), 0 4px 14px rgba(29, 27, 25, 0.05);
+  --sombra-leve: none;
+  --pauta: rgba(29, 27, 25, 0.032);
   --sombra-cartao: 0 1px 2px rgba(29, 27, 25, 0.05), 0 12px 32px rgba(29, 27, 25, 0.07);
   --sombra-modal: 0 20px 50px rgba(29, 27, 25, 0.2);
 
@@ -80,13 +81,14 @@
   --tl-tema: #63758b;
   --tl-troca: #986879;
 
-  /* tipografia: só fontes do sistema, sem download */
-  --fonte-texto: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --fonte-titulo: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia,
+  /* tipografia: IBM Plex Sans e Newsreader (Google Fonts), com as fontes do sistema de reserva */
+  --fonte-texto: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --fonte-titulo: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia,
     serif;
 
-  --raio: 7px;
-  --raio-g: 12px;
+  --raio: 5px;
+  --raio-g: 8px;
   --sidebar-l: 244px;
 }
 
@@ -94,10 +96,10 @@
 :root[data-tema='escuro'] {
   color-scheme: dark;
 
-  --bg-app: #131211;
+  --bg-app: #0e0e0d;
   --bg-sidebar: #181716;
   --bg-sutil: #1a1918;
-  --superficie: #1d1c1a;
+  --superficie: #1b1a18;
   --bg-hover: #262422;
   --bg-ativo: #2e2b28;
 
@@ -121,7 +123,8 @@
 
   --anel: rgba(79, 184, 175, 0.32);
   --veu: rgba(0, 0, 0, 0.62);
-  --sombra-leve: 0 4px 16px rgba(0, 0, 0, 0.28);
+  --sombra-leve: none;
+  --pauta: rgba(255, 255, 255, 0.028);
   --sombra-cartao: 0 12px 32px rgba(0, 0, 0, 0.35);
   --sombra-modal: 0 20px 50px rgba(0, 0, 0, 0.55);
 
@@ -1298,26 +1301,17 @@ button.texto:hover:not(:disabled) {
 
 /* ---------------------------------------------------------------- avisos */
 
-/* Faixa com marca lateral: vermelha para erro, verde para sucesso. O texto fica neutro. */
+/* Mensagens: o texto fica neutro; a cor está na borda de 1px, no fundo levemente tingido e no ponto (veja o fim do arquivo). */
 .erro,
 .aviso {
   margin: 14px 0 0;
   padding: 10px 14px;
   border: 1px solid var(--borda);
-  border-left-width: 3px;
   border-radius: var(--raio);
   background: var(--bg-sutil);
   color: var(--texto);
   font-size: 13.5px;
   line-height: 1.45;
-}
-
-.erro {
-  border-left-color: var(--vermelho);
-}
-
-.aviso {
-  border-left-color: var(--sucesso);
 }
 
 .carregando {
@@ -1414,7 +1408,6 @@ button.texto:hover:not(:disabled) {
   margin: 12px 0 0;
   padding: 11px 14px;
   border: 1px solid var(--borda-forte);
-  border-left: 3px solid var(--st-correcao);
   border-radius: var(--raio);
   background: var(--bg-sutil);
   font-size: 14px;
@@ -1451,7 +1444,6 @@ button.texto:hover:not(:disabled) {
   width: auto;
   padding: 6px 28px 6px 10px;
   font-size: 12.5px;
-  border-left-width: 3px;
 }
 
 .seletor-prioridade[data-prioridade='alta'] {
@@ -1525,7 +1517,6 @@ button.texto:hover:not(:disabled) {
   padding: 12px 12px 12px 16px;
   background: var(--superficie);
   border: 1px solid var(--borda-forte);
-  border-left: 3px solid var(--sucesso);
   border-radius: var(--raio);
   box-shadow: var(--sombra-modal);
   font-size: 14px;
@@ -2067,7 +2058,7 @@ button.texto:hover:not(:disabled) {
 }
 
 /* A tabela de orientandos vira uma lista de cartões, um por aluno, no celular. */
-@media (max-width: 720px) {
+@media (max-width: 1100px) {
   .tabela-cartoes,
   .tabela-cartoes tbody {
     display: block;
@@ -2136,11 +2127,6 @@ button.texto:hover:not(:disabled) {
 /* --------------------------------------- perfil editável (extra) */
 .sucesso {
   margin: 12px 0 0;
-  padding: 9px 12px;
-  border-left: 3px solid var(--sucesso);
-  border-radius: 0 var(--raio) var(--raio) 0;
-  background: var(--bg-sutil);
-  color: var(--texto);
   font-size: 13.5px;
 }
 
@@ -2346,4 +2332,1954 @@ button:active:not(:disabled) {
     align-items: center;
     min-height: 40px;
   }
+}
+
+/* ------------------------------------------------ segunda rodada: fundos, menu escuro e largura */
+
+/* O conteúdo parte da esquerda e usa a largura, em vez de ficar numa coluna no meio. */
+.conteudo {
+  max-width: 1320px;
+  margin: 0;
+  padding: 32px 40px 64px;
+}
+
+/* Cabeçalho de cada página como uma faixa, com um tom do destaque. */
+.cabecalho-pagina {
+  padding: 18px 22px;
+  background: linear-gradient(110deg, var(--superficie) 40%, var(--destaque-suave));
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+  box-shadow: var(--sombra-leve);
+  margin-bottom: 4px;
+}
+
+.cabecalho-pagina .legenda {
+  margin: 4px 0 0;
+}
+
+/* Barra lateral escura, com um verde-azulado profundo. As variáveis são trocadas só
+   aqui dentro, então todas as regras do menu se adaptam sem repetir cada uma. */
+.sidebar {
+  --texto: #e6f0ee;
+  --texto-suave: #a7c3bf;
+  --texto-fraco: #7b9a95;
+  --borda: rgba(255, 255, 255, 0.1);
+  --borda-forte: rgba(255, 255, 255, 0.18);
+  --bg-hover: rgba(255, 255, 255, 0.07);
+  --bg-ativo: rgba(255, 255, 255, 0.12);
+  --bg-sutil: rgba(255, 255, 255, 0.04);
+  --superficie: rgba(255, 255, 255, 0.06);
+  --destaque: #5fd0c5;
+  --destaque-forte: #ffffff;
+  --destaque-suave: rgba(95, 208, 197, 0.16);
+  --destaque-borda: rgba(95, 208, 197, 0.35);
+  --acao: #5fd0c5;
+  --acao-hover: #8fe3da;
+  --acao-texto: #0b1d1b;
+  --sombra-leve: none;
+
+  background: linear-gradient(180deg, #183a36 0%, #0f2523 100%);
+  color: var(--texto);
+  border-right-color: transparent;
+}
+
+:root[data-tema='escuro'] .sidebar {
+  background: linear-gradient(180deg, #12292a 0%, #0a1817 100%);
+}
+
+.sidebar .marca-nome::before {
+  background: var(--destaque);
+}
+
+/* Meu TCC: informações de um lado, atalhos do outro. */
+.meu-tcc-grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+  gap: 20px;
+  margin-top: 20px;
+  align-items: start;
+}
+
+.meu-tcc-grade .definicoes {
+  max-width: none;
+  padding: 4px 22px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+  box-shadow: var(--sombra-leve);
+}
+
+.meu-tcc-grade .definicoes > div:last-child {
+  border-bottom: 0;
+}
+
+.atalhos-cartao,
+.trilha-cartao,
+.painel-visao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+  box-shadow: var(--sombra-leve);
+}
+
+.atalhos-cartao {
+  padding: 18px 20px 20px;
+}
+
+.atalhos-cartao h2,
+.trilha-topo h2 {
+  margin: 0 0 12px;
+}
+
+.atalhos {
+  display: grid;
+  gap: 10px;
+}
+
+.atalho {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--bg-sutil);
+  color: var(--texto);
+  text-decoration: none;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.atalho strong {
+  font-size: 14px;
+}
+
+.atalho span {
+  color: var(--texto-suave);
+  font-size: 12.5px;
+}
+
+.atalho:hover {
+  border-color: var(--destaque-borda);
+  background: var(--destaque-suave);
+}
+
+.atalho.destaque {
+  background: var(--destaque);
+  border-color: var(--destaque);
+  color: var(--acao-texto);
+}
+
+.atalho.destaque span {
+  color: inherit;
+  opacity: 0.85;
+}
+
+.atalho.destaque:hover {
+  background: var(--destaque-forte);
+  border-color: var(--destaque-forte);
+}
+
+/* Caminho do TCC: uma trilha horizontal, com um ponto por parada. */
+.trilha-cartao {
+  margin-top: 20px;
+  padding: 18px 22px 22px;
+}
+
+.trilha-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.trilha-topo a {
+  font-size: 13px;
+}
+
+.trilha {
+  list-style: none;
+  display: flex;
+  margin: 10px 0 0;
+  padding: 0 0 4px;
+  overflow-x: auto;
+}
+
+.trilha-parada {
+  position: relative;
+  flex: 1 0 170px;
+  min-width: 170px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 26px 14px 0 0;
+}
+
+.trilha-parada::before {
+  content: '';
+  position: absolute;
+  top: 7px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--borda-forte);
+}
+
+.trilha-parada.feita::before,
+.trilha-parada.concluida::before,
+.trilha-parada.enviada_a_banca::before {
+  background: var(--destaque);
+}
+
+.trilha-marca {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  box-shadow: 0 0 0 3px var(--superficie);
+}
+
+.trilha-parada strong {
+  font-size: 14px;
+}
+
+.trilha-meta {
+  color: var(--texto-suave);
+  font-size: 12.5px;
+}
+
+/* Contagem regressiva do prazo: o tom aperta junto com o prazo. */
+.prazo-restante {
+  font-weight: 600;
+}
+
+.prazo-restante.ok {
+  color: var(--texto-suave);
+  font-weight: 500;
+}
+
+.prazo-restante.perto {
+  color: var(--pr-media);
+}
+
+.prazo-restante.urgente,
+.prazo-restante.vencido {
+  color: var(--vermelho);
+}
+
+/* Entregas: o aluno escolhe a ordem e o agrupamento. */
+.vista-controles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin-top: 18px;
+}
+
+.campo-vista {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.campo-vista label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.campo-vista select {
+  width: auto;
+  min-width: 190px;
+}
+
+.grupo-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 22px 0 0;
+  color: var(--texto-suave);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.grupo-contagem {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--destaque-suave);
+  color: var(--destaque-forte);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 20px;
+  text-align: center;
+}
+
+.grupo-entregas .lista {
+  margin-top: 8px;
+}
+
+/* Visão geral do orientador. */
+.visao-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.painel-visao {
+  padding: 18px 20px;
+}
+
+.painel-visao h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.painel-visao.alerta .grupo-contagem {
+  background: var(--vermelho);
+  color: var(--superficie);
+}
+
+.itens-visao {
+  list-style: none;
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+}
+
+.itens-visao a {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -10px;
+  padding: 8px 10px;
+  border-radius: var(--raio);
+  color: var(--texto);
+  text-decoration: none;
+}
+
+.itens-visao a:hover {
+  background: var(--bg-hover);
+}
+
+.itens-visao strong {
+  font-size: 14px;
+}
+
+.itens-visao span {
+  color: var(--texto-suave);
+  font-size: 12.5px;
+}
+
+.barras-estado {
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.barras-estado li {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) 2fr 24px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.barras-rotulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.barras-trilho {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-ativo);
+  overflow: hidden;
+}
+
+.barras-trilho > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--destaque);
+}
+
+.barras-numero {
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+@media (max-width: 960px) {
+  .meu-tcc-grade {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .conteudo {
+    padding: 20px 16px 48px;
+  }
+
+  .cabecalho-pagina {
+    padding: 14px 16px;
+  }
+
+  .campo-vista {
+    flex: 1 1 100%;
+  }
+
+  .campo-vista select {
+    flex: 1;
+  }
+}
+
+/* ------------------------------------------------ terceira rodada: menos "painel de IA", mais papel e tinta */
+
+/* Sem o brilho no fundo: a página é só o tom de pedra. */
+.app {
+  background: none;
+}
+
+/* Cabeçalho de página editorial: título grande e uma linha, sem caixa nem degradê. */
+.cabecalho-pagina {
+  padding: 4px 0 16px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--borda-forte);
+  border-radius: 0;
+  box-shadow: none;
+  margin-bottom: 4px;
+}
+
+.cabecalho-pagina h1 {
+  font-size: 31px;
+}
+
+/* Menu lateral liso, sem degradê, sem o quadradinho e sem o cartão do usuário. */
+.sidebar,
+:root[data-tema='escuro'] .sidebar {
+  background: #16302c;
+}
+
+:root[data-tema='escuro'] .sidebar {
+  background: #0f1f1d;
+}
+
+.marca-nome::before {
+  content: none;
+}
+
+.sidebar-marca {
+  padding-bottom: 4px;
+}
+
+.sidebar-usuario {
+  padding: 10px 10px 16px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--borda);
+  border-radius: 0;
+}
+
+/* Faixa de números: uma caixa só, dividida por traços, no lugar dos quatro cartões. */
+.indicadores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 20px 0 0;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+  overflow: hidden;
+}
+
+.indicadores > div {
+  flex: 1 1 150px;
+  padding: 14px 20px;
+  background: none;
+  border: 0;
+  border-left: 1px solid var(--borda);
+  border-radius: 0;
+}
+
+.indicadores > div:first-child {
+  border-left: 0;
+}
+
+.indicadores dd {
+  color: var(--texto);
+}
+
+.indicadores dd.alerta {
+  color: var(--vermelho);
+}
+
+/* Só um fio de borda nos cartões, sem sombra e sem brilho ao passar o mouse. */
+.indicadores > div:hover {
+  border-color: var(--borda);
+}
+
+.indicadores > div:first-child:hover {
+  border-left-color: transparent;
+}
+
+/* Lista de entregas: a descrição ocupa o espaço e as etapas não quebram à toa. */
+.lista li > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.etapas {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+.etapas li {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Coluna lateral: aparece só em telas largas e não sai do lugar ao rolar. */
+.lateral {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  .lateral {
+    display: block;
+    flex: 0 0 300px;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 36px 24px 32px;
+    border-left: 1px solid var(--borda);
+    background: var(--bg-sutil);
+  }
+}
+
+.lateral-bloco + .lateral-bloco {
+  margin-top: 30px;
+}
+
+.lateral-bloco h2 {
+  margin: 0 0 12px;
+  color: var(--texto-suave);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lateral-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lateral-lista li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--borda);
+}
+
+.lateral-lista li:first-child {
+  padding-top: 0;
+}
+
+.lateral-lista li.novo strong::after {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 7px;
+  border-radius: 50%;
+  background: var(--destaque);
+}
+
+.lateral-lista strong {
+  font-size: 13.5px;
+}
+
+.lateral-lista a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--texto);
+  text-decoration: none;
+}
+
+.lateral-lista a:hover strong {
+  color: var(--destaque);
+}
+
+.lateral-texto {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--texto-suave);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.lateral-lista time {
+  color: var(--texto-fraco);
+  font-size: 11.5px;
+}
+
+.lateral-ver-todos {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 12.5px;
+}
+
+/* ------------------------------------------------ pauta de caderno, etapas e coluna do Meu TCC */
+
+/* O fundo é uma pauta bem fraca, como no painel do login: o espaço vazio fica com cara de papel. */
+.app {
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0,
+    transparent 31px,
+    var(--pauta) 31px,
+    var(--pauta) 32px
+  );
+}
+
+/* Lista de entregas: quando falta largura, os botões descem em vez de espremer as etapas. */
+.lista li {
+  flex-wrap: wrap;
+}
+
+.lista li > div:first-child {
+  flex: 1 1 420px;
+}
+
+.etapas {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.lateral-ver-todos {
+  color: var(--destaque);
+}
+
+.meu-tcc-coluna {
+  display: grid;
+  gap: 20px;
+}
+
+.resumo-cartao {
+  padding: 18px 20px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+}
+
+.resumo-cartao h2 {
+  margin: 0 0 10px;
+}
+
+.resumo-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.resumo-lista li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--borda);
+  font-size: 13.5px;
+}
+
+.resumo-lista li:last-child {
+  border-bottom: 0;
+}
+
+.resumo-rotulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.resumo-numero {
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Acertos depois de ver na tela: o cabeçalho cobre a pauta, e as etapas cabem numa linha. */
+.cabecalho-pagina {
+  background: var(--bg-app);
+}
+
+.lista li > div:first-child {
+  flex: 1 1 600px;
+}
+
+.etapas li:not(:last-child)::after {
+  width: 12px;
+  margin: 0 4px 0 0;
+}
+
+.perfil-cabecalho {
+  background: var(--bg-app);
+}
+
+/* ------------------------------------------------ largura total, trilha sem linha na bolinha e saída suave */
+
+/* O conteúdo usa toda a largura entre o menu e a coluna lateral, em qualquer tela. */
+.conteudo {
+  max-width: none;
+}
+
+.perfil,
+.pagina-timeline {
+  max-width: none;
+}
+
+/* Trilha do TCC: a linha vai de uma bolinha à outra e nunca passa por dentro de uma. */
+.trilha-parada::before {
+  left: 22px;
+  right: 6px;
+}
+
+/* A bolinha de rascunho é só um anel; o miolo preenchido com a cor do cartão tapa o que estiver atrás. */
+.trilha-marca.ponto.rascunho {
+  background: var(--superficie);
+}
+
+/* Ao sair da conta, a tela de entrar também aparece com uma entrada suave (só opacidade). */
+.tela-acesso {
+  animation: entrada 0.4s ease-out;
+}
+
+/* ------------------------------------------------ polimento: tipografia, superfícies e detalhes */
+
+html {
+  accent-color: var(--destaque);
+  scroll-behavior: smooth;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--borda-forte) transparent;
+}
+
+::selection {
+  background: var(--destaque-suave);
+  color: var(--texto);
+}
+
+/* Quebras de linha mais bonitas: títulos equilibrados e parágrafos sem palavra solta no fim. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p,
+dd,
+.lateral-texto,
+.aviso-corpo p {
+  text-wrap: pretty;
+}
+
+h1 {
+  letter-spacing: -0.02em;
+}
+
+/* Estados vazios viram um painel de verdade, em vez de flutuar sobre a pauta. */
+.vazio {
+  margin-top: 20px;
+  padding: 64px 24px;
+  background: var(--superficie);
+  border: 1px dashed var(--borda-forte);
+  border-radius: var(--raio-g);
+}
+
+.vazio-compacto {
+  padding: 44px 24px;
+}
+
+/* Linha do tempo dentro de um cartão, com o fio ligando os ícones. */
+.linha-do-tempo {
+  position: relative;
+  margin: 0;
+  padding: 8px 24px 8px 56px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+}
+
+.linha-do-tempo::before {
+  content: '';
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 29px;
+  width: 1px;
+  background: var(--borda-forte);
+}
+
+.marcador-timeline {
+  background: var(--superficie);
+}
+
+/* Botões: um pouco mais de presença no foco e no clique, sem sombra. */
+button {
+  min-height: 36px;
+  letter-spacing: 0.005em;
+}
+
+button:focus-visible {
+  outline-offset: 3px;
+}
+
+/* Cartões da coluna lateral e dos painéis reagem de leve ao mouse. */
+.atalho,
+.painel-visao,
+.resumo-cartao,
+.trilha-cartao {
+  transition: border-color 0.15s;
+}
+
+.painel-visao:hover,
+.resumo-cartao:hover,
+.trilha-cartao:hover {
+  border-color: var(--borda-forte);
+}
+
+/* Celular: nada passa da largura da tela, e o topo do menu ocupa menos espaço. */
+@media (max-width: 960px) {
+  .meu-tcc-grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .sidebar-usuario {
+    padding: 0 0 12px;
+  }
+
+  .sidebar {
+    gap: 12px;
+  }
+
+  .linha-do-tempo {
+    padding-left: 48px;
+  }
+
+  .linha-do-tempo::before {
+    left: 25px;
+  }
+
+  .marcador-timeline {
+    left: -37px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Celular: a faixa de números vira uma grade de duas colunas, com traços entre as células. */
+@media (max-width: 720px) {
+  .indicadores {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .indicadores > div,
+  .indicadores > div:first-child {
+    border-left: 0;
+  }
+
+  .indicadores > div:nth-child(2n) {
+    border-left: 1px solid var(--borda);
+  }
+
+  .indicadores > div:nth-child(n + 3) {
+    border-top: 1px solid var(--borda);
+  }
+}
+
+/* ------------------------------------------------ mais beleza: avatares, esqueleto, aviso e confirmação */
+
+/* Avatares: seis tons suaves, um por pessoa (a cor vem do nome). */
+.avatar.av-0 { background: #dcebe9; color: #1d5750; }
+.avatar.av-1 { background: #e8e3f2; color: #4a3c77; }
+.avatar.av-2 { background: #f3e6d6; color: #7a4a1b; }
+.avatar.av-3 { background: #f1dfe2; color: #7a3246; }
+.avatar.av-4 { background: #dfe7f2; color: #2e4e7b; }
+.avatar.av-5 { background: #e5ebd8; color: #4a5e26; }
+
+:root[data-tema='escuro'] .avatar.av-0 { background: #1b3a37; color: #8fd9d0; }
+:root[data-tema='escuro'] .avatar.av-1 { background: #2c2745; color: #c0b4ee; }
+:root[data-tema='escuro'] .avatar.av-2 { background: #433121; color: #efc48f; }
+:root[data-tema='escuro'] .avatar.av-3 { background: #432630; color: #eeaabb; }
+:root[data-tema='escuro'] .avatar.av-4 { background: #24324b; color: #a9c6f0; }
+:root[data-tema='escuro'] .avatar.av-5 { background: #2f3a20; color: #c3da97; }
+
+/* No menu escuro, o avatar é um círculo claro e translúcido, igual para todos. */
+.sidebar .avatar,
+:root[data-tema='escuro'] .sidebar .avatar {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+/* Esqueleto de carregamento: barras que pulsam (só opacidade). */
+.esqueleto {
+  display: grid;
+  gap: 12px;
+  max-width: 640px;
+  padding: 28px 0;
+}
+
+.esqueleto-linha {
+  display: block;
+  height: 14px;
+  border-radius: 6px;
+  background: var(--bg-ativo);
+  animation: pulsar 1.4s ease-in-out infinite;
+}
+
+.esqueleto-linha:nth-of-type(odd) {
+  height: 18px;
+}
+
+.esqueleto-linha:nth-of-type(2) {
+  animation-delay: 0.15s;
+}
+
+.esqueleto-linha:nth-of-type(3) {
+  animation-delay: 0.3s;
+}
+
+.so-leitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Aviso de confirmação: ícone de visto e uma barrinha que mostra o tempo que falta. */
+.toast {
+  overflow: hidden;
+  border-left: 1px solid var(--borda-forte);
+}
+
+.toast-icone {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  fill: none;
+  stroke: var(--sucesso);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.toast-tempo {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--sucesso);
+  opacity: 0.6;
+  animation: encolher linear forwards;
+}
+
+@keyframes encolher {
+  to {
+    width: 0;
+  }
+}
+
+/* Estado vazio: duas folhas, uma atrás da outra, em vez de uma só. */
+.vazio::before {
+  width: 44px;
+  height: 56px;
+  margin: 0 auto 22px;
+  box-shadow:
+    9px -7px 0 -1.5px var(--superficie),
+    9px -7px 0 0 var(--destaque-borda);
+}
+
+.confirmar-texto {
+  margin: 0 0 4px;
+  color: var(--texto-suave);
+  line-height: 1.6;
+}
+
+/* Datas e números da tabela nunca quebram no meio ("21 / nov"). */
+.tabela td.numerico {
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------ respostas visuais: botões, etiquetas e cartões */
+
+/* Botões em pílula. Os que já têm forma própria (segmentado, menu "Mais ações") mantêm a sua. */
+button,
+a.contorno {
+  border-radius: 999px;
+}
+
+/* Quem tem mouse sente o botão: ele sobe um pouco e o principal ganha um brilho do destaque.
+   No toque (sem hover) nada disso roda, para não ficar "preso" depois de um toque. */
+@media (hover: hover) {
+  button:hover:not(:disabled):not(.texto):not(.fechar),
+  a.contorno:hover {
+    transform: translateY(-1px);
+  }
+
+  button:not(.contorno):not(.texto):not(.fechar):not(.filtro):not(.segmentado button):hover:not(:disabled) {
+    box-shadow: 0 8px 18px -10px var(--acao);
+  }
+}
+
+button,
+a.contorno {
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    transform 0.15s,
+    box-shadow 0.2s;
+}
+
+button:active:not(:disabled),
+a.contorno:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+.segmentado button,
+.segmentado button:hover:not(:disabled) {
+  border-radius: 0;
+  transform: none;
+  box-shadow: none;
+}
+
+.menu-mais-lista button:hover:not(:disabled),
+.menu-mais-lista a:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Botões com seta: a seta desliza para a direita quando o botão recebe o mouse ou o foco. */
+.seta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Cartões: um traço curto do destaque no canto de cima, que se alonga ao passar o mouse. */
+.atalhos-cartao,
+.resumo-cartao,
+.trilha-cartao,
+.cartao-perfil {
+  position: relative;
+}
+
+.atalhos-cartao::before,
+.resumo-cartao::before,
+.trilha-cartao::before,
+.cartao-perfil::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 20px;
+  width: 28px;
+  height: 2px;
+  background: var(--destaque);
+  transition: width 0.25s;
+}
+
+.atalhos-cartao:hover::before,
+.resumo-cartao:hover::before,
+.trilha-cartao:hover::before,
+.cartao-perfil:hover::before {
+  width: 72px;
+}
+
+/* Pílula de atenção no alto do Meu TCC: uma etiqueta e uma frase, com seta. */
+.pilula {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  margin: 16px 0 0;
+  padding: 5px 14px 5px 6px;
+  border: 1px solid var(--borda-forte);
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--texto-suave);
+  font-size: 13px;
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.pilula:hover {
+  border-color: var(--destaque-borda);
+  color: var(--texto);
+}
+
+.pilula-tag {
+  flex: none;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--texto);
+  color: var(--bg-app);
+  text-transform: uppercase;
+}
+
+.pilula.perto .pilula-tag {
+  background: var(--pr-media);
+  color: var(--superficie);
+}
+
+.pilula.urgente .pilula-tag,
+.pilula.vencido .pilula-tag {
+  background: var(--vermelho);
+  color: var(--superficie);
+}
+
+.pilula.destaque .pilula-tag {
+  background: var(--destaque);
+  color: var(--acao-texto);
+}
+
+/* ------------------------------------------------ adaptação a cada tamanho de tela */
+
+/* Tipografia e espaços que crescem e encolhem com a tela, sem saltos. */
+.cabecalho-pagina h1 {
+  font-size: clamp(25px, 1.2vw + 20px, 32px);
+}
+
+.conteudo {
+  padding: clamp(18px, 3vw, 32px) clamp(14px, 3.2vw, 40px) 64px;
+}
+
+@media (max-width: 720px) {
+  /* Topo compacto: marca, pessoa e interruptor na mesma linha, e o menu numa fita rolável. */
+  .sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 10px 14px 8px;
+  }
+
+  .sidebar-marca {
+    order: 1;
+    padding: 0;
+  }
+
+  .sidebar-usuario {
+    order: 2;
+    margin-left: auto;
+    padding: 0;
+    border: 0;
+  }
+
+  .sidebar-usuario > span:not(.avatar) {
+    display: none;
+  }
+
+  .sidebar-rodape {
+    order: 3;
+    margin: 0;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .sidebar nav {
+    order: 4;
+    width: 100%;
+    gap: 4px;
+    padding-bottom: 2px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+
+  .sidebar nav a {
+    flex: none;
+    scroll-snap-align: start;
+    border-radius: 999px;
+    padding: 7px 12px;
+  }
+
+  /* O interruptor mostra só o desenho; o texto continua lá para leitor de tela. */
+  .alternar-tema {
+    font-size: 0;
+    gap: 0;
+    padding: 8px;
+  }
+
+  .pilula {
+    font-size: 12.5px;
+  }
+}
+
+/* Janelas viram uma folha que sobe do rodapé, mais fácil de alcançar com o polegar. */
+@media (max-width: 520px) {
+  .fundo-modal {
+    align-items: end;
+    padding: 0;
+  }
+
+  .modal {
+    max-width: none;
+    max-height: 92vh;
+    border-radius: var(--raio-g) var(--raio-g) 0 0;
+    padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .modal .barra-acoes {
+    flex-direction: column-reverse;
+  }
+
+  .modal .barra-acoes > button,
+  .modal .barra-acoes > a {
+    width: 100%;
+  }
+
+  .cabecalho-pagina .cabecalho-acoes,
+  .cabecalho-pagina > button {
+    width: 100%;
+  }
+
+  .cabecalho-pagina .cabecalho-acoes > button {
+    flex: 1;
+  }
+}
+
+/* Telas muito largas: o texto de uma linha não se estica sem fim. */
+@media (min-width: 1700px) {
+  .meu-tcc-grade .definicoes dd,
+  .aviso-corpo p {
+    max-width: 72ch;
+  }
+}
+
+/* ------------------------------------------------ estados selecionados que não podem perder a leitura */
+
+/* O hover genérico troca o fundo; estes dois repetem as cores do estado selecionado para
+   o texto nunca ficar claro sobre claro (ou escuro sobre escuro) quando o mouse passa. */
+.filtro[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--acao-hover);
+  border-color: var(--acao-hover);
+  color: var(--acao-texto);
+}
+
+.segmentado button[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--destaque-suave);
+  color: var(--destaque-forte);
+}
+
+/* O número do filtro acompanha a cor do texto, sem ficar apagado sobre o fundo escuro. */
+.filtro[aria-pressed='true'] .filtro-numero {
+  opacity: 1;
+}
+
+/* ------------------------------------------------ caminho do TCC: concluído, agora e por vir */
+
+.trilha-marca {
+  display: grid;
+  place-items: center;
+  color: var(--superficie);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* A linha mostra o caminho: cheia até onde já foi, partida na etapa de agora, tracejada depois. */
+.trilha-parada.atual::before {
+  background: linear-gradient(90deg, var(--destaque) 0 30%, var(--borda-forte) 30% 100%);
+}
+
+.trilha-parada.futura::before {
+  background: repeating-linear-gradient(90deg, var(--borda-forte) 0 6px, transparent 6px 11px);
+}
+
+.trilha-parada.futura strong {
+  color: var(--texto-suave);
+  font-weight: 500;
+}
+
+.trilha-agora {
+  margin-left: 8px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--destaque-suave);
+  color: var(--destaque-forte);
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+
+/* Link com cara de botão principal, para convidar a agir nos estados vazios. */
+.botao-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 9px 18px;
+  border: 1px solid var(--acao);
+  border-radius: 999px;
+  background: var(--acao);
+  color: var(--acao-texto);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.botao-link:hover {
+  background: var(--acao-hover);
+  border-color: var(--acao-hover);
+}
+
+.vazio .botao-link {
+  display: inline-flex;
+}
+
+/* ================================================================================
+   Revisão de qualidade (impeccable + ui-ux-pro-max)
+   Corrige o que as duas revisões apontaram: sem numeração onde não há sequência,
+   rótulos legíveis, avisos sem faixa colorida na lateral, sem cartão dentro de
+   cartão, ícones desenhados no lugar de caracteres, movimento enxuto, alvos de
+   toque de 44px e estados de carregamento visíveis.
+   ================================================================================ */
+
+/* ---- Rótulos pequenos: a mesma fonte do texto, em caixa normal, legíveis. ---- */
+.indicadores dt,
+.tabela th,
+.lateral-bloco h2,
+.grupo-titulo,
+.pilula-tag {
+  font-family: var(--fonte-texto);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.lateral-bloco h2,
+.grupo-titulo {
+  font-size: 13px;
+  color: var(--texto);
+}
+
+.tabela th {
+  color: var(--texto-suave);
+}
+
+.pilula-tag {
+  letter-spacing: 0;
+}
+
+/* ---- Resumo do topo: uma linha de números, não quatro cartões de destaque. ---- */
+.indicadores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 28px;
+  margin: 16px 0 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+
+.indicadores > div,
+.indicadores > div:nth-child(n) {
+  display: flex;
+  flex: none;
+  flex-direction: row-reverse;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.indicadores dd {
+  margin: 0;
+  font-family: var(--fonte-texto);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto);
+}
+
+.indicadores dd.alerta {
+  color: var(--vermelho);
+}
+
+.indicadores dt {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--texto-suave);
+}
+
+/* ---- Atalhos: linhas de uma lista, sem caixa dentro da caixa. ---- */
+.atalho {
+  padding: 11px 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--borda);
+  border-radius: 0;
+}
+
+.atalhos > .atalho:last-child {
+  border-bottom: 0;
+}
+
+.atalho:hover {
+  background: none;
+  border-color: var(--borda);
+}
+
+.atalho:hover strong {
+  color: var(--destaque);
+}
+
+.atalho.destaque,
+.atalho.destaque:hover {
+  margin: 0 -12px;
+  padding: 11px 12px;
+  background: var(--destaque-suave);
+  border: 0;
+  border-radius: var(--raio);
+  color: var(--texto);
+}
+
+.atalho.destaque span {
+  color: var(--texto-suave);
+  opacity: 1;
+}
+
+/* ---- Visão geral: uma só lista de trabalho, dividida por filetes. ---- */
+.visao-grade {
+  display: block;
+  margin-top: 16px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+}
+
+.painel-visao,
+.painel-visao:hover {
+  padding: 16px 20px;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--borda);
+  border-radius: 0;
+}
+
+.painel-visao:first-child,
+.painel-visao:first-child:hover {
+  border-top: 0;
+}
+
+.painel-visao::before {
+  content: none;
+}
+
+.painel-visao h2 {
+  font-size: 14px;
+}
+
+/* ---- Mensagens: borda de 1px, fundo levemente tingido e um ponto de cor (sem faixa lateral). ---- */
+.erro,
+.aviso,
+.sucesso,
+.aviso-correcao {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio);
+  background: var(--bg-sutil);
+  color: var(--texto);
+}
+
+.erro::before,
+.aviso::before,
+.sucesso::before,
+.aviso-correcao::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 0.55em;
+  border-radius: 50%;
+}
+
+.erro {
+  border-color: color-mix(in srgb, var(--vermelho) 45%, var(--borda));
+  background: color-mix(in srgb, var(--vermelho) 7%, var(--superficie));
+}
+
+.erro::before {
+  background: var(--vermelho);
+}
+
+.aviso,
+.sucesso {
+  border-color: color-mix(in srgb, var(--sucesso) 45%, var(--borda));
+  background: color-mix(in srgb, var(--sucesso) 7%, var(--superficie));
+}
+
+.aviso::before,
+.sucesso::before {
+  background: var(--sucesso);
+}
+
+.aviso-correcao {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  border-color: color-mix(in srgb, var(--st-correcao) 45%, var(--borda));
+  background: color-mix(in srgb, var(--st-correcao) 8%, var(--superficie));
+}
+
+.aviso-correcao::before {
+  background: var(--st-correcao);
+  align-self: center;
+  margin-top: 0;
+}
+
+.aviso-correcao span {
+  flex-basis: 100%;
+  padding-left: 18px;
+}
+
+/* ---- Movimento: uma entrada de página só; nada de cartões entrando um depois do outro. ---- */
+.indicadores > div,
+.lista-avisos > li,
+.perfil-grade > section {
+  animation: none;
+}
+
+/* ---- Ícones desenhados no lugar de caracteres: a seta dos botões e a das pílulas. ---- */
+.seta::after,
+.pilula::after {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-left: 1px;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.2s;
+}
+
+.seta:hover:not(:disabled)::after,
+.seta:focus-visible::after,
+.pilula:hover::after {
+  transform: translateX(3px) rotate(45deg);
+}
+
+/* O visto das etapas feitas é um traço desenhado; a etapa de agora tem um anel que se abre. */
+.trilha-parada.feita .trilha-marca::after,
+.trilha-parada.concluida .trilha-marca::after,
+.trilha-parada.enviada_a_banca .trilha-marca::after {
+  content: '';
+  width: 4px;
+  height: 8px;
+  margin-top: -2px;
+  border: solid var(--superficie);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.trilha-parada.atual .trilha-marca {
+  animation: none;
+}
+
+.trilha-parada.atual .trilha-marca::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--destaque);
+  border-radius: 50%;
+  animation: trilha-anel 2.4s ease-out infinite;
+}
+
+@keyframes trilha-anel {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.7);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+/* ---- Carregando dentro do botão: um aro que gira, junto do texto. ---- */
+button[aria-busy='true'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+button[aria-busy='true']::before {
+  content: '';
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: girar 0.7s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Pular para o conteúdo: aparece só quando o teclado chega nele. ---- */
+.pular {
+  position: absolute;
+  top: -64px;
+  left: 12px;
+  z-index: 100;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--acao);
+  color: var(--acao-texto);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s;
+}
+
+.pular:focus {
+  top: 12px;
+}
+
+.conteudo:focus {
+  outline: none;
+}
+
+/* ---- Números alinhados em coluna, onde há números em coluna. ---- */
+.tabela td,
+.contador,
+time,
+.barras-numero,
+.resumo-numero,
+.grupo-contagem,
+.prazo-restante {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Toque: alvos de 44px (WCAG recomenda 24px no mínimo; 44px é o conforto do polegar). ---- */
+@media (pointer: coarse) {
+  button,
+  .filtro,
+  .sidebar nav a,
+  a.contorno,
+  .botao-link {
+    min-height: 44px;
+  }
+
+  .pilula {
+    min-height: 40px;
+  }
+}
+
+/* ---- Logo: o símbolo ao lado do nome. ---- */
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-simbolo {
+  flex: none;
+  display: block;
+}
+
+/* Nas telas de entrar, onde o painel de marca some (celular), o símbolo abre o cartão. */
+.cartao-acesso > .logo-simbolo {
+  margin-bottom: 14px;
+}
+
+@media (min-width: 900px) {
+  .cartao-acesso > .logo-simbolo {
+    display: none;
+  }
+}
+
+/* No painel da tela de entrar o nome é grande, então o símbolo acompanha o tamanho dele. */
+.painel-marca .logo {
+  gap: 14px;
+}
+
+.painel-marca .logo-simbolo {
+  width: 46px;
+  height: 46px;
+}
+
+/* ================================================================================
+   Fechamento: o que os prints em desktop, tablet e celular ainda mostravam.
+   ================================================================================ */
+
+/* Botão nunca quebra o rótulo em duas linhas. */
+button,
+a.contorno,
+.botao-link {
+  white-space: nowrap;
+}
+
+.tabela .acoes-linha {
+  flex-wrap: nowrap;
+}
+
+/* ---- Orientandos: a tabela vira cartões já no tablet, em duas colunas quando cabe. ---- */
+@media (max-width: 1100px) {
+  .tabela-cartoes .acoes-linha {
+    flex-wrap: wrap;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1100px) {
+  .tabela-cartoes tbody {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+
+  .tabela-cartoes tbody tr,
+  .tabela-cartoes tbody tr:hover {
+    margin-bottom: 0;
+  }
+}
+
+/* ---- Entregas: título e ações na mesma linha; o passo a passo ocupa a largura embaixo. ---- */
+.grupo-entregas .lista > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 20px;
+  row-gap: 4px;
+  align-items: center;
+  padding: 18px 20px;
+}
+
+/* O bloco de texto se desfaz para os filhos entrarem direto na grade da linha. */
+.grupo-entregas .lista > li > div:first-child {
+  display: contents;
+}
+
+.grupo-entregas .lista .titulo {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 15px;
+}
+
+.grupo-entregas .lista .meta {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.grupo-entregas .lista .acoes-linha {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  justify-content: flex-end;
+}
+
+.grupo-entregas .lista .etapas,
+.grupo-entregas .lista .comentario-correcao {
+  grid-column: 1 / -1;
+}
+
+/* Passo a passo em barras: cheias as etapas feitas, na cor do estado a de agora. */
+.grupo-entregas .etapas {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  max-width: 640px;
+  margin-top: 14px;
+}
+
+.grupo-entregas .etapas li {
+  position: relative;
+  display: block;
+  padding-top: 10px;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grupo-entregas .etapas li::before,
+.grupo-entregas .etapas li.atual::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  width: auto;
+  height: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--bg-ativo);
+  box-shadow: none;
+}
+
+.grupo-entregas .etapas li.feita::before {
+  background: var(--destaque);
+}
+
+.grupo-entregas .etapas li.atual::before {
+  background: var(--cor-etapa, var(--texto));
+}
+
+.grupo-entregas .etapas li:not(:last-child)::after {
+  content: none;
+}
+
+@media (max-width: 900px) {
+  .grupo-entregas .lista > li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .grupo-entregas .lista .titulo,
+  .grupo-entregas .lista .meta,
+  .grupo-entregas .lista .acoes-linha {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .grupo-entregas .lista .acoes-linha {
+    justify-content: flex-start;
+    margin-top: 12px;
+  }
+}
+
+/* ---- Visão geral: grupo sem itens encolhe para uma linha. ---- */
+.painel-visao.sem-itens,
+.painel-visao.sem-itens:hover {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  padding: 11px 20px;
+}
+
+.painel-visao.sem-itens h2 {
+  margin: 0;
+  color: var(--texto-suave);
+  font-weight: 500;
+}
+
+.painel-visao.sem-itens .ajuda {
+  margin: 0;
+}
+
+/* ---- Movimento que responde a uma ação: a janela sobe ao abrir, o menu aparece. ---- */
+.fundo-modal {
+  animation: entrada 0.18s ease-out;
+}
+
+.modal {
+  animation: janela-sobe 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes janela-sobe {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+
+.menu-mais-lista {
+  animation: entrada 0.14s ease-out;
+}
+
+@media (max-width: 520px) {
+  .modal {
+    animation-name: folha-sobe;
+  }
+}
+
+@keyframes folha-sobe {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* ---- Celular: texto e campos em 16px (o iOS dá zoom em campo menor que isso). ---- */
+@media (max-width: 720px) {
+  body,
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* A altura das colunas fixas acompanha a barra do navegador do celular e do tablet. */
+@media (min-width: 721px) {
+  .sidebar {
+    height: 100dvh;
+  }
+}
+
+@media (min-width: 1280px) {
+  .lateral {
+    height: 100dvh;
+  }
+}
+
+/* As etapas são itens de lista dentro da lista de entregas: não herdam a linha nem o
+   espaçamento das linhas da lista. */
+.lista .etapas li,
+.lista .etapas li:hover {
+  padding: 10px 0 0;
+  background: none;
+  border: 0;
+}
+
+/* Os rótulos dos cartões de orientando seguem os outros rótulos: caixa normal, 12px. */
+.tabela-cartoes td[data-rotulo]::before {
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  text-transform: none;
 }

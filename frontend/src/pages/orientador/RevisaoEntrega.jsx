@@ -1,6 +1,8 @@
+import Carregando from '../../components/Carregando'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
+import ConfirmarAcao from '../../components/ConfirmarAcao'
 import Estado from '../../components/Estado'
 import LayoutOrientador from '../../components/LayoutOrientador'
 import LinkVersao from '../../components/LinkVersao'
@@ -27,6 +29,8 @@ export default function RevisaoEntrega() {
   const [aviso, setAviso] = useState('')
   const [comentario, setComentario] = useState('')
   const [agindo, setAgindo] = useState(false)
+  // EXTRA (fora dos requisitos) — aprovar e enviar à banca não têm volta (RN06): pede confirmação.
+  const [pedido, setPedido] = useState(null)
 
   const carregar = useCallback(async () => {
     try {
@@ -68,6 +72,27 @@ export default function RevisaoEntrega() {
     executar('solicitar-correcao', { comentario }, 'Correção solicitada. O aluno foi avisado.')
   }
 
+  function pedirConclusao(rota) {
+    const titulo = entrega.titulo
+    setPedido(
+      rota === 'aprovar'
+        ? {
+            titulo: 'Aprovar a entrega?',
+            texto: `"${titulo}" passa a concluída e o aluno é avisado. Isso libera a próxima etapa e não pode ser desfeito.`,
+            rotulo: 'Aprovar entrega',
+            rota,
+            mensagem: 'Entrega aprovada. O aluno foi avisado.',
+          }
+        : {
+            titulo: 'Enviar à banca?',
+            texto: `"${titulo}" é registrada como enviada à banca, o encerramento formal da etapa. Isso não pode ser desfeito.`,
+            rotulo: 'Enviar à banca',
+            rota,
+            mensagem: 'Entrega enviada à banca.',
+          },
+    )
+  }
+
   function adicionarComentario() {
     if (!comentario.trim()) {
       setErro('Escreva um comentário para adicioná-lo.')
@@ -87,7 +112,7 @@ export default function RevisaoEntrega() {
       <LayoutOrientador>
         <div className="conteudo-estreito">
           {voltar}
-          <p className="erro">{erroCarga}</p>
+          <p className="erro" role="alert">{erroCarga}</p>
         </div>
       </LayoutOrientador>
     )
@@ -98,7 +123,7 @@ export default function RevisaoEntrega() {
       <LayoutOrientador>
         <div className="conteudo-estreito">
           {voltar}
-          <p className="carregando">Carregando…</p>
+          <Carregando />
         </div>
       </LayoutOrientador>
     )
@@ -141,7 +166,16 @@ export default function RevisaoEntrega() {
         </div>
 
         <Toast mensagem={aviso} aoFechar={() => setAviso('')} />
-        {erro && <p className="erro">{erro}</p>}
+        <ConfirmarAcao
+          pedido={pedido}
+          aoCancelar={() => setPedido(null)}
+          aoConfirmar={() => {
+            const { rota, mensagem } = pedido
+            setPedido(null)
+            executar(rota, undefined, mensagem)
+          }}
+        />
+        {erro && <p className="erro" role="alert">{erro}</p>}
 
         <section className="secao-revisao" aria-label="Versões">
           <h2>Versões</h2>
@@ -228,7 +262,7 @@ export default function RevisaoEntrega() {
             {acoes.aprovar && (
               <button
                 onClick={() =>
-                  executar('aprovar', undefined, 'Entrega aprovada. O aluno foi avisado.')
+                  pedirConclusao('aprovar')
                 }
                 disabled={agindo}
               >
@@ -239,7 +273,7 @@ export default function RevisaoEntrega() {
             {acoes.enviar_a_banca && (
               <button
                 onClick={() =>
-                  executar('enviar-a-banca', undefined, 'Entrega enviada à banca.')
+                  pedirConclusao('enviar-a-banca')
                 }
                 disabled={agindo}
               >

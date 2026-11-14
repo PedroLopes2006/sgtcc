@@ -66,7 +66,7 @@ export default function NovaEntrega() {
           <p className="ajuda">O prazo deve ser uma data futura.</p>
         </div>
 
-        {erro && <p className="erro">{erro}</p>}
+        {erro && <p className="erro" role="alert">{erro}</p>}
 
         <div className="barra-acoes">
           <button type="button" className="contorno" onClick={() => navegar('/aluno/entregas')}>

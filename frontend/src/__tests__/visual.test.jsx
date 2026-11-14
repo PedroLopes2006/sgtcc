@@ -75,39 +75,23 @@ function renderizarRota(rota, elemento, respostas) {
 }
 
 describe('Indicadores do orientador', () => {
-  it('Orientandos mostra os números de relance e destaca o atraso', async () => {
+  it('em Orientandos os números ficam nos filtros, sem repetir numa faixa à parte', async () => {
     entrarComo(ORIENTADOR)
     renderizarRota('/orientador', <Orientandos />, {
       '/orientandos/': [
-        linha(1, 'Ana', {
-          progresso: { concluidas: 1, total: 4 },
-          prazo_vencido: true,
-          entrega_para_revisao: { id: 5, titulo: 'Introdução', estado: 'pronto_para_revisao' },
-        }),
+        linha(1, 'Ana', { prazo_vencido: true }),
         linha(2, 'Bruno', { aguarda_avaliacao_de_tema: true }),
         linha(3, 'Carla'),
       ],
     })
 
     await screen.findByText('Ana')
-    const indicador = (rotulo) => within(document.querySelector('.indicadores')).getByText(rotulo).closest('div')
 
-    expect(within(indicador('Orientandos ativos')).getByText('3')).toBeInTheDocument()
-    expect(within(indicador('Para revisar')).getByText('1')).toBeInTheDocument()
-    expect(within(indicador('Temas a avaliar')).getByText('1')).toBeInTheDocument()
-    expect(within(indicador('Em atraso')).getByText('1')).toHaveClass('alerta')
+    expect(document.querySelector('.indicadores')).not.toBeInTheDocument()
+    expect(within(screen.getByRole('button', { name: /Todos/ })).getByText('3')).toBeInTheDocument()
+    expect(within(screen.getByRole('button', { name: /Em atraso/ })).getByText('1')).toBeInTheDocument()
   })
 
-  it('sem atraso, o número não é destacado', async () => {
-    entrarComo(ORIENTADOR)
-    renderizarRota('/orientador', <Orientandos />, { '/orientandos/': [linha(1, 'Ana')] })
-
-    await screen.findByText('Ana')
-
-    expect(within(within(document.querySelector('.indicadores')).getByText('Em atraso').closest('div')).getByText('0')).not.toHaveClass(
-      'alerta',
-    )
-  })
 
   it('sem orientandos, não aparece a faixa de números', async () => {
     entrarComo(ORIENTADOR)

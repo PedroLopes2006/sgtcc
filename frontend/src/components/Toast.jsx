@@ -1,3 +1,4 @@
+import Icone from './Icone'
 import { useEffect, useRef } from 'react'
 
 /**
@@ -26,10 +27,16 @@ export default function Toast({ mensagem, aoFechar, duracao = 6000 }) {
 
   return (
     <div className="toast" role="status">
+      <svg className="toast-icone" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" />
+        <path d="m8 12.5 2.6 2.6L16 9.5" />
+      </svg>
       <span>{mensagem}</span>
       <button type="button" className="fechar" onClick={aoFechar} aria-label="Fechar aviso">
-        ✕
+        <Icone nome="fechar" tamanho={16} />
       </button>
+      {/* A barrinha mostra quanto falta para o aviso sumir. */}
+      <span className="toast-tempo" style={{ animationDuration: `${duracao}ms` }} aria-hidden="true" />
     </div>
   )
 }

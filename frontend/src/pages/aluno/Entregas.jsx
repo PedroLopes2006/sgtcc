@@ -1,10 +1,13 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
+import ConfirmarAcao from '../../components/ConfirmarAcao'
 import EnviarVersao from '../../components/EnviarVersao'
 import EtapasEntrega from '../../components/EtapasEntrega'
 import Estado from '../../components/Estado'
+import PrazoRestante from '../../components/PrazoRestante'
 import Toast from '../../components/Toast'
+import { AGRUPAMENTOS, ORDENS, agrupar, guardarVista, lerVista, ordenar } from '../../entregasVista'
 import { ROTULO_ESTADO_ENTREGA, dataCurta } from '../../formato'
 import { useTcc } from './AreaAluno'
 
@@ -41,6 +44,39 @@ export default function Entregas() {
   const temaAprovado = tcc?.tema?.status === 'aprovado'
   const entregas = tcc?.entregas || []
 
+  // EXTRA (fora dos requisitos) — ordem e agrupamento escolhidos pelo aluno, guardados no navegador.
+  const [vista, setVista] = useState(lerVista)
+  const grupos = agrupar(ordenar(entregas, vista.ordem), vista.agrupar)
+
+  function mudarVista(mudanca) {
+    const nova = { ...vista, ...mudanca }
+    setVista(nova)
+    guardarVista(nova)
+  }
+
+  // EXTRA — o atalho "Enviar versão" do Meu TCC chega aqui com `?enviar=<id>` e já abre o envio.
+  const [parametros, setParametros] = useSearchParams()
+  const idParaEnviar = Number(parametros.get('enviar')) || null
+  useEffect(() => {
+    if (!idParaEnviar) return
+    const alvo = entregas.find((e) => e.id === idParaEnviar && e.aceita_versao)
+    if (alvo) setEnviandoVersaoDe(alvo)
+    setParametros({}, { replace: true })
+    // Só uma vez, quando a página chega com o parâmetro.
+  }, [idParaEnviar]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // EXTRA (fora dos requisitos) — sinalizar não tem volta (RN06), então pede confirmação.
+  const [pedido, setPedido] = useState(null)
+
+  function pedirConfirmacao(entrega) {
+    setPedido({
+      titulo: 'Sinalizar como pronta?',
+      texto: `"${entrega.titulo}" vai para a revisão do seu orientador. Depois de sinalizada, você só pode enviar outra versão se ele pedir correção.`,
+      rotulo: 'Sinalizar pronta',
+      entrega,
+    })
+  }
+
   async function sinalizar(entrega) {
     setAviso('')
     setErro('')
@@ -63,6 +99,7 @@ export default function Entregas() {
         <div className="cabecalho-acoes">
           {/* CA2 — sem tema aprovado, criar entrega fica indisponível. */}
           <button
+            className="seta"
             onClick={() => navegar('/aluno/entregas/nova')}
             disabled={!temaAprovado}
             title={temaAprovado ? undefined : 'Disponível depois que o orientador aprovar o tema'}
@@ -85,7 +122,7 @@ export default function Entregas() {
         ))}
 
       <Toast mensagem={aviso} aoFechar={() => setAviso('')} />
-      {erro && <p className="erro">{erro}</p>}
+      {erro && <p className="erro" role="alert">{erro}</p>}
 
 
       {entregas.length === 0 ? (
@@ -96,17 +133,62 @@ export default function Entregas() {
               ? 'Crie a primeira etapa do seu trabalho para começar a organizar as entregas.'
               : 'Você poderá criar entregas depois que o orientador aprovar o seu tema.'}
           </span>
+          {/* EXTRA (fora dos requisitos): o estado vazio convida a agir. */}
+          {temaAprovado && (
+            <div>
+              <Link className="botao-link seta" to="/aluno/entregas/nova">
+                Criar a primeira entrega
+              </Link>
+            </div>
+          )}
         </div>
       ) : (
+        <>
+        {/* EXTRA (fora dos requisitos): o aluno escolhe a ordem e o agrupamento. */}
+        <div className="vista-controles">
+          <div className="campo-vista">
+            <label htmlFor="vista-ordem">Ordenar por</label>
+            <select id="vista-ordem" value={vista.ordem} onChange={(e) => mudarVista({ ordem: e.target.value })}>
+              {ORDENS.map((o) => (
+                <option key={o.valor} value={o.valor}>
+                  {o.rotulo}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="campo-vista">
+            <label htmlFor="vista-agrupar">Agrupar por</label>
+            <select id="vista-agrupar" value={vista.agrupar} onChange={(e) => mudarVista({ agrupar: e.target.value })}>
+              {AGRUPAMENTOS.map((a) => (
+                <option key={a.valor} value={a.valor}>
+                  {a.rotulo}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {grupos.map((grupo) => (
+        <section key={grupo.chave} className="grupo-entregas">
+        {grupo.titulo && (
+          <h2 className="grupo-titulo">
+            {grupo.titulo} <span className="grupo-contagem">{grupo.itens.length}</span>
+          </h2>
+        )}
         <ul className="lista">
-          {entregas.map((entrega) => (
+          {grupo.itens.map((entrega) => (
             <li key={entrega.id}>
               <div>
                 <div className="titulo">{entrega.titulo}</div>
                 <div className={`meta ${entrega.atrasada ? 'prazo-vencido' : ''}`}>
                   Prazo {dataCurta(entrega.prazo)}
                   {entrega.versao_atual && ` · versão ${entrega.versao_atual.numero}`}
-                  {entrega.atrasada && ' · vencido'}
+                  <PrazoRestante
+                    prazo={entrega.prazo}
+                    estado={entrega.estado}
+                    atrasada={entrega.atrasada}
+                    antes=" · "
+                  />
                 </div>
                 <EtapasEntrega estado={entrega.estado} />
                 {/* US11 / RF10 — o aluno lê o que o orientador pediu para corrigir: todos os
@@ -127,7 +209,10 @@ export default function Entregas() {
                 <Estado codigo={entrega.estado} rotulo={ROTULO_ESTADO_ENTREGA[entrega.estado]} />
                 {/* RN03 — fora de rascunho e correção solicitada, não há envio. */}
                 {entrega.aceita_versao && (
-                  <button className="contorno" onClick={() => setEnviandoVersaoDe(entrega)}>
+                  <button
+                    className={entrega.pode_sinalizar ? 'contorno' : undefined}
+                    onClick={() => setEnviandoVersaoDe(entrega)}
+                  >
                     Enviar versão
                   </button>
                 )}
@@ -137,8 +222,8 @@ export default function Entregas() {
                 {/* US08 — a API diz se a entrega pode ser sinalizada (RN04). */}
                 {entrega.pode_sinalizar && (
                   <button
-                    className="contorno"
-                    onClick={() => sinalizar(entrega)}
+                    aria-busy={sinalizando === entrega.id}
+                    onClick={() => pedirConfirmacao(entrega)}
                     disabled={sinalizando === entrega.id}
                     aria-label={`Sinalizar ${entrega.titulo} como pronta`}
                   >
@@ -149,7 +234,20 @@ export default function Entregas() {
             </li>
           ))}
         </ul>
+        </section>
+        ))}
+        </>
       )}
+
+      <ConfirmarAcao
+        pedido={pedido}
+        aoCancelar={() => setPedido(null)}
+        aoConfirmar={() => {
+          const { entrega } = pedido
+          setPedido(null)
+          sinalizar(entrega)
+        }}
+      />
 
       {enviandoVersaoDe && (
         <EnviarVersao

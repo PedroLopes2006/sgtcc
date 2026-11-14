@@ -91,7 +91,7 @@ export default function ProporTema() {
           <p className="ajuda">Obrigatório. Escolha quem vai orientar o seu TCC.</p>
         </div>
 
-        {erro && <p className="erro">{erro}</p>}
+        {erro && <p className="erro" role="alert">{erro}</p>}
 
         <div className="barra-acoes">
           <button type="button" className="contorno" onClick={() => navegar('/aluno')}>

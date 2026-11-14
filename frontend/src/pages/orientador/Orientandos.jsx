@@ -1,14 +1,16 @@
+import Carregando from '../../components/Carregando'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
 import Estado from '../../components/Estado'
-import Indicadores from '../../components/Indicadores'
 import LayoutOrientador from '../../components/LayoutOrientador'
 import LinkVersao from '../../components/LinkVersao'
 import MenuMais from '../../components/MenuMais'
 import Modal from '../../components/Modal'
 import Toast from '../../components/Toast'
-import { dataCurta, iniciais, semAcento } from '../../formato'
+import Avatar from '../../components/Avatar'
+import ConfirmarAcao from '../../components/ConfirmarAcao'
+import { dataCurta, semAcento } from '../../formato'
 
 /**
  * US04 — a avaliação do tema sai desta tabela, num modal, como no protótipo.
@@ -74,6 +76,29 @@ export default function Orientandos() {
     }
   }
 
+  // EXTRA (fora dos requisitos) — aprovar e enviar à banca não têm volta (RN06): pede confirmação.
+  const [pedido, setPedido] = useState(null)
+
+  function pedirConclusao(entrega, acao) {
+    setPedido(
+      acao === 'aprovar'
+        ? {
+            titulo: 'Aprovar a entrega?',
+            texto: `"${entrega.titulo}" passa a concluída e o aluno é avisado. Isso libera a próxima etapa e não pode ser desfeito.`,
+            rotulo: 'Aprovar entrega',
+            entrega,
+            acao,
+          }
+        : {
+            titulo: 'Enviar à banca?',
+            texto: `"${entrega.titulo}" é registrada como enviada à banca, o encerramento formal da etapa. Isso não pode ser desfeito.`,
+            rotulo: 'Enviar à banca',
+            entrega,
+            acao,
+          },
+    )
+  }
+
   /** US12 CA1–CA2 / US13 CA1 / RF11–12, RF16–18 / RN05–06, RN10, RN12 / RNF04, RNF12. */
   async function concluirAcao(entrega, acao) {
     setAgindo(entrega.id)
@@ -81,6 +106,12 @@ export default function Orientandos() {
     setAviso('')
     try {
       await api.post(`/entregas/${entrega.id}/${acao}/`)
+      // EXTRA (fora dos requisitos): aviso discreto de conclusão.
+      setAviso(
+        acao === 'aprovar'
+          ? `"${entrega.titulo}" concluída. O aluno foi avisado.`
+          : `"${entrega.titulo}" enviada à banca.`,
+      )
       await carregar()
     } catch (e) {
       setErro(mensagemDeErro(e, 'Não foi possível concluir a ação.'))
@@ -119,7 +150,7 @@ export default function Orientandos() {
   )
 
   return (
-    <LayoutOrientador orientandos={linhas.length} fila={naFila}>
+    <LayoutOrientador orientandos={linhas.length} fila={naFila} temas={pendentes} linhas={linhas}>
       <div className="cabecalho-pagina">
         <h1>Orientandos</h1>
         {pendentes > 0 && (
@@ -131,22 +162,10 @@ export default function Orientandos() {
       </div>
 
       <Toast mensagem={aviso} aoFechar={() => setAviso('')} />
-      {erro && <p className="erro">{erro}</p>}
-
-      {/* Números de relance, tirados dos mesmos dados da tabela (sem nova requisição). */}
-      {!carregando && linhas.length > 0 && (
-        <Indicadores
-          itens={[
-            { rotulo: 'Orientandos ativos', valor: linhas.length },
-            { rotulo: 'Para revisar', valor: naFila },
-            { rotulo: 'Temas a avaliar', valor: pendentes },
-            { rotulo: 'Em atraso', valor: emAtraso, alerta: emAtraso > 0 },
-          ]}
-        />
-      )}
+      {erro && <p className="erro" role="alert">{erro}</p>}
 
       {carregando ? (
-        <p className="carregando">Carregando…</p>
+        <Carregando />
       ) : linhas.length === 0 ? (
         <div className="vazio">
           <strong>Você ainda não tem orientandos</strong>
@@ -201,7 +220,7 @@ export default function Orientandos() {
               <tr key={linha.id}>
                 <td data-rotulo="Orientando">
                   <div className="celula-aluno">
-                    <span className="avatar">{iniciais(linha.aluno?.nome)}</span>
+                    <Avatar nome={linha.aluno?.nome} />
                     <div>
                       <div>{linha.aluno?.nome}</div>
                       <div className="tema">{linha.tema?.titulo || 'Sem tema'}</div>
@@ -245,7 +264,7 @@ export default function Orientandos() {
                   <div className="acoes-linha">
                     {/* US12 CA1–CA2 / RN06 */}
                     {linha.entrega_para_revisao?.estado === 'em_revisao' && (
-                      <button onClick={() => concluirAcao(linha.entrega_para_revisao, 'aprovar')}
+                      <button onClick={() => pedirConclusao(linha.entrega_para_revisao, 'aprovar')}
                         disabled={agindo === linha.entrega_para_revisao.id}
                         aria-label={`Aprovar entrega ${linha.entrega_para_revisao.titulo}`}>
                         Aprovar entrega
@@ -253,7 +272,7 @@ export default function Orientandos() {
                     )}
                     {/* US13 CA1 / RN12 */}
                     {linha.entrega_para_banca && (
-                      <button onClick={() => concluirAcao(linha.entrega_para_banca, 'enviar-a-banca')}
+                      <button onClick={() => pedirConclusao(linha.entrega_para_banca, 'enviar-a-banca')}
                         disabled={agindo === linha.entrega_para_banca.id}
                         aria-label={`Enviar à banca ${linha.entrega_para_banca.titulo}`}>
                         Enviar à banca
@@ -327,6 +346,15 @@ export default function Orientandos() {
         </>
       )}
 
+      <ConfirmarAcao
+        pedido={pedido}
+        aoCancelar={() => setPedido(null)}
+        aoConfirmar={() => {
+          const { entrega, acao } = pedido
+          setPedido(null)
+          concluirAcao(entrega, acao)
+        }}
+      />
       {reatribuindo && (
         <ModalReatribuir linha={reatribuindo} aoFechar={() => setReatribuindo(null)}
           aoConcluir={async () => { setReatribuindo(null); await carregar() }} />
@@ -397,7 +425,7 @@ function ModalSolicitarCorrecao({ linha, aoFechar, aoConcluir }) {
   return (
     <Modal titulo="Solicitar correção" aoFechar={aoFechar}>
       <div className="modal-autor">
-        <span className="avatar">{iniciais(aluno?.nome)}</span>
+        <Avatar nome={aluno?.nome} />
         <div>
           <div>{aluno?.nome}</div>
           <div className="quando">{entrega.titulo}</div>
@@ -414,7 +442,7 @@ function ModalSolicitarCorrecao({ linha, aoFechar, aoConcluir }) {
         </div>
       )}
 
-      {erro && <p className="erro">{erro}</p>}
+      {erro && <p className="erro" role="alert">{erro}</p>}
 
       <form onSubmit={enviar}>
         <div className="campo">
@@ -481,7 +509,7 @@ function ModalComentarioAdicional({ linha, aoFechar, aoConcluir }) {
   return (
     <Modal titulo="Adicionar comentário" aoFechar={aoFechar}>
       <div className="modal-autor">
-        <span className="avatar">{iniciais(aluno?.nome)}</span>
+        <Avatar nome={aluno?.nome} />
         <div>
           <div>{aluno?.nome}</div>
           <div className="quando">{entrega.titulo}</div>
@@ -504,7 +532,7 @@ function ModalComentarioAdicional({ linha, aoFechar, aoConcluir }) {
         </div>
       )}
 
-      {erro && <p className="erro">{erro}</p>}
+      {erro && <p className="erro" role="alert">{erro}</p>}
 
       <form onSubmit={enviar}>
         <div className="campo">
@@ -573,7 +601,7 @@ function ModalAvaliarTema({ linha, aoFechar, aoConcluir }) {
   return (
     <Modal titulo="Avaliar tema" aoFechar={aoFechar}>
       <div className="modal-autor">
-        <span className="avatar">{iniciais(aluno?.nome)}</span>
+        <Avatar nome={aluno?.nome} />
         <div>
           <div>{aluno?.nome}</div>
           <div className="quando">Proposto em {dataCurta(tema.data_proposta)}</div>
@@ -590,7 +618,7 @@ function ModalAvaliarTema({ linha, aoFechar, aoConcluir }) {
         <div>{tema.descricao}</div>
       </div>
 
-      {erro && <p className="erro">{erro}</p>}
+      {erro && <p className="erro" role="alert">{erro}</p>}
 
       {pedindoAjuste ? (
         <form onSubmit={solicitarAjuste}>
@@ -667,7 +695,7 @@ function ModalReatribuir({ linha, aoFechar, aoConcluir }) {
     }
   }
   return <Modal titulo="Reatribuir" aoFechar={aoFechar}>
-    {erro && <p className="erro">{erro}</p>}
+    {erro && <p className="erro" role="alert">{erro}</p>}
     <form onSubmit={enviar}>
       <div className="campo">
         <label htmlFor="novo-orientador">Orientador</label>

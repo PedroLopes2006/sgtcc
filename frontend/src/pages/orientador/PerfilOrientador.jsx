@@ -1,3 +1,4 @@
+import Carregando from '../../components/Carregando'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
@@ -37,9 +38,9 @@ export default function PerfilOrientador() {
     <LayoutOrientador orientandos={linhas ? linhas.length : undefined} fila={linhas ? naFila : undefined}>
       <PerfilBase textoTelegram="Receba avisos de entregas prontas para revisão no Telegram.">
         {erro ? (
-          <p className="erro">{erro}</p>
+          <p className="erro" role="alert">{erro}</p>
         ) : linhas === null ? (
-          <p className="carregando">Carregando…</p>
+          <Carregando />
         ) : (
           <>
             <Indicadores

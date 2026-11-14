@@ -1,3 +1,4 @@
+import Carregando from '../../components/Carregando'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
@@ -23,7 +24,7 @@ export default function HistoricoOrientando() {
   return <Layout itens={[{ rotulo: 'Orientandos', para: '/orientador', icone: '◍' }]}>
     <Link to="/orientador">Orientandos</Link>
     <h1>Histórico</h1>
-    {erro ? <p className="erro">{erro}</p> : !tcc ? <p>Carregando…</p> : <>
+    {erro ? <p className="erro" role="alert">{erro}</p> : !tcc ? <Carregando /> : <>
       <h2>{tcc.aluno.nome}</h2>
       <h3>{tcc.tema?.titulo}</h3><p>{tcc.tema?.descricao}</p>
       <h2>Orientações</h2>

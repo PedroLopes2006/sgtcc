@@ -5,7 +5,7 @@
  * a tela só mostra o botão quando ela diz que sim.
  */
 import '@testing-library/jest-dom/vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -98,6 +98,7 @@ describe('Sinalizar pronta (US08)', () => {
       await screen.findByRole('button', { name: 'Sinalizar Referencial teórico como pronta' }),
     )
 
+    await confirmar('Sinalizar pronta')
     await waitFor(() => expect(post).toHaveBeenCalledWith('/entregas/5/sinalizar-pronta/'))
     expect(
       await screen.findByText('"Referencial teórico" sinalizada. Seu orientador foi avisado.'),
@@ -114,8 +115,15 @@ describe('Sinalizar pronta (US08)', () => {
     await userEvent.click(
       await screen.findByRole('button', { name: 'Sinalizar Referencial teórico como pronta' }),
     )
+    await confirmar('Sinalizar pronta')
 
     expect(await screen.findByText(/Só é possível sinalizar uma entrega/)).toBeInTheDocument()
     expect(screen.queryByText(/foi avisado/)).not.toBeInTheDocument()
   })
 })
+
+/** Confirma a ação no diálogo que aparece antes de uma ação sem volta. */
+async function confirmar(nome) {
+  const dialogo = await screen.findByRole('dialog')
+  await userEvent.click(within(dialogo).getByRole('button', { name: nome }))
+}

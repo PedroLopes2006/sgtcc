@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
     <title>SGTCC — Sistema de Gestão de TCC</title>
+    <!-- Ícone da aba: o símbolo do SGTCC (o percurso em degraus do Caminho do TCC). O PNG é para
+         quem não lê SVG (iOS). A cor da barra do navegador acompanha o tema. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#eeece7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e0e0d" media="(prefers-color-scheme: dark)" />
+    <!-- Duas famílias do Google Fonts, só os pesos usados (cerca de 60 kB), com `display=swap`:
+         o texto aparece na hora com a fonte do sistema e troca quando a fonte chega. Se não
+         carregarem (sem internet), as fontes do sistema em styles.css assumem. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap"
+      rel="stylesheet"
+    />
     <!-- Aplica o tema (claro ou escuro) antes do primeiro desenho, para a tela não piscar.
          Escolha guardada primeiro; sem escolha, vale o tema do computador. Veja src/tema.js. -->
     <script>

@@ -1,8 +1,13 @@
+import Carregando from '../../components/Carregando'
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useOutletContext } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
-import { useContadorDeAvisos } from '../../avisos'
+import { useAvisosRecentes } from '../../avisos'
+import { useAuth } from '../../auth'
 import Layout from '../../components/Layout'
+import { LateralAluno } from '../../components/Lateral'
+import Toast from '../../components/Toast'
+import { conferirConclusoes } from '../../conclusoes'
 
 /**
  * Área do aluno: carrega o TCC uma vez e compartilha com as telas filhas,
@@ -29,7 +34,15 @@ export default function AreaAluno() {
     recarregar()
   }, [recarregar])
 
-  const avisosNaoLidos = useContadorDeAvisos()
+  // EXTRA (fora dos requisitos) — aviso discreto quando uma entrega foi concluída ou
+  // enviada à banca desde a última vez que o aluno olhou.
+  const { usuario } = useAuth()
+  const [conclusao, setConclusao] = useState('')
+  useEffect(() => {
+    if (tcc?.entregas) setConclusao(conferirConclusoes(usuario.id, tcc.entregas) || '')
+  }, [tcc]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const { naoLidos: avisosNaoLidos, recentes } = useAvisosRecentes()
 
   const itens = [
     { rotulo: 'Meu TCC', icone: '▦', para: '/aluno', exato: true },
@@ -46,11 +59,12 @@ export default function AreaAluno() {
   ]
 
   return (
-    <Layout itens={itens}>
+    <Layout itens={itens} lateral={<LateralAluno tcc={tcc} avisos={recentes} />}>
+      <Toast mensagem={conclusao} aoFechar={() => setConclusao('')} />
       {carregando ? (
-        <p className="carregando">Carregando…</p>
+        <Carregando />
       ) : erro ? (
-        <p className="erro">{erro}</p>
+        <p className="erro" role="alert">{erro}</p>
       ) : (
         <Outlet context={{ tcc, recarregar }} />
       )}

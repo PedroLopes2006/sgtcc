@@ -27,6 +27,7 @@ from .serializers import (
     AvisoSerializer,
     CadastroSerializer,
     NovaSenhaSerializer,
+    NovoEmailSerializer,
     NovoNomeSerializer,
     ComentarioSerializer,
     CriacaoEntregaSerializer,
@@ -102,6 +103,17 @@ def eu(request):
         dados = NovoNomeSerializer(data=request.data)
         dados.is_valid(raise_exception=True)
         services.atualizar_nome(usuario=request.user, nome=dados.validated_data["nome"])
+    return Response(UsuarioSerializer(request.user).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@traduzir_erros_de_dominio
+def alterar_email(request):
+    """EXTRA (fora dos requisitos) — troca o e-mail de login, pedindo a senha atual. RNF03, RNF04."""
+    dados = NovoEmailSerializer(data=request.data)
+    dados.is_valid(raise_exception=True)
+    services.atualizar_email(usuario=request.user, **dados.validated_data)
     return Response(UsuarioSerializer(request.user).data)
 
 

@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { mensagemDeErro } from '../api'
 import { painelDoPerfil, useAuth } from '../auth'
 import AlternarTema from '../components/AlternarTema'
+import { SimboloSGTCC } from '../components/Logo'
 import PainelMarca from '../components/PainelMarca'
 
 /** US01 CA3 e CA4. */
@@ -37,6 +38,7 @@ export default function Login() {
       <AlternarTema className="alternar-flutuante" />
       <PainelMarca />
       <form className="cartao-acesso" onSubmit={aoEnviar}>
+        <SimboloSGTCC tamanho={36} />
         <h1>Entrar</h1>
         <p className="legenda">Acesse para acompanhar seu TCC.</p>
 
@@ -68,9 +70,9 @@ export default function Login() {
           />
         </div>
 
-        {erro && <p className="erro">{erro}</p>}
+        {erro && <p className="erro" role="alert">{erro}</p>}
 
-        <button type="submit" disabled={enviando}>
+        <button type="submit" className="seta" disabled={enviando} aria-busy={enviando}>
           {enviando ? 'Entrando…' : 'Entrar'}
         </button>
 

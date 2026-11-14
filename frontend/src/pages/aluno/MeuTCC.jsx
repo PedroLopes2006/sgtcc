@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
+import AtalhosRapidos from '../../components/AtalhosRapidos'
 import Estado from '../../components/Estado'
+import PilulaDeAtencao from '../../components/PilulaDeAtencao'
+import ResumoDasEntregas from '../../components/ResumoDasEntregas'
+import TrilhaDoTCC from '../../components/TrilhaDoTCC'
 import { ROTULO_STATUS_TEMA, dataCurta } from '../../formato'
 import { useTcc } from './AreaAluno'
 
@@ -30,7 +34,7 @@ export default function MeuTCC() {
       <div className="cabecalho-pagina">
         <h1>Meu TCC</h1>
         {tema.status === 'aprovado' && (
-          <button className="contorno" onClick={() => navegar('/aluno/entregas')}>
+          <button className="contorno seta" onClick={() => navegar('/aluno/entregas')}>
             Ver entregas
           </button>
         )}
@@ -40,6 +44,9 @@ export default function MeuTCC() {
         <FormularioDeAjuste tema={tema} orientador={orientador} aoConcluir={recarregar} />
       ) : (
         <>
+          {/* EXTRA (fora dos requisitos): o que pede atenção agora, com link direto. */}
+          {tema.status === 'aprovado' && <PilulaDeAtencao entregas={entregas} />}
+          <div className="meu-tcc-grade">
           <dl className="definicoes lista-informacoes">
             <div>
               <dt>Orientador</dt>
@@ -87,6 +94,16 @@ export default function MeuTCC() {
               </>
             )}
           </dl>
+
+          {/* EXTRA (fora dos requisitos): atalhos para o que o aluno costuma fazer. */}
+          <div className="meu-tcc-coluna">
+            <AtalhosRapidos tcc={tcc} />
+            {tema.status === 'aprovado' && <ResumoDasEntregas entregas={entregas} />}
+          </div>
+          </div>
+
+          {/* EXTRA (fora dos requisitos): o caminho do TCC numa linha só. */}
+          {tema.status === 'aprovado' && <TrilhaDoTCC tema={tema} entregas={entregas} />}
 
           {tema.status === 'proposto' && (
             <p className="nota-rodape">Seu orientador foi notificado e vai avaliar o tema.</p>
@@ -185,7 +202,7 @@ function FormularioDeAjuste({ tema, orientador, aoConcluir }) {
         </div>
       </div>
 
-      {erro && <p className="erro">{erro}</p>}
+      {erro && <p className="erro" role="alert">{erro}</p>}
 
       <div className="barra-acoes">
         <button type="submit" disabled={enviando}>

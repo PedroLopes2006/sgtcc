@@ -149,6 +149,7 @@ describe('Tela de Revisão (extra)', () => {
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
 
     await userEvent.click(await screen.findByRole('button', { name: 'Aprovar entrega' }))
+    await confirmar('Aprovar entrega')
 
     await waitFor(() => expect(post).toHaveBeenCalledWith('/entregas/6/aprovar/', undefined))
     expect(await screen.findByText('Entrega aprovada. O aluno foi avisado.')).toBeInTheDocument()
@@ -189,6 +190,7 @@ describe('Tela de Revisão (extra)', () => {
 
     expect(await screen.findByText('Entrega aprovada em 3 out.')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Enviar à banca' }))
+    await confirmar('Enviar à banca')
 
     await waitFor(() => expect(post).toHaveBeenCalledWith('/entregas/6/enviar-a-banca/', undefined))
     expect(await screen.findByText('Entrega enviada à banca.')).toBeInTheDocument()
@@ -223,6 +225,7 @@ describe('Tela de Revisão (extra)', () => {
     })
 
     await userEvent.click(await screen.findByRole('button', { name: 'Aprovar entrega' }))
+    await confirmar('Aprovar entrega')
 
     expect(await screen.findByText('Você não é o orientador ativo deste TCC.')).toBeInTheDocument()
   })
@@ -295,3 +298,9 @@ describe('Acesso à tela de Revisão pela tabela de Orientandos (extra)', () => 
     expect(screen.getAllByRole('link', { name: /Abrir revisão/ })).toHaveLength(2)
   })
 })
+
+/** Confirma a ação no diálogo que aparece antes de uma ação sem volta. */
+async function confirmar(nome) {
+  const dialogo = await screen.findByRole('dialog')
+  await userEvent.click(within(dialogo).getByRole('button', { name: nome }))
+}

@@ -10,6 +10,7 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import F, Max
 from django.utils import timezone
@@ -769,10 +770,49 @@ def atualizar_nome(*, usuario, nome):
     return usuario
 
 
+def _conferir_senha_atual(usuario, senha_atual):
+    """
+    Confere a senha atual antes de uma troca de senha ou de e-mail. RNF03.
+
+    Errar demais aqui conta no mesmo limite do login: quem tivesse só o acesso
+    aberto de alguém não poderia adivinhar a senha por esta rota.
+    """
+    if minutos_de_bloqueio_do_login(usuario.email) > 0:
+        raise ValidationError({"senha_atual": "Muitas tentativas. Tente de novo mais tarde."})
+    if not usuario.check_password(senha_atual or ""):
+        registrar_falha_de_login(usuario.email)
+        raise ValidationError({"senha_atual": "A senha atual não confere."})
+    limpar_falhas_de_login(usuario.email)
+
+
+def atualizar_email(*, usuario, email, senha_atual):
+    """
+    EXTRA (fora dos requisitos) — troca o e-mail de login, pedindo a senha atual.
+
+    O e-mail é o que a pessoa usa para entrar, então a troca exige a senha, segue as
+    mesmas regras do cadastro (minúsculas e sem repetir o de outra conta, US01 CA2) e
+    não mexe em perfil nem em nada do TCC (RNF04). O que já está no log (RN10) fica.
+    """
+    email = _normalizar_email(email)
+    try:
+        validate_email(email)
+    except ValidationError:
+        raise ValidationError({"email": "Informe um e-mail válido."})
+    if len(email) > 254:
+        raise ValidationError({"email": "O e-mail pode ter no máximo 254 caracteres."})
+    if email == usuario.email.lower():
+        raise ValidationError({"email": "Informe um e-mail diferente do atual."})
+    if type(usuario).objects.filter(email__iexact=email).exclude(pk=usuario.pk).exists():
+        raise ValidationError({"email": "Já existe uma conta com este e-mail."})
+    _conferir_senha_atual(usuario, senha_atual)
+    usuario.email = email
+    usuario.save(update_fields=["email"])
+    return usuario
+
+
 def alterar_senha(*, usuario, senha_atual, nova_senha):
     """Troca a senha depois de conferir a atual. RNF03."""
-    if not usuario.check_password(senha_atual or ""):
-        raise ValidationError({"senha_atual": "A senha atual não confere."})
+    _conferir_senha_atual(usuario, senha_atual)
     if len(nova_senha or "") < TAMANHO_MINIMO_DA_SENHA:
         raise ValidationError(
             {"nova_senha": f"A nova senha precisa ter ao menos {TAMANHO_MINIMO_DA_SENHA} caracteres."}

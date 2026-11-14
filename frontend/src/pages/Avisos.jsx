@@ -1,9 +1,10 @@
+import Carregando from '../components/Carregando'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api, { mensagemDeErro } from '../api'
-import { avisarQueMudou } from '../avisos'
+import { TITULOS_DE_AVISO, avisarQueMudou } from '../avisos'
 import { useAuth } from '../auth'
-import { dataHoraCurta } from '../formato'
+import { dataHoraCurta, tempoRelativo } from '../formato'
 
 /**
  * EXTRA — fora dos requisitos do documento: aba de Avisos.
@@ -17,19 +18,6 @@ import { dataHoraCurta } from '../formato'
  * continuam destacados, para dar tempo de ver o que mudou; na próxima já vêm
  * como lidos.
  */
-const TITULOS = {
-  tema_proposto: 'Tema proposto',
-  tema_reenviado: 'Tema reenviado',
-  tema_aprovado: 'Tema aprovado',
-  tema_ajuste_solicitado: 'Ajuste de tema solicitado',
-  entrega_pronta: 'Entrega pronta para revisão',
-  entrega_em_revisao: 'Entrega em revisão',
-  correcao_solicitada: 'Correção solicitada',
-  comentario_adicionado: 'Novo comentário',
-  entrega_concluida: 'Entrega concluída',
-  entrega_enviada_a_banca: 'Entrega enviada à banca',
-  troca_orientador: 'Troca de orientador',
-}
 
 export default function Avisos() {
   const { usuario } = useAuth()
@@ -84,9 +72,9 @@ export default function Avisos() {
       </div>
 
       {erro ? (
-        <p className="erro">{erro}</p>
+        <p className="erro" role="alert">{erro}</p>
       ) : dados === null ? (
-        <p className="carregando">Carregando…</p>
+        <Carregando />
       ) : dados.avisos.length === 0 ? (
         <div className="vazio vazio-compacto">
           <strong>Nenhum aviso por enquanto</strong>
@@ -100,10 +88,12 @@ export default function Avisos() {
               <div className="aviso-corpo">
                 <div className="aviso-cabecalho">
                   <h2>
-                    {TITULOS[aviso.tipo] || 'Atualização'}
+                    {TITULOS_DE_AVISO[aviso.tipo] || 'Atualização'}
                     {aviso.nao_lido && <span className="aviso-selo">Novo</span>}
                   </h2>
-                  <time dateTime={aviso.data_hora}>{dataHoraCurta(aviso.data_hora)}</time>
+                  <time dateTime={aviso.data_hora} title={dataHoraCurta(aviso.data_hora)}>
+                    {tempoRelativo(aviso.data_hora)}
+                  </time>
                 </div>
                 <p>{aviso.descricao}</p>
                 <Link to={destino(aviso)}>Abrir</Link>

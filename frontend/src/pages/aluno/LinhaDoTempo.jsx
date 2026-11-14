@@ -1,3 +1,4 @@
+import Carregando from '../../components/Carregando'
 import { Fragment, useEffect, useState } from 'react'
 import api, { mensagemDeErro } from '../../api'
 import { useAuth } from '../../auth'
@@ -65,8 +66,8 @@ export default function LinhaDoTempo() {
         </div>
       </div>
 
-      {erro ? <p className="erro">{erro}</p> : eventos === null ? (
-        <p className="carregando">Carregando…</p>
+      {erro ? <p className="erro" role="alert">{erro}</p> : eventos === null ? (
+        <Carregando />
       ) : eventos.length === 0 ? (
         <div className="vazio vazio-compacto">
           <strong>Nenhum evento registrado</strong>

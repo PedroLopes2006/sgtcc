@@ -582,6 +582,13 @@ class NovoNomeSerializer(serializers.Serializer):
     nome = serializers.CharField(max_length=150)
 
 
+class NovoEmailSerializer(serializers.Serializer):
+    """EXTRA — POST /api/auth/alterar-email/: o novo e-mail e a senha atual."""
+
+    email = serializers.CharField(max_length=254)
+    senha_atual = serializers.CharField(write_only=True, style={"input_type": "password"})
+
+
 class NovaSenhaSerializer(serializers.Serializer):
     """EXTRA — POST /api/auth/alterar-senha/."""
 

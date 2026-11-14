@@ -77,7 +77,7 @@ export default function EnviarVersao({ entrega, aoFechar, aoConcluir }) {
           </div>
         )}
 
-        {erro && <p className="erro">{erro}</p>}
+        {erro && <p className="erro" role="alert">{erro}</p>}
 
         <div className="barra-acoes">
           <button type="button" className="contorno" onClick={aoFechar} disabled={enviando}>

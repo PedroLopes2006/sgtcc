@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import api from '../api'
-import { useContadorDeAvisos } from '../avisos'
+import { useAvisosRecentes } from '../avisos'
 import Layout from './Layout'
+import { LateralOrientador } from './Lateral'
 
 /**
  * Casca das telas do orientador: a barra lateral com Fila de revisão (US09),
@@ -11,9 +12,9 @@ import Layout from './Layout'
  * `orientandos`). O que ela não informar, o menu busca uma vez na API. Assim a
  * página não faz duas vezes a mesma requisição só para preencher o menu.
  */
-export default function LayoutOrientador({ fila, orientandos, children }) {
+export default function LayoutOrientador({ fila, orientandos, temas, linhas, children }) {
   const [buscados, setBuscados] = useState({})
-  const avisosNaoLidos = useContadorDeAvisos()
+  const { naoLidos: avisosNaoLidos, recentes } = useAvisosRecentes()
 
   useEffect(() => {
     let ativo = true
@@ -42,6 +43,8 @@ export default function LayoutOrientador({ fila, orientandos, children }) {
   const contadorOrientandos = orientandos ?? buscados.orientandos
 
   const itens = [
+    // EXTRA (fora dos requisitos) — visão geral do que pede atenção
+    { rotulo: 'Visão geral', icone: '◈', para: '/orientador/visao-geral' },
     {
       rotulo: 'Fila de revisão',
       icone: '▤',
@@ -60,5 +63,14 @@ export default function LayoutOrientador({ fila, orientandos, children }) {
     { rotulo: 'Perfil', icone: '◎', para: '/orientador/perfil' },
   ]
 
-  return <Layout itens={itens}>{children}</Layout>
+  return (
+    <Layout
+      itens={itens}
+      lateral={
+        <LateralOrientador avisos={recentes} fila={contadorFila} temas={temas} linhas={linhas} />
+      }
+    >
+      {children}
+    </Layout>
+  )
 }

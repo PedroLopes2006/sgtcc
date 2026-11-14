@@ -18,6 +18,7 @@ import FilaRevisao from './pages/orientador/FilaRevisao'
 import Orientandos from './pages/orientador/Orientandos'
 import PerfilOrientador from './pages/orientador/PerfilOrientador'
 import RevisaoEntrega from './pages/orientador/RevisaoEntrega'
+import VisaoGeral from './pages/orientador/VisaoGeral'
 
 function Raiz() {
   const { usuario } = useAuth()
@@ -65,6 +66,16 @@ export default function App() {
             element={
               <RotaProtegida perfil="orientador">
                 <FilaRevisao />
+              </RotaProtegida>
+            }
+          />
+
+          {/* EXTRA (fora dos requisitos) — visão geral do orientador */}
+          <Route
+            path="/orientador/visao-geral"
+            element={
+              <RotaProtegida perfil="orientador">
+                <VisaoGeral />
               </RotaProtegida>
             }
           />
