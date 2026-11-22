@@ -1,6 +1,16 @@
 from django.contrib import admin
 
-from .models import Comentario, Entrega, Evento, Orientacao, TCC, Tema, Usuario, Versao
+from .models import (
+    Comentario,
+    Entrega,
+    Evento,
+    Notificacao,
+    Orientacao,
+    TCC,
+    Tema,
+    Usuario,
+    Versao,
+)
 
 
 class SomenteLeituraAdmin(admin.ModelAdmin):
@@ -57,6 +67,16 @@ class EventoAdmin(SomenteLeituraAdmin):
 
     list_display = ("tcc", "tipo", "entrega", "usuario_relacionado", "data_hora")
     list_filter = ("tipo",)
+
+
+@admin.register(Notificacao)
+class NotificacaoAdmin(SomenteLeituraAdmin):
+    """US02 / RN11 — notificações disparadas e o resultado do envio, para depuração."""
+
+    list_display = ("destinatario", "canal", "status_envio", "evento", "data_hora")
+    list_filter = ("canal", "status_envio")
+    search_fields = ("destinatario__nome", "destinatario__email")
+    readonly_fields = ("destinatario", "evento", "canal", "conteudo", "status_envio", "erro", "data_hora")
 
 
 @admin.register(Comentario)

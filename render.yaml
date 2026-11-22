@@ -46,3 +46,9 @@ services:
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
         sync: false
+      # US02: bot do Telegram, criado no @BotFather. Sem o token, as
+      # notificações ficam só registradas no banco.
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_BOT_USERNAME
+        sync: false

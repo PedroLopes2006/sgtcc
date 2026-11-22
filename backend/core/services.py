@@ -2,8 +2,11 @@
 Regras de negócio dos Sprints 3 e 4.
 
 Notificações (US03 CA2, US03 CA4, US04 CA3, US08 CA3, US10 CA1, US11 CA3 e o
-comentário adicional da US11): cada ponto registra um Evento; o envio é a US02.
+comentário adicional da US11): cada ponto registra um Evento, e o Evento gera a
+Notificação de cada destinatário, enviada pelo Telegram (US02, seção no fim).
 """
+import logging
+import re
 from datetime import timedelta
 from pathlib import Path
 
@@ -15,15 +18,19 @@ from django.db import transaction
 from django.db.models import F, Max
 from django.utils import timezone
 
+from . import telegram
 from .models import (
+    CanalNotificacao,
     Comentario,
     Entrega,
     EstadoEntrega,
     Evento,
     NivelPrioridade,
+    Notificacao,
     Orientacao,
     Perfil,
     PrioridadeRevisao,
+    StatusEnvio,
     StatusTema,
     TentativaLogin,
     TCC,
@@ -33,11 +40,16 @@ from .models import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 def registrar_evento(tcc, tipo, descricao, usuario=None, entrega=None):
-    """RN10 — ponto único de gravação no log do TCC."""
-    return Evento.objects.create(
+    """RN10 — ponto único de gravação no log do TCC. RF16: dispara as notificações."""
+    evento = Evento.objects.create(
         tcc=tcc, tipo=tipo, descricao=descricao, usuario_relacionado=usuario, entrega=entrega
     )
+    notificar_evento(evento)
+    return evento
 
 
 @transaction.atomic
@@ -870,3 +882,125 @@ def registrar_falha_de_login(email):
 def limpar_falhas_de_login(email):
     """Um login certo zera a contagem."""
     TentativaLogin.objects.filter(email=_normalizar_email(email)).delete()
+
+
+# ---------------------------------------------------------------- US02 — Telegram
+# RF02: vincular o chat_id. RF16: cada Evento (RN10) gera a Notificação de quem
+# precisa saber dele, enviada pelo Telegram (CA2). RN11 / CA3: sem chat_id, a
+# notificação fica registrada e não é enviada. RNF11: nenhuma falha daqui (rede,
+# token, API do Telegram) desfaz ou trava a ação que gerou o Evento.
+#
+# Os destinatários são os mesmos da aba de Avisos: o aluno recebe o que acontece no
+# TCC dele; o orientador ativo, só o que depende dele (TIPOS_DE_AVISO_DO_ORIENTADOR).
+# Quem fez a ação não é avisado dela.
+
+FORMATO_DO_CHAT_ID = re.compile(r"^-?\d{1,20}$")
+
+
+def destinatarios_do_evento(evento):
+    """Quem deve ser notificado de um Evento."""
+    tcc = evento.tcc
+    autor_id = evento.usuario_relacionado_id
+    destinatarios = []
+    if tcc.aluno_id != autor_id:
+        destinatarios.append(tcc.aluno)
+    if evento.tipo in TIPOS_DE_AVISO_DO_ORIENTADOR:
+        orientador = tcc.orientador_atual
+        if orientador is not None and orientador.pk != autor_id:
+            destinatarios.append(orientador)
+    return destinatarios
+
+
+def _texto_da_notificacao(evento, destinatario):
+    linhas = [f"SGTCC · {evento.get_tipo_display()}", evento.descricao]
+    if destinatario.pk != evento.tcc.aluno_id:
+        # O orientador acompanha vários alunos: diz de quem é o TCC.
+        linhas.append(f"TCC de {evento.tcc.aluno.nome}")
+    return "\n".join(linhas)
+
+
+def notificar_evento(evento):
+    """
+    RF16 — registra uma Notificação por destinatário e agenda o envio.
+
+    O envio só acontece depois que a ação for gravada no banco (on_commit): se a
+    ação der errado e for desfeita, ninguém recebe aviso de algo que não aconteceu.
+    """
+    try:
+        # Savepoint: um erro aqui não pode estragar a transação da ação (RNF11).
+        with transaction.atomic():
+            for destinatario in destinatarios_do_evento(evento):
+                _criar_notificacao(destinatario, _texto_da_notificacao(evento, destinatario), evento)
+    except Exception:  # noqa: BLE001 — RNF11
+        logger.exception("Não foi possível registrar as notificações do evento %s", evento.pk)
+
+
+def _criar_notificacao(destinatario, conteudo, evento=None):
+    if not destinatario.telegram_chat_id:
+        # US02 CA3 / RN11 — sem canal: só o registro.
+        return Notificacao.objects.create(
+            destinatario=destinatario, evento=evento, conteudo=conteudo,
+            canal=CanalNotificacao.NENHUM, status_envio=StatusEnvio.SEM_CANAL,
+        )
+    notificacao = Notificacao.objects.create(
+        destinatario=destinatario, evento=evento, conteudo=conteudo,
+        canal=CanalNotificacao.TELEGRAM, status_envio=StatusEnvio.PENDENTE,
+    )
+    transaction.on_commit(lambda: enviar_notificacao(notificacao.pk))
+    return notificacao
+
+
+def enviar_notificacao(notificacao_id):
+    """
+    US02 CA2 — manda uma notificação pendente pelo Telegram e anota o resultado.
+
+    Devolve True se o Telegram aceitou a mensagem. Nunca levanta erro (RNF11).
+    """
+    try:
+        notificacao = Notificacao.objects.select_related("destinatario").get(pk=notificacao_id)
+        try:
+            telegram.enviar_mensagem(notificacao.destinatario.telegram_chat_id, notificacao.conteudo)
+        except telegram.ErroTelegram as erro:
+            notificacao.status_envio = StatusEnvio.FALHOU
+            notificacao.erro = str(erro)[:500]
+        else:
+            notificacao.status_envio = StatusEnvio.ENVIADA
+            notificacao.erro = ""
+        notificacao.save(update_fields=["status_envio", "erro"])
+        return notificacao.status_envio == StatusEnvio.ENVIADA
+    except Exception:  # noqa: BLE001 — RNF11
+        logger.exception("Falha inesperada ao enviar a notificação %s", notificacao_id)
+        return False
+
+
+MENSAGEM_DE_TESTE = (
+    "SGTCC · Telegram vinculado\n"
+    "Pronto! A partir de agora os avisos do seu TCC chegam por aqui."
+)
+
+
+def vincular_telegram(*, usuario, chat_id):
+    """
+    US02 CA1 / RF02 — associa (ou, com o campo vazio, desfaz) o chat_id do usuário.
+
+    Ao vincular, manda uma mensagem de teste para a pessoa confirmar que deu certo.
+    O vínculo fica gravado mesmo se o teste falhar (RNF11): o resultado volta para a
+    tela explicar o que conferir. Devolve "enviada", "falhou" ou None (desvinculou).
+    """
+    chat_id = (chat_id or "").strip()
+    if not chat_id:
+        usuario.telegram_chat_id = None
+        usuario.save(update_fields=["telegram_chat_id"])
+        return None
+    if not FORMATO_DO_CHAT_ID.match(chat_id):
+        raise ValidationError(
+            {"chat_id": "O código do chat é um número, como 123456789. Confira e tente de novo."}
+        )
+    usuario.telegram_chat_id = chat_id
+    usuario.save(update_fields=["telegram_chat_id"])
+
+    notificacao = Notificacao.objects.create(
+        destinatario=usuario, conteudo=MENSAGEM_DE_TESTE,
+        canal=CanalNotificacao.TELEGRAM, status_envio=StatusEnvio.PENDENTE,
+    )
+    return "enviada" if enviar_notificacao(notificacao.pk) else "falhou"

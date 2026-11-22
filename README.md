@@ -8,6 +8,7 @@ Frederico Mariani, Pedro Augusto, Felipe Regiani, Carlos Augusto, Paulo Sérgio,
 | US | Descrição | Situação |
 |----|-----------|----------|
 | US01 | Cadastro e login | Completa (CA1–CA4) |
+| US02 | Vincular Telegram | Completa (CA1–CA3) |
 | US03 | Propor tema e indicar orientador | Completa (CA1–CA4) |
 | US04 | Aprovar ou ajustar tema | Completa (CA1–CA3) |
 | US05 | Criar entrega | Completa (CA1–CA2) |
@@ -26,7 +27,7 @@ Frederico Mariani, Pedro Augusto, Felipe Regiani, Carlos Augusto, Paulo Sérgio,
 Conforme o recorte combinado para o sprint:
 
 - **A US05 cria só a etapa, sem arquivo.** O arquivo entra pela US06, que anexa as `Versao` à entrega.
-- **As notificações ficam para quando o Telegram entrar.** Os pontos que pedem aviso (US03 CA2 e CA4, US04 CA3, US08 CA3, US10 CA1, US11 CA3) já gravam um `Evento` no log, que é exatamente o gatilho que o disparo vai consumir depois. Nesta etapa só a mudança de status é implementada.
+- **As notificações saem do `Evento`.** Os pontos que pedem aviso (US03 CA2 e CA4, US04 CA3, US08 CA3, US10 CA1, US11 CA3, US12) gravam um `Evento` no log, e cada `Evento` gera a `Notificacao` de quem precisa saber dele, enviada pelo Telegram (US02).
 - **Notificação** do DER do Sprint 1 ainda não existe no código. O **Comentário** entrou com a US11.
 - O `Evento` ganhou o vínculo opcional com a `Entrega`: a sinalização, a abertura da revisão e a correção apontam para ela. A US09 usa isso para ordenar a fila pela data em que a entrega ficou pronta.
 - **A sinalização fica como botão na lista de entregas** e não há como desfazê-la: depois de "pronto para revisão", a entrega só sai desse estado pela ação do orientador.
@@ -45,6 +46,7 @@ Resumo do que cada US entrega e de quais requisitos da especificação (RF, RN e
 | US | O que faz | RF | RN | RNF |
 |----|-----------|----|----|-----|
 | US01 | Cadastro e login com perfil de aluno ou orientador; erro genérico para credenciais inválidas | RF01 | — | RNF03, RNF04 |
+| US02 | O usuário cola o código do chat (chat_id) no Perfil e recebe uma mensagem de teste; cada `Evento` gera uma `Notificacao` por destinatário, enviada pelo bot a quem tem Telegram e só registrada para quem não tem; uma falha no envio fica anotada e não trava a ação | RF02, RF16 | RN10, RN11 | RNF04, RNF05, RNF11 |
 | US03 | O aluno propõe o tema e indica o orientador: nascem o TCC, o Tema "proposto" e a Orientação ativa; reenvia o tema após um ajuste | RF03 | RN01, RN10, RN15 | RNF04 |
 | US04 | O orientador aprova o tema ou pede ajuste, com justificativa obrigatória | RF04 | RN05, RN07, RN10 | RNF04 |
 | US05 | O aluno cria uma entrega (título e prazo) em "rascunho", só com o tema aprovado | RF05 | RN02 | RNF04 |
@@ -60,24 +62,24 @@ Resumo do que cada US entrega e de quais requisitos da especificação (RF, RN e
 | US15 | O orientador atual indica outro; encerra o vínculo anterior e cria o novo em transação, preservando tema, entregas, versões, comentários e eventos | RF14 | RN08, RN09, RN15, RN10, RN05 | RNF04 |
 | US16 | O aluno consulta a timeline dos eventos registrados no seu TCC, do mais novo para o mais antigo como no protótipo (a API devolve em ordem cronológica) | RF15 | RN10 | RNF04, RNF12 |
 
-\* RF16: nesta etapa só o gatilho, o `Evento` gravado no log. O envio pelo Telegram é a US02.
+\* RF16: a US grava o `Evento`; o envio pelo Telegram é feito pela US02 a partir dele.
 
 ### Requisitos atendidos no projeto
 
 | Tipo | Atendidos | Parciais |
 |------|-----------|----------|
-| RF | 01, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 17, 18 | 16 (grava o `Evento`, sem envio) |
+| RF | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18 | — |
 | RNF | 01 (medido em teste, veja abaixo), 03, 04, 05, 06, 09, 11, 12, 13, 14 (exportação, veja abaixo) | — |
-| RN | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 13, 14, 15 | — |
+| RN | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15 | — |
 
 No código, cada função de `services.py` cita no docstring o CA e as regras que aplica, e os testes citam a regra que cada um confere.
 
-**O que falta é só o Telegram (US02):** vincular o `chat_id` (RF02), enviar as notificações (RF16), registrar a notificação que não foi entregue por falta de canal (RN11) e a classe `Notificação` do diagrama, que nasce junto. Hoje o RF16 só grava o `Evento`, e a aba de Avisos mostra esses eventos dentro do sistema. Os demais RF, RN e RNF estão cobertos por código e por teste, com duas ressalvas que dependem do ambiente final:
+Com a US02, todos os RF, RN e RNF estão cobertos por código e por teste, com duas ressalvas que dependem do ambiente final:
 
 - **RNF01 (3 segundos):** `test_rnf01_desempenho.py` mede login, upload de um PDF de 1 MB e cada mudança de estado da entrega na API, e todos ficam bem abaixo do limite. Esse teste não inclui a hospedagem: no plano gratuito do Render, a primeira chamada depois de o serviço dormir leva cerca de 1 minuto.
 - **RNF08 (Chrome, Firefox e Edge):** o código usa só recursos comuns do navegador e não precisa de aplicativo, mas ainda não foi aberto nos três. Conferir à mão antes da apresentação.
 
-O RNF11 (falha de aviso não travar a ação) vale hoje por construção, porque o aviso é só um registro no banco; quando o Telegram entrar, o envio precisa ficar dentro de um `try/except`.
+O RNF11 (falha de aviso não travar a ação) é garantido na US02: o registro das notificações roda num savepoint próprio e o envio ao Telegram só acontece depois que a ação foi gravada (`on_commit`), dentro de um `try/except`. Uma falha (token ausente, rede, chat errado) vira `status_envio = falhou` com o motivo em `erro`, visível no `/admin`, e a ação continua valendo. A aba de Avisos segue mostrando tudo dentro do sistema, com ou sem Telegram.
 
 ### Exportação periódica dos dados (RNF14)
 
@@ -99,7 +101,7 @@ Estas funcionalidades **não fazem parte dos requisitos da especificação do Sp
 |-------|-----------|
 | Tela de Revisão do orientador | Reúne numa tela só (`/orientador/entregas/<id>`) o que as US07, US10, US11, US12 e US13 já fazem: ver as versões e os comentários da entrega, iniciar a revisão, pedir correção, acrescentar comentário, aprovar e enviar à banca. Quem diz o que pode ser feito agora é a API (`acoes`), com as mesmas regras dos services (RN06). Na Fila, o "Iniciar revisão" leva a ela; na tabela de orientandos, o link "Abrir revisão" também. |
 | Prioridade na fila de revisão | Na Fila de revisão (US09), o orientador marca cada entrega como alta, média, baixa ou sem prioridade. A marcação é só dele (por orientador e por entrega), o aluno nunca a vê, ela não muda a ordem de chegada e não gera evento. |
-| Aba de Avisos | Item "Avisos" na barra lateral, com o contador do que ainda não foi visto. Mostra o que o RF16 pede que seja avisado, lendo os mesmos `Evento` do log (RN10, RF18) que o Telegram (US02) vai consumir: o aluno vê o que o orientador fez (tema aprovado ou com ajuste, revisão iniciada, correção, comentário, conclusão, banca, troca de orientador); o orientador vê o que depende dele (tema proposto ou reenviado, entrega pronta, orientando recebido por troca). Quem fez a ação não recebe aviso dela, e o orientador novo não recebe como novo o que aconteceu antes de assumir (RN08). Ao abrir a aba, tudo vira "visto" (só se guarda até quando a pessoa viu). Cada aviso leva à tela certa. |
+| Aba de Avisos | Item "Avisos" na barra lateral, com o contador do que ainda não foi visto. Mostra o que o RF16 pede que seja avisado, lendo os mesmos `Evento` do log (RN10, RF18) que o Telegram (US02) também usa: o aluno vê o que o orientador fez (tema aprovado ou com ajuste, revisão iniciada, correção, comentário, conclusão, banca, troca de orientador); o orientador vê o que depende dele (tema proposto ou reenviado, entrega pronta, orientando recebido por troca). Quem fez a ação não recebe aviso dela, e o orientador novo não recebe como novo o que aconteceu antes de assumir (RN08). Ao abrir a aba, tudo vira "visto" (só se guarda até quando a pessoa viu). Cada aviso leva à tela certa. |
 | Perfil editável | Na tela de Perfil, o usuário troca o próprio nome, o e-mail e a senha. A troca de senha pede a senha atual, exige 8 caracteres e passa pelas mesmas regras do cadastro. A troca de e-mail também pede a senha atual (é o e-mail que a pessoa usa para entrar), grava em minúsculas, recusa um e-mail de outra conta (US01 CA2) e a partir daí o login passa a usar o novo. Errar a senha atual em qualquer das duas trocas conta no mesmo limite de tentativas do login, para não dar para adivinhar a senha por essas rotas. O perfil (aluno ou orientador) não muda, nem nada do TCC (RNF04). |
 | Limite de tentativas de login | Depois de 8 senhas erradas seguidas para o mesmo e-mail, o login desse e-mail fica bloqueado por 15 minutos (resposta 429), mesmo com a senha certa. Vale para qualquer e-mail digitado, exista a conta ou não, então não revela quais contas existem (US01 CA4). Um login certo zera a contagem. |
 | Atalhos e caminho do TCC | No Meu TCC (com o tema aprovado), um cartão de atalhos leva direto à ação certa: "Enviar versão" (abre o envio da primeira entrega que aceita versão), "Ver correção pedida" (só quando há uma) e "Nova entrega". Abaixo, o "Caminho do TCC" mostra o tema aprovado e as entregas por prazo numa trilha horizontal, cada parada com o estado, o prazo e a contagem regressiva. As regras são as de sempre (RN02, RN03); a tela só lê o que a API já diz. |
@@ -120,7 +122,7 @@ Três divergências conscientes:
 2. **A avaliação do tema sai da tabela de orientandos**, num modal, como no protótipo — não há fila de temas separada. A "Fila de revisão" desenhada no Figma é de *entregas* (US09) e tem tela própria; só o Perfil ainda aparece desativado na barra lateral.
 3. **A revisão acontece na tabela de orientandos, e a tela de Revisão do protótipo é um extra.** No Figma, "Iniciar revisão" fica na Fila de revisão e na tela de Revisão da entrega (versões, comentários, "Novo comentário", "Solicitar correção" e "Aprovar entrega"). Os botões e modais da tabela de orientandos são o que cumpre as US10 a US13. A tela de Revisão foi feita depois, como complemento fora dos requisitos (veja *Extras do protótipo*), e a tabela manteve os atalhos. Os textos seguem o protótipo ("Novo comentário", "Descreva o que precisa ser ajustado", "Escreva um comentário para solicitar correção.", "Seu orientador pediu correção").
 
-A tela de Perfil, que estava desativada, agora existe (conta, resumo, aparência e Telegram). O formulário de vincular o Telegram aparece desabilitado até a US02, a próxima etapa.
+A tela de Perfil, que estava desativada, agora existe (conta, resumo, aparência e Telegram). O cartão do Telegram vincula o código do chat (US02).
 
 ## Identidade visual e modo escuro
 
@@ -143,7 +145,7 @@ O visual é sóbrio e leve. Cinzas de pedra, levemente quentes, em oito tons (fu
 - **Avisos que somem sozinhos:** a confirmação de uma ação ("Revisão iniciada. O aluno foi avisado.") aparece num aviso discreto no canto e some em alguns segundos. Erros continuam em faixa, porque a pessoa precisa lê-los.
 - **Aluno:** cada entrega mostra a mini linha de etapas (Preparo, Envio, Revisão, Aprovação, Banca), e a linha do tempo agrupa os eventos por dia ("Hoje", "Ontem", "12 de novembro").
 - **Orientador:** a Fila de revisão tem busca por aluno ou entrega, sem diferenciar acento nem maiúscula.
-- **Perfil:** a tela existe para aluno e orientador. Mostra a conta (nome, e-mail, perfil e "Membro desde", que vem de `GET /api/auth/eu/`), um resumo do trabalho (do aluno: orientador, tema, progresso e fase atual; do orientador: os números da fila e dos orientandos), a escolha de aparência (claro, escuro ou automático, que acompanha o computador), o botão de sair e, como extra, a troca do nome e da senha. O cartão do Telegram mostra a situação real (vinculado ou não), mas o formulário fica desabilitado até a US02.
+- **Perfil:** a tela existe para aluno e orientador. Mostra a conta (nome, e-mail, perfil e "Membro desde", que vem de `GET /api/auth/eu/`), um resumo do trabalho (do aluno: orientador, tema, progresso e fase atual; do orientador: os números da fila e dos orientandos), a escolha de aparência (claro, escuro ou automático, que acompanha o computador), o botão de sair e, como extra, a troca do nome e da senha. O cartão do Telegram (US02) mostra a situação (vinculado ou não), o passo a passo com o link do bot, o campo do código do chat e o botão de desvincular; ao vincular, diz se a mensagem de teste chegou.
 
 ## Stack
 
@@ -232,8 +234,12 @@ Variáveis a preencher no painel:
 | `AWS_S3_ENDPOINT_URL` | `https://<project-ref>.supabase.co/storage/v1/s3` |
 | `AWS_S3_REGION_NAME` | a região do projeto, ex. `sa-east-1` |
 | `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` | Supabase > Settings > API > Storage > S3 Access Keys |
+| `TELEGRAM_BOT_TOKEN` | token do bot, dado pelo @BotFather (US02). É segredo: só no painel, nunca no código |
+| `TELEGRAM_BOT_USERNAME` | nome do bot sem o @, ex. `sgtcc_uvv_bot`; aparece no Perfil |
 
-As cinco últimas são da US06. O disco do Render é apagado a cada deploy, então os PDFs precisam ir para o Supabase Storage; sem elas o Django grava em `backend/media`, o que só serve para rodar local.
+As cinco do `AWS_` são da US06. O disco do Render é apagado a cada deploy, então os PDFs precisam ir para o Supabase Storage; sem elas o Django grava em `backend/media`, o que só serve para rodar local.
+
+Sem `TELEGRAM_BOT_TOKEN` o sistema funciona igual, mas as notificações de quem tem Telegram ficam como "falhou", com o motivo anotado. Para rodar local, ponha as duas variáveis do Telegram em `backend/.env` (o arquivo fica fora do Git).
 
 `DJANGO_SECRET_KEY` o Render gera sozinho e `DJANGO_DEBUG` já vai como `0`.
 
@@ -263,7 +269,7 @@ cd frontend && npm test                    # 350 testes
 
 No backend, um teste por critério de aceite mais as regras de negócio envolvidas, organizados por US em `backend/core/tests/`. O `test_fluxo_revisao.py` percorre a entrega inteira pela API (US06, US08, US10 e US11), de rascunho até a correção e de volta. No frontend, testes de fumaça (Vitest + Testing Library) que montam cada tela e conferem os textos do protótipo e as regras visíveis — botão desabilitado sem tema aprovado, justificativa obrigatória no modal.
 
-A US15 recebe `{"novo_orientador": <id>}` na reatribuição. Apenas o orientador ativo inicia a troca. O antigo perde acesso à lista e ao histórico; o novo consulta todas as versões e comentários, além dos eventos e vínculos anteriores. O histórico é uma página simples; o detalhe do Figma fica para a integração final. A US12 registra o aviso no `Evento`, seguindo o contrato atual da US02 (Telegram pendente).
+A US15 recebe `{"novo_orientador": <id>}` na reatribuição. Apenas o orientador ativo inicia a troca. O antigo perde acesso à lista e ao histórico; o novo consulta todas as versões e comentários, além dos eventos e vínculos anteriores. O histórico é uma página simples; o detalhe do Figma fica para a integração final. A US12 registra o aviso no `Evento`, que a US02 envia pelo Telegram.
 
 ## Endpoints
 
@@ -274,6 +280,7 @@ A US15 recebe `{"novo_orientador": <id>}` na reatribuição. Apenas o orientador
 | POST | `/api/auth/refresh/` | — | público |
 | GET | `/api/auth/eu/` | dados da conta para o Perfil (inclui `data_cadastro`) | autenticado |
 | PATCH | `/api/auth/eu/` | **EXTRA** (fora dos requisitos): trocar o nome | autenticado |
+| POST | `/api/auth/telegram/` | US02 CA1: vincular `{"chat_id": "..."}` (vazio desvincula); devolve `teste`: `enviada`, `falhou` ou `null` | autenticado |
 | POST | `/api/auth/alterar-email/` | **EXTRA** (fora dos requisitos): trocar o e-mail de login | autenticado |
 | POST | `/api/auth/alterar-senha/` | **EXTRA** (fora dos requisitos): trocar a senha | autenticado |
 | GET | `/api/avisos/` | **EXTRA** (fora dos requisitos): aba de Avisos | autenticado |

@@ -12,6 +12,8 @@ urlpatterns = [
     # EXTRA (fora dos requisitos) — perfil editável e aba de Avisos
     path("auth/alterar-email/", views.alterar_email, name="alterar-email"),
     path("auth/alterar-senha/", views.alterar_senha, name="alterar-senha"),
+    # US02
+    path("auth/telegram/", views.vincular_telegram, name="vincular-telegram"),
     path("avisos/", views.avisos, name="avisos"),
     path("avisos/marcar-lidos/", views.marcar_avisos_lidos, name="marcar-avisos-lidos"),
     # US03

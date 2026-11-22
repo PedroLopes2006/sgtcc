@@ -16,9 +16,9 @@ import Estado from './Estado'
  * Telegram vinculado, desde quando a conta existe) e não o que ficou guardado
  * no navegador no login. Enquanto isso carrega, vale o que o login guardou.
  *
- * O Telegram ainda não vincula nada: a US02 é a próxima etapa. O cartão mostra
- * a situação real (vinculado ou não) e deixa claro que o formulário chega em
- * breve, em vez de oferecer um botão que não faz nada.
+ * US02 (RF02) — o cartão do Telegram vincula o código do chat. Ao vincular, o
+ * sistema manda uma mensagem de teste e a tela diz se ela chegou; o vínculo fica
+ * gravado mesmo se não chegar (RNF11), com a dica do que conferir.
  */
 const PAPEL = { aluno: 'Aluno', orientador: 'Orientador' }
 
@@ -47,6 +47,52 @@ export default function PerfilBase({ textoTelegram, children }) {
   }, [])
 
   const vinculado = Boolean(usuario.telegram_chat_id)
+
+  // US02 — vincular (ou desvincular) o Telegram.
+  const [chatId, setChatId] = useState('')
+  const [salvandoTelegram, setSalvandoTelegram] = useState(false)
+  const [mensagemTelegram, setMensagemTelegram] = useState('')
+  const [erroTelegram, setErroTelegram] = useState(false)
+
+  async function enviarTelegram(codigo) {
+    setMensagemTelegram('')
+    setSalvandoTelegram(true)
+    try {
+      const { data } = await api.post('/auth/telegram/', { chat_id: codigo })
+      const { teste, ...conta } = data
+      setUsuario((atual) => ({ ...atual, ...conta }))
+      atualizarUsuario({ telegram_chat_id: conta.telegram_chat_id })
+      setChatId('')
+      if (teste === 'enviada') {
+        setErroTelegram(false)
+        setMensagemTelegram('Telegram vinculado. Mandamos uma mensagem de teste para você.')
+      } else if (teste === 'falhou') {
+        setErroTelegram(true)
+        setMensagemTelegram(
+          'O código foi salvo, mas a mensagem de teste não chegou. Confira se você tocou em ' +
+            '"Iniciar" no bot e se o código está certo, e vincule de novo.',
+        )
+      } else {
+        setErroTelegram(false)
+        setMensagemTelegram('Telegram desvinculado. Os avisos continuam na aba Avisos.')
+      }
+    } catch (e) {
+      setErroTelegram(true)
+      setMensagemTelegram(mensagemDeErro(e, 'Não foi possível vincular o Telegram.'))
+    } finally {
+      setSalvandoTelegram(false)
+    }
+  }
+
+  function vincularTelegram(evento) {
+    evento.preventDefault()
+    if (!chatId.trim()) {
+      setErroTelegram(true)
+      setMensagemTelegram('Cole o código do seu chat.')
+      return
+    }
+    enviarTelegram(chatId)
+  }
 
   // EXTRA (fora dos requisitos) — trocar o nome e a senha da própria conta.
   const [editandoNome, setEditandoNome] = useState(false)
@@ -192,21 +238,61 @@ export default function PerfilBase({ textoTelegram, children }) {
             />
           </p>
           <p className="ajuda">{textoTelegram}</p>
-          <div className="campo perfil-telegram-form">
-            <label htmlFor="codigo-chat">Código do chat</label>
+          <ol className="ajuda perfil-telegram-passos" id="telegram-como">
+            <li>
+              No Telegram, abra{' '}
+              {usuario.telegram_bot ? (
+                <a href={`https://t.me/${usuario.telegram_bot}`} target="_blank" rel="noreferrer">
+                  @{usuario.telegram_bot}
+                </a>
+              ) : (
+                'o bot do SGTCC'
+              )}{' '}
+              e toque em <strong>Iniciar</strong>.
+            </li>
+            <li>
+              Fale com o <strong>@userinfobot</strong>: ele responde com o seu código (o “Id”).
+            </li>
+            <li>Cole o código aqui e toque em Vincular.</li>
+          </ol>
+          <form className="campo perfil-telegram-form" onSubmit={vincularTelegram}>
+            <label htmlFor="codigo-chat">
+              {vinculado ? 'Trocar o código do chat' : 'Código do chat'}
+            </label>
             <input
               id="codigo-chat"
-              placeholder="Cole aqui o código do seu chat"
-              disabled
-              aria-describedby="telegram-em-breve"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder={vinculado ? usuario.telegram_chat_id : 'Ex.: 123456789'}
+              value={chatId}
+              maxLength={64}
+              onChange={(e) => setChatId(e.target.value)}
+              aria-describedby="telegram-como"
             />
-            <button type="button" className="contorno" disabled>
-              Vincular
-            </button>
-          </div>
-          <p className="ajuda" id="telegram-em-breve">
-            Disponível em breve. Por enquanto, os avisos aparecem na linha do tempo.
-          </p>
+            <div className="perfil-form-linha">
+              <button type="submit" disabled={salvandoTelegram} aria-busy={salvandoTelegram}>
+                {salvandoTelegram ? 'Salvando…' : 'Vincular'}
+              </button>
+              {vinculado && (
+                <button
+                  type="button"
+                  className="contorno"
+                  disabled={salvandoTelegram}
+                  onClick={() => enviarTelegram('')}
+                >
+                  Desvincular
+                </button>
+              )}
+            </div>
+          </form>
+          {mensagemTelegram && (
+            <p
+              className={erroTelegram ? 'erro' : 'sucesso'}
+              role={erroTelegram ? 'alert' : 'status'}
+            >
+              {mensagemTelegram}
+            </p>
+          )}
         </section>
 
         <section className="cartao-perfil" aria-labelledby="perfil-conta">

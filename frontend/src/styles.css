@@ -1740,13 +1740,17 @@ button.texto:hover:not(:disabled) {
   margin-bottom: 0;
 }
 
-.perfil-telegram-form button {
-  justify-self: start;
+.perfil-telegram-form .perfil-form-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.perfil-telegram-form input:disabled {
-  background: var(--bg-sutil);
-  cursor: not-allowed;
+.perfil-telegram-passos {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
 }
 
 /* O seletor de tema tem três opções. */
