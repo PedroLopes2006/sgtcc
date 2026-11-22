@@ -29,6 +29,7 @@ from .serializers import (
     NovaSenhaSerializer,
     NovoEmailSerializer,
     NovoNomeSerializer,
+    VinculoTelegramSerializer,
     ComentarioSerializer,
     CriacaoEntregaSerializer,
     EnvioDeVersaoSerializer,
@@ -126,6 +127,22 @@ def alterar_senha(request):
     dados.is_valid(raise_exception=True)
     services.alterar_senha(usuario=request.user, **dados.validated_data)
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@traduzir_erros_de_dominio
+def vincular_telegram(request):
+    """
+    US02 CA1 / RF02 — vincula o chat_id do Telegram ao perfil (vazio desvincula).
+
+    Ao vincular, o sistema manda uma mensagem de teste; `teste` diz se ela chegou ao
+    Telegram ("enviada") ou não ("falhou"). O vínculo fica gravado nos dois casos.
+    """
+    dados = VinculoTelegramSerializer(data=request.data)
+    dados.is_valid(raise_exception=True)
+    teste = services.vincular_telegram(usuario=request.user, chat_id=dados.validated_data["chat_id"])
+    return Response({**UsuarioSerializer(request.user).data, "teste": teste})
 
 
 @api_view(["GET"])

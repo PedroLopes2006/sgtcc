@@ -14,6 +14,16 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Só para rodar local: valores de backend/.env (fora do Git) para segredos como o
+# token do bot. O que já estiver no ambiente (Render, docker-compose) vale mais.
+_env_local = BASE_DIR / ".env"
+if _env_local.exists():
+    for _linha in _env_local.read_text(encoding="utf-8").splitlines():
+        _linha = _linha.strip()
+        if _linha and not _linha.startswith("#") and "=" in _linha:
+            _chave, _valor = _linha.split("=", 1)
+            os.environ.setdefault(_chave.strip(), _valor.strip().strip('"').strip("'"))
+
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY", "dev-chave-insegura-apenas-local-trocar-em-producao"
 )
@@ -159,6 +169,14 @@ MEDIA_ROOT = BASE_DIR / "media"
 # US06 — limites do arquivo de versão.
 VERSAO_EXTENSOES = (".pdf",)
 VERSAO_TAMANHO_MAXIMO = int(os.environ.get("VERSAO_TAMANHO_MAXIMO_MB", "10")) * 1024 * 1024
+
+# US02 — bot do Telegram (criado no @BotFather). Sem o token, as notificações
+# ficam só registradas, com o motivo anotado (RN11, RNF11). O nome do bot, sem o
+# "@", aparece no Perfil para a pessoa saber com quem falar.
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_BOT_USERNAME = os.environ.get("TELEGRAM_BOT_USERNAME", "").lstrip("@")
+# RNF01 — a mensagem sai na mesma requisição; um Telegram lento não pode travá-la.
+TELEGRAM_TIMEOUT = float(os.environ.get("TELEGRAM_TIMEOUT", "4"))
 
 # Com as credenciais S3 definidas, os arquivos vão para o Supabase Storage.
 # Sem elas, ficam em disco — o que serve para desenvolvimento, mas não para o

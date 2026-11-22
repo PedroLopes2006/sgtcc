@@ -1,8 +1,6 @@
 """
-Modelos do SGTCC. Escopo do Sprint 3: US01, US03, US04, US05, US10 e US11.
-
-Versão e Notificação ficam para a US06 em diante. O Comentário entra com a
-US11, sem o vínculo opcional com Versão, que depende da US06.
+Modelos do SGTCC: as 9 classes do diagrama (a Notificação entra com a US02)
+e os extras marcados como tal.
 As RN citadas são as da Especificação do Sistema (Sprint 1), seção 7.
 """
 from pathlib import Path
@@ -411,6 +409,56 @@ class Evento(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()} em {self.data_hora:%d/%m/%Y %H:%M}"
+
+
+class CanalNotificacao(models.TextChoices):
+    TELEGRAM = "telegram", "Telegram"
+    # RN11 — o usuário não tem canal configurado: a notificação só fica registrada.
+    NENHUM = "nenhum", "Nenhum canal"
+
+
+class StatusEnvio(models.TextChoices):
+    PENDENTE = "pendente", "Pendente"
+    ENVIADA = "enviada", "Enviada"
+    FALHOU = "falhou", "Falhou"
+    # US02 CA3 / RN11 — registrada, mas não entregue por falta de canal.
+    SEM_CANAL = "sem_canal", "Não enviada (sem canal)"
+
+
+class Notificacao(models.Model):
+    """
+    US02 / RF16 / RN11 — registro de cada notificação disparada.
+
+    Nasce de um Evento (RN10) para cada destinatário. Quem tem Telegram vinculado
+    recebe a mensagem (CA2); quem não tem fica só com o registro (CA3). Uma falha
+    no envio fica anotada aqui e não desfaz a ação do usuário (RNF11).
+    `evento` é opcional, como no diagrama: a mensagem de teste do vínculo não tem.
+    """
+
+    destinatario = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, related_name="notificacoes",
+        verbose_name="destinatário",
+    )
+    evento = models.ForeignKey(
+        Evento, on_delete=models.CASCADE, null=True, blank=True, related_name="notificacoes"
+    )
+    canal = models.CharField(max_length=20, choices=CanalNotificacao.choices)
+    conteudo = models.TextField("conteúdo")
+    status_envio = models.CharField(
+        "status do envio", max_length=20, choices=StatusEnvio.choices,
+        default=StatusEnvio.PENDENTE,
+    )
+    # Para depuração: o motivo de uma falha de envio.
+    erro = models.TextField("erro", blank=True)
+    data_hora = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "notificação"
+        verbose_name_plural = "notificações"
+        ordering = ["-data_hora", "-id"]
+
+    def __str__(self):
+        return f"Para {self.destinatario.nome} — {self.get_status_envio_display()}"
 
 
 class TentativaLogin(models.Model):

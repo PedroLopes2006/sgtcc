@@ -1,4 +1,5 @@
 """Serializers do Sprint 3."""
+from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, AuthenticationFailed
@@ -21,11 +22,17 @@ from .models import (
 
 
 class UsuarioSerializer(serializers.ModelSerializer):
+    # US02 — o @ do bot, para o Perfil dizer com quem a pessoa deve falar.
+    telegram_bot = serializers.SerializerMethodField()
+
     class Meta:
         model = Usuario
         # `data_cadastro` alimenta o "Membro desde" da tela de Perfil (só leitura).
-        fields = ["id", "nome", "email", "perfil", "telegram_chat_id", "data_cadastro"]
+        fields = ["id", "nome", "email", "perfil", "telegram_chat_id", "telegram_bot", "data_cadastro"]
         read_only_fields = fields
+
+    def get_telegram_bot(self, _usuario):
+        return settings.TELEGRAM_BOT_USERNAME or None
 
 
 class OrientadorResumoSerializer(serializers.ModelSerializer):
@@ -574,6 +581,12 @@ class AvisoSerializer(serializers.ModelSerializer):
     def get_nao_lido(self, evento):
         vistos_ate = self.context.get("vistos_ate")
         return vistos_ate is None or evento.data_hora > vistos_ate
+
+
+class VinculoTelegramSerializer(serializers.Serializer):
+    """US02 — POST /api/auth/telegram/: o chat_id; vazio desfaz o vínculo."""
+
+    chat_id = serializers.CharField(max_length=64, allow_blank=True, required=False, default="")
 
 
 class NovoNomeSerializer(serializers.Serializer):

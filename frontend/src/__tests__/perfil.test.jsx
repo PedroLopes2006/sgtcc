@@ -3,8 +3,8 @@
  *
  * Mostra a conta (nome, e-mail, perfil, "Membro desde"), um resumo do trabalho,
  * a escolha de aparência (claro, escuro ou automático), a situação do Telegram
- * e o botão de sair. O Telegram ainda não vincula nada: a US02 é a próxima etapa,
- * então o formulário aparece desabilitado e avisa que chega em breve.
+ * e o botão de sair. US02: o cartão do Telegram vincula e desvincula o código do
+ * chat e conta se a mensagem de teste chegou.
  */
 import '@testing-library/jest-dom/vitest'
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
@@ -171,19 +171,89 @@ describe('Perfil do aluno', () => {
   })
 })
 
-describe('Telegram no perfil', () => {
-  it('mostra "Não vinculado" e deixa claro que o formulário chega em breve', async () => {
-    renderizarAluno()
+describe('Telegram no perfil (US02)', () => {
+  it('mostra "Não vinculado", o passo a passo e o link do bot', async () => {
+    renderizarAluno({ conta: { ...CONTA_DO_ALUNO, telegram_bot: 'sgtcc_uvv_bot' } })
 
     const cartao = await screen.findByRole('region', { name: 'Telegram' })
 
     expect(within(cartao).getByText('Não vinculado')).toBeInTheDocument()
-    expect(within(cartao).getByLabelText('Código do chat')).toBeDisabled()
-    expect(within(cartao).getByRole('button', { name: 'Vincular' })).toBeDisabled()
-    expect(within(cartao).getByText(/Disponível em breve/)).toBeInTheDocument()
+    expect(within(cartao).getByLabelText('Código do chat')).toBeEnabled()
+    expect(within(cartao).getByRole('button', { name: 'Vincular' })).toBeEnabled()
+    expect(within(cartao).queryByRole('button', { name: 'Desvincular' })).not.toBeInTheDocument()
     expect(
       within(cartao).getByText('Receba avisos de correção e aprovação no Telegram.'),
     ).toBeInTheDocument()
+    expect(
+      await within(cartao).findByRole('link', { name: '@sgtcc_uvv_bot' }),
+    ).toHaveAttribute('href', 'https://t.me/sgtcc_uvv_bot')
+  })
+
+  it('vincula o código e confirma que a mensagem de teste chegou (CA1)', async () => {
+    renderizarAluno()
+    const post = vi.spyOn(api, 'post').mockResolvedValue({
+      data: { ...CONTA_DO_ALUNO, telegram_chat_id: '123456789', teste: 'enviada' },
+    })
+    const cartao = await screen.findByRole('region', { name: 'Telegram' })
+
+    await userEvent.type(within(cartao).getByLabelText('Código do chat'), '123456789')
+    await userEvent.click(within(cartao).getByRole('button', { name: 'Vincular' }))
+
+    expect(post).toHaveBeenCalledWith('/auth/telegram/', { chat_id: '123456789' })
+    expect(await within(cartao).findByText('Vinculado')).toBeInTheDocument()
+    expect(within(cartao).getByRole('status')).toHaveTextContent('Mandamos uma mensagem de teste')
+    expect(JSON.parse(localStorage.getItem('sgtcc.usuario')).telegram_chat_id).toBe('123456789')
+  })
+
+  it('avisa o que conferir quando a mensagem de teste não chega', async () => {
+    renderizarAluno()
+    vi.spyOn(api, 'post').mockResolvedValue({
+      data: { ...CONTA_DO_ALUNO, telegram_chat_id: '123456789', teste: 'falhou' },
+    })
+    const cartao = await screen.findByRole('region', { name: 'Telegram' })
+
+    await userEvent.type(within(cartao).getByLabelText('Código do chat'), '123456789')
+    await userEvent.click(within(cartao).getByRole('button', { name: 'Vincular' }))
+
+    expect(await within(cartao).findByRole('alert')).toHaveTextContent('tocou em "Iniciar"')
+  })
+
+  it('mostra o erro da API para um código inválido', async () => {
+    renderizarAluno()
+    vi.spyOn(api, 'post').mockRejectedValue({
+      response: { data: { chat_id: ['O código do chat é um número, como 123456789.'] } },
+    })
+    const cartao = await screen.findByRole('region', { name: 'Telegram' })
+
+    await userEvent.type(within(cartao).getByLabelText('Código do chat'), '@lucas')
+    await userEvent.click(within(cartao).getByRole('button', { name: 'Vincular' }))
+
+    expect(await within(cartao).findByRole('alert')).toHaveTextContent('é um número')
+    expect(within(cartao).getByText('Não vinculado')).toBeInTheDocument()
+  })
+
+  it('não chama a API com o campo vazio', async () => {
+    renderizarAluno()
+    const post = vi.spyOn(api, 'post')
+    const cartao = await screen.findByRole('region', { name: 'Telegram' })
+
+    await userEvent.click(within(cartao).getByRole('button', { name: 'Vincular' }))
+
+    expect(await within(cartao).findByRole('alert')).toHaveTextContent('Cole o código')
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('desvincula quando já está vinculado', async () => {
+    renderizarAluno({ conta: { ...CONTA_DO_ALUNO, telegram_chat_id: '123456789' } })
+    const post = vi.spyOn(api, 'post').mockResolvedValue({
+      data: { ...CONTA_DO_ALUNO, telegram_chat_id: null, teste: null },
+    })
+    const cartao = await screen.findByRole('region', { name: 'Telegram' })
+
+    await userEvent.click(await within(cartao).findByRole('button', { name: 'Desvincular' }))
+
+    expect(post).toHaveBeenCalledWith('/auth/telegram/', { chat_id: '' })
+    expect(await within(cartao).findByText('Não vinculado')).toBeInTheDocument()
   })
 
   it('mostra "Vinculado" quando a conta já tem o chat cadastrado', async () => {
