@@ -849,6 +849,11 @@ button.texto:hover:not(:disabled) {
   padding: 56px 20px;
 }
 
+/* Botão que fecha uma seção, com respiro em relação à lista acima. */
+.acao-secao {
+  margin-top: 20px;
+}
+
 /* Histórico de versões: lista numerada, sem o cartão. */
 .lista.lista-versoes {
   list-style: decimal;

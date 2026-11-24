@@ -113,7 +113,9 @@ export default function TrabalhoFinal() {
                   </li>
                 ))}
               </ul>
-              <Link className="contorno" to="/aluno/entregas">Ir para Entregas</Link>
+              <div className="acao-secao">
+                <Link className="contorno" to="/aluno/entregas">Ir para Entregas</Link>
+              </div>
             </>
           )}
         </section>
