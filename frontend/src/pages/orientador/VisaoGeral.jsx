@@ -38,7 +38,10 @@ export default function VisaoGeral() {
   const emRevisao = dados.filter((l) => l.entrega_para_revisao?.estado === 'em_revisao')
   const temas = dados.filter((l) => l.aguarda_avaliacao_de_tema)
   const vencidos = dados.filter((l) => l.prazo_vencido)
-  const paraBanca = dados.filter((l) => l.entrega_para_banca)
+  // US19, US20 — trabalhos finais esperando decisão do orientador (avaliar ou enviar à banca).
+  const trabalhosFinais = dados.filter(
+    (l) => l.trabalho_final && (l.trabalho_final.acoes.aprovar || l.trabalho_final.acoes.enviar_a_banca),
+  )
 
   // Quantos orientandos há em cada estado, na ordem em que aparecem.
   const porEstado = []
@@ -119,16 +122,16 @@ export default function VisaoGeral() {
             </Painel>
 
             <Painel
-              titulo="Prontas para a banca"
-              total={paraBanca.length}
-              vazio="Nenhuma entrega concluída esperando."
+              titulo="Trabalhos finais"
+              total={trabalhosFinais.length}
+              vazio="Nenhum trabalho final esperando."
             >
-              {paraBanca.map((l) => (
+              {trabalhosFinais.map((l) => (
                 <ItemDoPainel
                   key={l.id}
-                  para={irParaEntrega(l.entrega_para_banca)}
-                  titulo={l.entrega_para_banca.titulo}
-                  detalhe={l.aluno?.nome}
+                  para={`/orientador/orientandos/${l.id}/trabalho-final`}
+                  titulo={l.aluno?.nome}
+                  detalhe={l.trabalho_final.estado_rotulo}
                 />
               ))}
             </Painel>

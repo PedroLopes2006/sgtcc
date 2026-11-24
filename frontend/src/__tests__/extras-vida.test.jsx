@@ -400,7 +400,7 @@ describe('Visão geral do orientador (extra)', () => {
         estado: { codigo: 'em_revisao', rotulo: 'Em revisão' },
       }),
       linha(4, 'Davi', {
-        entrega_para_banca: { id: 8, titulo: 'Final', estado: 'concluida' },
+        trabalho_final: { id: 4, estado: 'aprovado', estado_rotulo: 'Aprovado', acoes: { aprovar: false, enviar_a_banca: true } },
         estado: { codigo: 'concluida', rotulo: 'Concluída' },
       }),
     ])
@@ -418,9 +418,9 @@ describe('Visão geral do orientador (extra)', () => {
     )
     expect(within(painel('Temas a avaliar')).getByText('Tema de Bruno')).toBeInTheDocument()
     expect(within(painel('Prazos vencidos')).getByText(/Ana/)).toBeInTheDocument()
-    expect(within(painel('Prontas para a banca')).getByRole('link', { name: /Final/ })).toHaveAttribute(
+    expect(within(painel('Trabalhos finais')).getByRole('link', { name: /Davi/ })).toHaveAttribute(
       'href',
-      '/orientador/entregas/8',
+      '/orientador/orientandos/4/trabalho-final',
     )
   })
 

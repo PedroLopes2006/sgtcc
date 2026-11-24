@@ -57,17 +57,13 @@ it('US12: aprova e atualiza o painel com a próxima entrega (CA1–CA2 / RN06)',
   expect(await screen.findByText('Metodologia')).toBeInTheDocument()
   expect(get.mock.calls.filter(([url]) => url !== '/avisos/')).toHaveLength(2)
 })
-it('US13: encontra concluída fora da revisão e envia à banca (CA1 / RN12)', async () => {
-  respostasEmSequencia(
-    { data: [{ ...linha, entrega_para_revisao: null, entrega_para_banca: { ...entrega, estado: 'concluida' } }] },
-    { data: [] },
-  )
-  const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
+it('entrega concluída não oferece mais "Enviar à banca": só o trabalho final vai à banca (US20 / RN12)', async () => {
+  vi.spyOn(api, 'get').mockResolvedValue({
+    data: [{ ...linha, entrega_para_revisao: null, entregas: [{ ...entrega, estado: 'concluida' }] }],
+  })
   montar()
-  await userEvent.click(await screen.findByRole('button', { name: 'Enviar à banca Introdução' }))
-  await confirmar('Enviar à banca')
-  expect(post).toHaveBeenCalledWith('/entregas/7/enviar-a-banca/')
-  await waitFor(() => expect(screen.queryByRole('button', { name: /Enviar à banca/ })).not.toBeInTheDocument())
+  await screen.findByText('Introdução')
+  expect(screen.queryByRole('button', { name: /Enviar à banca/ })).not.toBeInTheDocument()
 })
 it('US12: exibe erro e mantém a ação disponível para tentar novamente (CA1)', async () => {
   vi.spyOn(api, 'get').mockResolvedValue({ data: [linha] })

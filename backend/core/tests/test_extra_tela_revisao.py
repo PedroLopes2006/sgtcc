@@ -33,7 +33,6 @@ TODAS_AS_ACOES = {
     "solicitar_correcao",
     "aprovar",
     "comentar",
-    "enviar_a_banca",
 }
 
 
@@ -102,7 +101,7 @@ class TelaDeRevisaoTests(APITestCase):
             EstadoEntrega.PRONTO_PARA_REVISAO: {"iniciar_revisao"},
             EstadoEntrega.EM_REVISAO: {"solicitar_correcao", "aprovar", "comentar"},
             EstadoEntrega.CORRECAO_SOLICITADA: {"comentar"},
-            EstadoEntrega.CONCLUIDA: {"enviar_a_banca"},
+            EstadoEntrega.CONCLUIDA: set(),
             EstadoEntrega.ENVIADA_A_BANCA: set(),
         }
         for estado, ligadas in esperado.items():
@@ -138,7 +137,6 @@ class TelaDeRevisaoTests(APITestCase):
             "solicitar_correcao": ("solicitar-correcao", {"comentario": "Ajuste."}),
             "aprovar": ("aprovar-entrega", None),
             "comentar": ("adicionar-comentario", {"comentario": "Mais um."}),
-            "enviar_a_banca": ("enviar-a-banca", None),
         }
         for estado in EstadoEntrega.values:
             for acao, (rota, corpo) in endpoints.items():

@@ -102,7 +102,3 @@ class DesempenhoDasOperacoesPrincipaisTests(APITestCase):
             lambda: self.client.post(reverse("aprovar-entrega", args=[self.entrega.id])),
             status.HTTP_200_OK,
         )
-        self.medir(
-            lambda: self.client.post(reverse("enviar-a-banca", args=[self.entrega.id])),
-            status.HTTP_200_OK,
-        )

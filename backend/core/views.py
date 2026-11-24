@@ -480,19 +480,6 @@ class AprovarEntregaView(APIView):
         return Response(EntregaSerializer(entrega, context={"request": request}).data)
 
 
-# ---------------------------------------------------------------- US13
-class EnviarABancaView(APIView):
-    """US13 CA1 / RF12 / RN12, RN06, RN10, RN05 / RNF04."""
-    permission_classes = [IsAuthenticated, EhOrientador]
-
-    @traduzir_erros_de_dominio
-    def post(self, request, entrega_id):
-        """US13 CA1 / RF12 / RN12, RN06, RN10, RN05 / RNF04."""
-        entrega = get_object_or_404(Entrega, pk=entrega_id)
-        entrega = services.enviar_a_banca_entrega(orientador=request.user, entrega=entrega)
-        return Response(EntregaSerializer(entrega, context={"request": request}).data)
-
-
 # ---------------------------------------------------------------- US15
 class ReatribuirOrientadorView(APIView):
     """US15 CA1–CA3 / RF14 / RN05, RN08, RN09, RN15, RN10 / RNF04."""

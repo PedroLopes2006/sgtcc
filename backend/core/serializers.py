@@ -314,8 +314,6 @@ class OrientandoSerializer(serializers.ModelSerializer):
     prazo = serializers.SerializerMethodField()
     prazo_vencido = serializers.SerializerMethodField()
     aguarda_avaliacao_de_tema = serializers.SerializerMethodField()
-    # ---------------------------------------------------------------- US13
-    entrega_para_banca = serializers.SerializerMethodField()
     entrega_para_revisao = serializers.SerializerMethodField()
     # US11 / RF10 — a entrega que aceita um comentário a mais.
     entrega_para_comentario = serializers.SerializerMethodField()
@@ -338,7 +336,6 @@ class OrientandoSerializer(serializers.ModelSerializer):
             "aguarda_avaliacao_de_tema",
             "entrega_para_revisao",
             "entrega_para_comentario",
-            "entrega_para_banca",
         ]
 
     def get_trabalho_final(self, tcc):
@@ -437,12 +434,6 @@ class OrientandoSerializer(serializers.ModelSerializer):
                 return EntregaSerializer(entrega, context=self.context).data
             return None
         return None
-
-    # ---------------------------------------------------------------- US13
-    def get_entrega_para_banca(self, tcc):
-        """US13 CA1 / RF12 / RN12: primeira concluída ainda não enviada à banca."""
-        entrega = next((e for e in tcc.entregas.all() if e.estado == EstadoEntrega.CONCLUIDA), None)
-        return EntregaSerializer(entrega, context=self.context).data if entrega else None
 
 
 # ---------------------------------------------------------------- US12

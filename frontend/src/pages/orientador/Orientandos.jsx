@@ -76,30 +76,20 @@ export default function Orientandos() {
     }
   }
 
-  // EXTRA (fora dos requisitos) — aprovar e enviar à banca não têm volta (RN06): pede confirmação.
+  // EXTRA (fora dos requisitos) — aprovar não tem volta (RN06): pede confirmação.
   const [pedido, setPedido] = useState(null)
 
   function pedirConclusao(entrega, acao) {
-    setPedido(
-      acao === 'aprovar'
-        ? {
-            titulo: 'Aprovar a entrega?',
-            texto: `"${entrega.titulo}" passa a concluída e o aluno é avisado. Isso libera a próxima etapa e não pode ser desfeito.`,
-            rotulo: 'Aprovar entrega',
-            entrega,
-            acao,
-          }
-        : {
-            titulo: 'Enviar à banca?',
-            texto: `"${entrega.titulo}" é registrada como enviada à banca, o encerramento formal da etapa. Isso não pode ser desfeito.`,
-            rotulo: 'Enviar à banca',
-            entrega,
-            acao,
-          },
-    )
+    setPedido({
+      titulo: 'Aprovar a entrega?',
+      texto: `"${entrega.titulo}" passa a concluída e o aluno é avisado. Isso libera a próxima etapa e não pode ser desfeito.`,
+      rotulo: 'Aprovar entrega',
+      entrega,
+      acao,
+    })
   }
 
-  /** US12 CA1–CA2 / US13 CA1 / RF11–12, RF16–18 / RN05–06, RN10, RN12 / RNF04, RNF12. */
+  /** US12 CA1–CA2 / RF11, RF16–18 / RN05–06, RN10 / RNF04, RNF12. O envio à banca é do trabalho final (US20). */
   async function concluirAcao(entrega, acao) {
     setAgindo(entrega.id)
     setErro('')
@@ -107,11 +97,7 @@ export default function Orientandos() {
     try {
       await api.post(`/entregas/${entrega.id}/${acao}/`)
       // EXTRA (fora dos requisitos): aviso discreto de conclusão.
-      setAviso(
-        acao === 'aprovar'
-          ? `"${entrega.titulo}" concluída. O aluno foi avisado.`
-          : `"${entrega.titulo}" enviada à banca.`,
-      )
+      setAviso(`"${entrega.titulo}" concluída. O aluno foi avisado.`)
       await carregar()
     } catch (e) {
       setErro(mensagemDeErro(e, 'Não foi possível concluir a ação.'))
@@ -279,14 +265,6 @@ export default function Orientandos() {
                       >
                         Trabalho final
                       </Link>
-                    )}
-                    {/* US13 CA1 / RN12 */}
-                    {linha.entrega_para_banca && (
-                      <button onClick={() => pedirConclusao(linha.entrega_para_banca, 'enviar-a-banca')}
-                        disabled={agindo === linha.entrega_para_banca.id}
-                        aria-label={`Enviar à banca ${linha.entrega_para_banca.titulo}`}>
-                        Enviar à banca
-                      </button>
                     )}
                     {linha.aguarda_avaliacao_de_tema && (
                       <button className="contorno" onClick={() => setAvaliando(linha)}>

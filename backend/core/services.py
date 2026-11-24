@@ -520,24 +520,10 @@ def aprovar_entrega(*, orientador, entrega):
     return entrega
 
 
-# ---------------------------------------------------------------- US13
-
-@transaction.atomic
-def enviar_a_banca_entrega(*, orientador, entrega):
-    """US13 CA1 / RF12 / RN12, RN06, RN10, RN05 / RNF04: encerramento formal."""
-    tcc = TCC.objects.select_for_update().get(pk=entrega.tcc_id)
-    _exigir_orientador_ativo(orientador, tcc)
-    if not orientador.eh_orientador:
-        raise PermissionDenied("Apenas orientadores podem enviar à banca.")
-    entrega = Entrega.objects.select_for_update().get(pk=entrega.pk)
-    if entrega.estado != EstadoEntrega.CONCLUIDA:
-        raise ValidationError({"detail": 'Só é possível enviar à banca uma entrega "concluída".'})
-    entrega.estado = EstadoEntrega.ENVIADA_A_BANCA
-    entrega.save(update_fields=["estado"])
-    registrar_evento(tcc, TipoEvento.ENTREGA_ENVIADA_A_BANCA,
-                     f'Entrega "{entrega.titulo}" enviada à banca por {orientador.nome}. Encerramento formal registrado.',
-                     usuario=orientador, entrega=entrega)
-    return entrega
+# ---------------------------------------------------------------- US13 (substituída)
+# O envio à banca deixou de ser feito entrega a entrega: a entrega termina em "concluída"
+# (aprovada) e só o trabalho final vai à banca (US20, RN12). O estado "enviada_a_banca" e o
+# evento antigo continuam existindo só para ler o histórico de dados já gravados.
 
 
 # ---------------------------------------------------------------- US15
@@ -649,7 +635,7 @@ def acoes_da_revisao(entrega):
       aprovar           → "em_revisao" e é a primeira pendente (US12).
       comentar          → "em_revisao" ou "correcao_solicitada" e é a primeira
                           pendente (comentário adicional da US11, RF10).
-      enviar_a_banca    → "concluida" (US13, RN12).
+    A entrega não vai mais à banca: isso é do trabalho final (US20, RN12).
     """
     primeira = entrega.tcc.entregas.exclude(estado__in=EstadoEntrega.encerrados()).first()
     e_a_vez = primeira is not None and primeira.pk == entrega.pk
@@ -659,7 +645,6 @@ def acoes_da_revisao(entrega):
         "aprovar": e_a_vez and entrega.estado == EstadoEntrega.EM_REVISAO,
         "comentar": e_a_vez
         and entrega.estado in (EstadoEntrega.EM_REVISAO, EstadoEntrega.CORRECAO_SOLICITADA),
-        "enviar_a_banca": entrega.estado == EstadoEntrega.CONCLUIDA,
     }
 
 

@@ -24,7 +24,6 @@ const NENHUMA = {
   solicitar_correcao: false,
   aprovar: false,
   comentar: false,
-  enviar_a_banca: false,
 }
 
 const V1 = { id: 1, numero: 1, nome_original: 'v1.pdf', data_envio: '2026-10-01T12:00:00Z', arquivo_url: 'https://a.test/v1.pdf' }
@@ -182,18 +181,11 @@ describe('Tela de Revisão (extra)', () => {
     expect(screen.queryByRole('button', { name: 'Aprovar entrega' })).not.toBeInTheDocument()
   })
 
-  it('concluída: informa a data e oferece "Enviar à banca"', async () => {
-    renderizar(
-      entrega('concluida', { enviar_a_banca: true }, { data_conclusao: '2026-10-03T12:00:00Z' }),
-    )
-    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
+  it('concluída: informa a data e termina aí, sem "Enviar à banca" (só o trabalho final vai à banca)', async () => {
+    renderizar(entrega('concluida', {}, { data_conclusao: '2026-10-03T12:00:00Z' }))
 
     expect(await screen.findByText('Entrega aprovada em 3 out.')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Enviar à banca' }))
-    await confirmar('Enviar à banca')
-
-    await waitFor(() => expect(post).toHaveBeenCalledWith('/entregas/6/enviar-a-banca/', undefined))
-    expect(await screen.findByText('Entrega enviada à banca.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Enviar à banca' })).not.toBeInTheDocument()
   })
 
   it('enviada à banca: só informa, sem nenhum botão de ação', async () => {

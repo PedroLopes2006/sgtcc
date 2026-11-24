@@ -15,7 +15,7 @@ import { ROTULO_ESTADO_ENTREGA, dataCurta } from '../../formato'
  * Fora dos requisitos do documento: não há RF, RN nem US para ela. Ela reúne,
  * numa tela só, o que as US07, US10, US11, US12 e US13 já fazem: ver as
  * versões e os comentários da entrega, iniciar a revisão, pedir correção,
- * acrescentar um comentário, aprovar e enviar à banca.
+ * acrescentar um comentário e aprovar. O envio à banca é só do trabalho final (US20).
  *
  * Quem decide o que o orientador pode fazer é a API (`acoes`, RN06): a tela só
  * liga os botões que ela libera. O comentário é obrigatório para pedir
@@ -29,7 +29,7 @@ export default function RevisaoEntrega() {
   const [aviso, setAviso] = useState('')
   const [comentario, setComentario] = useState('')
   const [agindo, setAgindo] = useState(false)
-  // EXTRA (fora dos requisitos) — aprovar e enviar à banca não têm volta (RN06): pede confirmação.
+  // EXTRA (fora dos requisitos) — aprovar não tem volta (RN06): pede confirmação.
   const [pedido, setPedido] = useState(null)
 
   const carregar = useCallback(async () => {
@@ -72,25 +72,14 @@ export default function RevisaoEntrega() {
     executar('solicitar-correcao', { comentario }, 'Correção solicitada. O aluno foi avisado.')
   }
 
-  function pedirConclusao(rota) {
-    const titulo = entrega.titulo
-    setPedido(
-      rota === 'aprovar'
-        ? {
-            titulo: 'Aprovar a entrega?',
-            texto: `"${titulo}" passa a concluída e o aluno é avisado. Isso libera a próxima etapa e não pode ser desfeito.`,
-            rotulo: 'Aprovar entrega',
-            rota,
-            mensagem: 'Entrega aprovada. O aluno foi avisado.',
-          }
-        : {
-            titulo: 'Enviar à banca?',
-            texto: `"${titulo}" é registrada como enviada à banca, o encerramento formal da etapa. Isso não pode ser desfeito.`,
-            rotulo: 'Enviar à banca',
-            rota,
-            mensagem: 'Entrega enviada à banca.',
-          },
-    )
+  function pedirConclusao() {
+    setPedido({
+      titulo: 'Aprovar a entrega?',
+      texto: `"${entrega.titulo}" passa a concluída e o aluno é avisado. Isso libera a próxima etapa e não pode ser desfeito.`,
+      rotulo: 'Aprovar entrega',
+      rota: 'aprovar',
+      mensagem: 'Entrega aprovada. O aluno foi avisado.',
+    })
   }
 
   function adicionarComentario() {
@@ -244,7 +233,7 @@ export default function RevisaoEntrega() {
           )}
         </section>
 
-        {(acoes.comentar || acoes.aprovar || acoes.enviar_a_banca) && (
+        {(acoes.comentar || acoes.aprovar) && (
           <div className="barra-acoes">
             {/* US11 CA1 / RN07 */}
             {acoes.solicitar_correcao && (
@@ -261,23 +250,10 @@ export default function RevisaoEntrega() {
             {/* US12 CA1 */}
             {acoes.aprovar && (
               <button
-                onClick={() =>
-                  pedirConclusao('aprovar')
-                }
+                onClick={pedirConclusao}
                 disabled={agindo}
               >
                 Aprovar entrega
-              </button>
-            )}
-            {/* US13 CA1 / RN12 */}
-            {acoes.enviar_a_banca && (
-              <button
-                onClick={() =>
-                  pedirConclusao('enviar-a-banca')
-                }
-                disabled={agindo}
-              >
-                Enviar à banca
               </button>
             )}
           </div>
