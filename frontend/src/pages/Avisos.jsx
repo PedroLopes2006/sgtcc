@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom'
 import api, { mensagemDeErro } from '../api'
 import { TITULOS_DE_AVISO, avisarQueMudou } from '../avisos'
 import { useAuth } from '../auth'
+import BarraDeFiltro from '../components/BarraDeFiltro'
+import SemResultados from '../components/SemResultados'
+import { casaComBusca } from '../filtros'
 import { dataHoraCurta, tempoRelativo } from '../formato'
 
 /**
@@ -23,6 +26,9 @@ export default function Avisos() {
   const { usuario } = useAuth()
   const [dados, setDados] = useState(null)
   const [erro, setErro] = useState('')
+  // US17 — filtro (todos ou só os novos) e busca; só escondem itens na tela (CA3).
+  const [filtro, setFiltro] = useState('todos')
+  const [busca, setBusca] = useState('')
 
   useEffect(() => {
     let ativo = true
@@ -62,6 +68,12 @@ export default function Avisos() {
     return aviso.entrega_id ? '/aluno/entregas' : '/aluno'
   }
 
+  const avisosVisiveis = (dados?.avisos || []).filter(
+    (a) =>
+      (filtro === 'todos' || a.nao_lido) &&
+      casaComBusca(busca, TITULOS_DE_AVISO[a.tipo], a.descricao),
+  )
+
   return (
     <div className="pagina-avisos">
       <div className="cabecalho-pagina">
@@ -81,8 +93,30 @@ export default function Avisos() {
           <span>Quando algo acontecer no seu TCC, você vê aqui.</span>
         </div>
       ) : (
+        <>
+        <BarraDeFiltro
+          rotulo="Filtrar avisos"
+          opcoes={[
+            { codigo: 'todos', rotulo: 'Todos', quantos: dados.avisos.length },
+            { codigo: 'novos', rotulo: 'Novos', quantos: dados.avisos.filter((a) => a.nao_lido).length },
+          ]}
+          filtro={filtro}
+          aoFiltrar={setFiltro}
+          busca={busca}
+          aoBuscar={setBusca}
+          rotuloBusca="Buscar aviso"
+          placeholder="Buscar nos avisos"
+        />
+        {avisosVisiveis.length === 0 ? (
+          <SemResultados
+            aoLimpar={() => {
+              setFiltro('todos')
+              setBusca('')
+            }}
+          />
+        ) : (
         <ul className="lista-avisos">
-          {dados.avisos.map((aviso) => (
+          {avisosVisiveis.map((aviso) => (
             <li key={aviso.id} className={aviso.nao_lido ? 'aviso-item novo' : 'aviso-item'}>
               <span className="aviso-marca" aria-hidden="true" />
               <div className="aviso-corpo">
@@ -101,6 +135,8 @@ export default function Avisos() {
             </li>
           ))}
         </ul>
+        )}
+        </>
       )}
     </div>
   )

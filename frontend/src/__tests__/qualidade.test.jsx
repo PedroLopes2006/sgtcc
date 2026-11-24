@@ -319,7 +319,7 @@ describe('Fechamento: desktop, tablet e celular', () => {
     expect(CSS).toMatch(/\.grupo-entregas \.lista > li\s*\{\s*display:\s*grid;/)
     // As etapas (itens de lista dentro da lista) não herdam a linha nem o espaçamento das linhas.
     expect(CSS).toMatch(/\.lista \.etapas li,\s*\.lista \.etapas li:hover\s*\{[^}]*border:\s*0;/)
-    expect(CSS).toMatch(/\.grupo-entregas \.etapas\s*\{\s*display:\s*grid;\s*grid-template-columns:\s*repeat\(5,/)
+    expect(CSS).toMatch(/\.grupo-entregas \.etapas\s*\{\s*display:\s*grid;\s*grid-template-columns:\s*repeat\(4,/)
     expect(CSS).toMatch(/\.grupo-entregas \.etapas li\.feita::before\s*\{\s*background:\s*var\(--destaque\);/)
   })
 

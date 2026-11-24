@@ -4156,7 +4156,7 @@ a.contorno,
 /* Passo a passo em barras: cheias as etapas feitas, na cor do estado a de agora. */
 .grupo-entregas .etapas {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   max-width: 640px;
   margin-top: 14px;

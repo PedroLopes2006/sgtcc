@@ -208,8 +208,8 @@ describe('EtapasEntrega', () => {
     }
   }
 
-  it('mostra as cinco etapas, na ordem', () => {
-    expect(etapas('rascunho').rotulos).toEqual(['Preparo', 'Envio', 'Revisão', 'Aprovação', 'Banca'])
+  it('mostra as quatro etapas, na ordem (a banca é só do trabalho final)', () => {
+    expect(etapas('rascunho').rotulos).toEqual(['Preparo', 'Envio', 'Revisão', 'Aprovação'])
   })
 
   it.each([
@@ -218,7 +218,7 @@ describe('EtapasEntrega', () => {
     ['em_revisao', 'Revisão', 2],
     ['correcao_solicitada', 'Revisão', 2],
     ['concluida', 'Aprovação', 3],
-    ['enviada_a_banca', 'Banca', 4],
+    ['enviada_a_banca', 'Aprovação', 3],
   ])('em "%s", a etapa atual é %s e %i etapas já foram feitas', (estado, atual, feitas) => {
     const resultado = etapas(estado)
     expect(resultado.atual).toBe(atual)
@@ -406,7 +406,7 @@ describe('Busca na fila de revisão', () => {
 
     await userEvent.type(busca, 'zzz')
     expect(screen.getByText('Nenhum resultado')).toBeInTheDocument()
-    expect(screen.getByText('Nada na fila combina com “zzz”.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Limpar filtros' })).toBeInTheDocument()
 
     await userEvent.clear(busca)
     expect(screen.queryByText('Nenhum resultado')).not.toBeInTheDocument()

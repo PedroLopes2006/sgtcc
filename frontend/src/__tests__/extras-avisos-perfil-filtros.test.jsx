@@ -383,7 +383,7 @@ describe('Filtros e busca em Orientandos (extra)', () => {
 
     await userEvent.type(screen.getByLabelText('Buscar orientando'), 'zzz')
 
-    expect(screen.getByText('Nenhum orientando com esse filtro')).toBeInTheDocument()
+    expect(screen.getByText('Nenhum resultado')).toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
 

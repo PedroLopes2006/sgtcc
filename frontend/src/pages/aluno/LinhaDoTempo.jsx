@@ -2,6 +2,9 @@ import Carregando from '../../components/Carregando'
 import { Fragment, useEffect, useState } from 'react'
 import api, { mensagemDeErro } from '../../api'
 import { useAuth } from '../../auth'
+import BarraDeFiltro from '../../components/BarraDeFiltro'
+import SemResultados from '../../components/SemResultados'
+import { FILTROS_DE_EVENTO, casaComBusca, categoriaDoEvento } from '../../filtros'
 import { chaveDoDia, dataHoraCurta, rotuloDoDia } from '../../formato'
 
 const TIPOS_EVENTO = {
@@ -49,6 +52,9 @@ export default function LinhaDoTempo() {
   const { usuario } = useAuth()
   const [eventos, setEventos] = useState(null)
   const [erro, setErro] = useState('')
+  // US17 — filtro por assunto e busca no texto; só escondem itens na tela (CA3).
+  const [filtro, setFiltro] = useState('todos')
+  const [busca, setBusca] = useState('')
 
   useEffect(() => {
     let ativo = true
@@ -61,6 +67,13 @@ export default function LinhaDoTempo() {
 
     return () => { ativo = false }
   }, [])
+
+  const todos = eventos || []
+  const eventosVisiveis = todos.filter(
+    (e) =>
+      (filtro === 'todos' || categoriaDoEvento(e.tipo) === filtro) &&
+      casaComBusca(busca, TIPOS_EVENTO[e.tipo]?.rotulo, e.descricao),
+  )
 
   return (
     <div className="pagina-timeline">
@@ -80,19 +93,41 @@ export default function LinhaDoTempo() {
         </div>
       ) : (
         <>
+          <BarraDeFiltro
+            rotulo="Filtrar eventos"
+            opcoes={FILTROS_DE_EVENTO.map((f) => ({
+              ...f,
+              quantos:
+                f.codigo === 'todos' ? todos.length : todos.filter((e) => categoriaDoEvento(e.tipo) === f.codigo).length,
+            }))}
+            filtro={filtro}
+            aoFiltrar={setFiltro}
+            busca={busca}
+            aoBuscar={setBusca}
+            rotuloBusca="Buscar na linha do tempo"
+            placeholder="Buscar nos eventos"
+          />
           <div className="timeline-resumo">
-            <span>{eventos.length} {eventos.length === 1 ? 'registro' : 'registros'}</span>
+            <span>{eventosVisiveis.length} {eventosVisiveis.length === 1 ? 'registro' : 'registros'}</span>
             <span>Mais recentes primeiro</span>
           </div>
+          {eventosVisiveis.length === 0 && (
+            <SemResultados
+              aoLimpar={() => {
+                setFiltro('todos')
+                setBusca('')
+              }}
+            />
+          )}
           <ol className="linha-do-tempo">
-            {eventos.map((evento, posicao) => {
+            {eventosVisiveis.map((evento, posicao) => {
               const tipo = TIPOS_EVENTO[evento.tipo] || { rotulo: evento.tipo, icone: 'tema' }
               const autor = evento.usuario_relacionado
               const meuEvento = autor?.id === usuario?.id
               // Os eventos já vêm do mais novo para o mais antigo; um cabeçalho abre cada dia.
               const novoDia =
                 posicao === 0 ||
-                chaveDoDia(evento.data_hora) !== chaveDoDia(eventos[posicao - 1].data_hora)
+                chaveDoDia(evento.data_hora) !== chaveDoDia(eventosVisiveis[posicao - 1].data_hora)
 
               return (
                 <Fragment key={evento.id}>

@@ -6,6 +6,7 @@ import Estado from '../../components/Estado'
 import LayoutOrientador from '../../components/LayoutOrientador'
 import LinkVersao from '../../components/LinkVersao'
 import MenuMais from '../../components/MenuMais'
+import SemResultados from '../../components/SemResultados'
 import Modal from '../../components/Modal'
 import Toast from '../../components/Toast'
 import Avatar from '../../components/Avatar'
@@ -185,10 +186,13 @@ export default function Orientandos() {
           </div>
         </div>
         {visiveis.length === 0 ? (
-          <div className="vazio vazio-compacto">
-            <strong>Nenhum orientando com esse filtro</strong>
-            <span>Troque o filtro ou limpe a busca para ver os outros.</span>
-          </div>
+          <SemResultados
+            texto="Troque o filtro ou limpe a busca para ver os outros."
+            aoLimpar={() => {
+              setFiltro('todos')
+              setBusca('')
+            }}
+          />
         ) : (
         <table className="tabela tabela-cartoes">
           <thead>

@@ -1,13 +1,14 @@
 /**
  * Mini linha de etapas de uma entrega, para o aluno ver de relance onde ela está:
- * Preparo → Envio → Revisão → Aprovação → Banca.
+ * Preparo → Envio → Revisão → Aprovação. A entrega termina na aprovação: só o trabalho final
+ * vai à banca (US20).
  *
  * Os rótulos são curtos e diferentes dos nomes de estado (o chip já diz
  * "Rascunho", "Pronta para revisão" etc.), para não repetir o texto na tela.
  * "Correção solicitada" fica na etapa de revisão: a entrega volta ao aluno, mas
  * o ciclo continua nela. A etapa atual leva a cor do estado (variáveis --st-*).
  */
-const ETAPAS = ['Preparo', 'Envio', 'Revisão', 'Aprovação', 'Banca']
+const ETAPAS = ['Preparo', 'Envio', 'Revisão', 'Aprovação']
 
 const POSICAO = {
   rascunho: 0,
@@ -15,7 +16,7 @@ const POSICAO = {
   em_revisao: 2,
   correcao_solicitada: 2,
   concluida: 3,
-  enviada_a_banca: 4,
+  enviada_a_banca: 3, // só dados antigos: hoje a entrega termina em "concluída"
 }
 
 export default function EtapasEntrega({ estado }) {

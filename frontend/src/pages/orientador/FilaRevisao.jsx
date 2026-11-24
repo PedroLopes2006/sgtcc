@@ -7,7 +7,10 @@ import Indicadores from '../../components/Indicadores'
 import LayoutOrientador from '../../components/LayoutOrientador'
 import LinkVersao from '../../components/LinkVersao'
 import Avatar from '../../components/Avatar'
-import { dataCurta, enviadaHa, semAcento } from '../../formato'
+import BarraDeFiltro from '../../components/BarraDeFiltro'
+import SemResultados from '../../components/SemResultados'
+import { casaComBusca } from '../../filtros'
+import { dataCurta, enviadaHa } from '../../formato'
 
 /**
  * US09 — Fila de revisão (RF09, RN05, RN06, RNF02, RNF04).
@@ -77,11 +80,26 @@ export default function FilaRevisao() {
     }
   }
 
-  // Busca no que a tela já carregou (aluno e entrega); a fila e a ordem seguem as da API.
-  const termo = semAcento(busca.trim())
-  const visiveis = termo
-    ? itens.filter((item) => semAcento(`${item.aluno?.nome} ${item.titulo}`).includes(termo))
-    : itens
+  // US17 — filtro e busca sobre o que a tela já carregou (aluno e entrega); a fila e a ordem
+  // seguem as da API e nada muda nos dados (CA3).
+  const [filtro, setFiltro] = useState('todas')
+  const passaNoFiltro = {
+    todas: () => true,
+    atraso: (item) => item.atrasada,
+    prioridade: (item) => item.prioridade && item.prioridade !== 'sem_prioridade',
+  }
+  const opcoesDeFiltro = [
+    { codigo: 'todas', rotulo: 'Todas' },
+    { codigo: 'atraso', rotulo: 'Em atraso' },
+    { codigo: 'prioridade', rotulo: 'Com prioridade' },
+  ].map((o) => ({ ...o, quantos: itens.filter(passaNoFiltro[o.codigo]).length }))
+  const visiveis = itens.filter(
+    (item) => passaNoFiltro[filtro](item) && casaComBusca(busca, item.aluno?.nome, item.titulo),
+  )
+  const limparFiltros = () => {
+    setFiltro('todas')
+    setBusca('')
+  }
 
   return (
     // A página sempre informa o contador da fila (0 enquanto carrega, e o menu
@@ -127,20 +145,18 @@ export default function FilaRevisao() {
         </div>
       ) : (
         <>
-        <div className="busca">
-          <input
-            type="search"
-            aria-label="Buscar na fila"
-            placeholder="Buscar por aluno ou entrega"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
+        <BarraDeFiltro
+          rotulo="Filtrar a fila"
+          opcoes={opcoesDeFiltro}
+          filtro={filtro}
+          aoFiltrar={setFiltro}
+          busca={busca}
+          aoBuscar={setBusca}
+          rotuloBusca="Buscar na fila"
+          placeholder="Buscar por aluno ou entrega"
+        />
         {visiveis.length === 0 ? (
-          <div className="vazio vazio-compacto">
-            <strong>Nenhum resultado</strong>
-            <span>Nada na fila combina com “{busca.trim()}”.</span>
-          </div>
+          <SemResultados aoLimpar={limparFiltros} />
         ) : (
         <ul className="lista fila-revisao">
           {visiveis.map((item) => {

@@ -3,6 +3,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import api, { mensagemDeErro } from '../../api'
 import LinkVersao from '../../components/LinkVersao'
+import BarraDeFiltro from '../../components/BarraDeFiltro'
+import SemResultados from '../../components/SemResultados'
+import { casaComBusca } from '../../filtros'
 import { dataCurta } from '../../formato'
 import { useTcc } from './AreaAluno'
 
@@ -12,6 +15,8 @@ export default function HistoricoVersoes() {
   const { tcc } = useTcc() || {}
   const [versoes, setVersoes] = useState(null)
   const [erro, setErro] = useState('')
+  // US17 — busca por número da versão ou nome do arquivo; só esconde itens na tela (CA3).
+  const [busca, setBusca] = useState('')
 
   const entrega = useMemo(
     () => tcc?.entregas?.find((item) => String(item.id) === entregaId),
@@ -29,6 +34,10 @@ export default function HistoricoVersoes() {
 
     return () => { ativo = false }
   }, [entregaId])
+
+  const versoesVisiveis = [...(versoes || [])]
+    .reverse()
+    .filter((v) => casaComBusca(busca, `versão ${v.numero}`, v.nome_original))
 
   return (
     <div className="conteudo-estreito">
@@ -48,9 +57,17 @@ export default function HistoricoVersoes() {
           <span>Quando você enviar um arquivo, ele aparecerá aqui.</span>
         </div>
       ) : (
+        <>
+        <BarraDeFiltro
+          busca={busca}
+          aoBuscar={setBusca}
+          rotuloBusca="Buscar versão"
+          placeholder="Buscar por versão ou arquivo"
+        />
+        {versoesVisiveis.length === 0 && <SemResultados aoLimpar={() => setBusca('')} />}
         <ol className="lista lista-versoes">
           {/* A API devolve em ordem cronológica; a tela mostra a mais nova primeiro, como no protótipo. */}
-          {[...versoes].reverse().map((versao, posicao) => (
+          {versoesVisiveis.map((versao, posicao) => (
             <li key={versao.id}>
               <div>
                 <div className="titulo">
@@ -63,6 +80,7 @@ export default function HistoricoVersoes() {
             </li>
           ))}
         </ol>
+        </>
       )}
     </div>
   )

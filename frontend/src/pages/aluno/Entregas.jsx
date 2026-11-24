@@ -8,6 +8,9 @@ import Estado from '../../components/Estado'
 import PrazoRestante from '../../components/PrazoRestante'
 import Toast from '../../components/Toast'
 import { AGRUPAMENTOS, ORDENS, agrupar, guardarVista, lerVista, ordenar } from '../../entregasVista'
+import BarraDeFiltro from '../../components/BarraDeFiltro'
+import SemResultados from '../../components/SemResultados'
+import { FILTROS_DE_ENTREGA, casaComBusca, comQuantidades } from '../../filtros'
 import { ROTULO_ESTADO_ENTREGA, dataCurta } from '../../formato'
 import { useTcc } from './AreaAluno'
 
@@ -46,7 +49,15 @@ export default function Entregas() {
 
   // EXTRA (fora dos requisitos) — ordem e agrupamento escolhidos pelo aluno, guardados no navegador.
   const [vista, setVista] = useState(lerVista)
-  const grupos = agrupar(ordenar(entregas, vista.ordem), vista.agrupar)
+  // US17 — filtro por situação e busca por título; só escondem itens na tela (CA3).
+  const [filtro, setFiltro] = useState('todas')
+  const [busca, setBusca] = useState('')
+  const passaNoFiltro = (f, e) => f.passa(e)
+  const filtradas = entregas.filter(
+    (e) =>
+      FILTROS_DE_ENTREGA.find((f) => f.codigo === filtro).passa(e) && casaComBusca(busca, e.titulo),
+  )
+  const grupos = agrupar(ordenar(filtradas, vista.ordem), vista.agrupar)
 
   function mudarVista(mudanca) {
     const nova = { ...vista, ...mudanca }
@@ -144,6 +155,16 @@ export default function Entregas() {
         </div>
       ) : (
         <>
+        <BarraDeFiltro
+          rotulo="Filtrar entregas"
+          opcoes={comQuantidades(FILTROS_DE_ENTREGA, entregas, passaNoFiltro)}
+          filtro={filtro}
+          aoFiltrar={setFiltro}
+          busca={busca}
+          aoBuscar={setBusca}
+          rotuloBusca="Buscar entrega"
+          placeholder="Buscar pelo título"
+        />
         {/* EXTRA (fora dos requisitos): o aluno escolhe a ordem e o agrupamento. */}
         <div className="vista-controles">
           <div className="campo-vista">
@@ -168,6 +189,14 @@ export default function Entregas() {
           </div>
         </div>
 
+        {filtradas.length === 0 && (
+          <SemResultados
+            aoLimpar={() => {
+              setFiltro('todas')
+              setBusca('')
+            }}
+          />
+        )}
         {grupos.map((grupo) => (
         <section key={grupo.chave} className="grupo-entregas">
         {grupo.titulo && (
