@@ -41,6 +41,12 @@ const DESENHOS = {
       <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
     </>
   ),
+  documento: (
+    <>
+      <path d="M14 3H6v18h12V7z" />
+      <path d="M14 3v4h4M9 13h6M9 17h4" />
+    </>
+  ),
   sino: (
     <>
       <path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z" />
@@ -63,6 +69,7 @@ export const ICONE_POR_SIMBOLO = {
   '◎': 'perfil',
   '◔': 'sino',
   '◈': 'painel',
+  '◫': 'documento',
 }
 
 /** Ícones de ação (fechar, abrir menu), desenhados no mesmo traço dos do menu. */

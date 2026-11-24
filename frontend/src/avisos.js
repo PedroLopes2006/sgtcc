@@ -27,6 +27,11 @@ export const TITULOS_DE_AVISO = {
   entrega_concluida: 'Entrega concluída',
   entrega_enviada_a_banca: 'Entrega enviada à banca',
   troca_orientador: 'Troca de orientador',
+  trabalho_final_enviado: 'Trabalho final enviado',
+  trabalho_final_correcao_solicitada: 'Correção do trabalho final solicitada',
+  trabalho_final_aprovado: 'Trabalho final aprovado',
+  trabalho_final_reprovado: 'Trabalho final reprovado',
+  trabalho_final_enviado_a_banca: 'Trabalho final enviado à banca',
 }
 
 export function avisarQueMudou() {

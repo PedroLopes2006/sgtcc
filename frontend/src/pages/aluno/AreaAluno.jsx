@@ -52,6 +52,8 @@ export default function AreaAluno() {
       para: '/aluno/entregas',
       contador: tcc?.entregas?.length || undefined,
     },
+    // US18 — o trabalho final, depois das entregas
+    { rotulo: 'Trabalho final', icone: '◫', para: '/aluno/trabalho-final' },
     { rotulo: 'Linha do tempo', icone: '◷', para: '/aluno/linha-do-tempo' },
     // EXTRA (fora dos requisitos) — avisos dentro do sistema
     { rotulo: 'Avisos', icone: '◔', para: '/aluno/avisos', contador: avisosNaoLidos || undefined },

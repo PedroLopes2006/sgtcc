@@ -4,8 +4,15 @@ import Modal from './Modal'
 
 const FORMATO = '.pdf'
 
-/** US06 — modal de envio de versão. */
-export default function EnviarVersao({ entrega, aoFechar, aoConcluir }) {
+/**
+ * US06 — modal de envio de versão de uma entrega.
+ * US18 — o mesmo modal envia o trabalho final: nesse caso a tela passa url, titulo
+ * e legenda no lugar de entrega.
+ */
+export default function EnviarVersao({ entrega, url, titulo, legenda, aoFechar, aoConcluir }) {
+  const destino = url || `/entregas/${entrega.id}/versoes/`
+  const textoDaLegenda =
+    legenda || `${entrega.titulo} · nova versão ${entrega.numero_da_proxima_versao}`
   const [arquivo, setArquivo] = useState(null)
   const [arrastando, setArrastando] = useState(false)
   const [erro, setErro] = useState('')
@@ -30,7 +37,7 @@ export default function EnviarVersao({ entrega, aoFechar, aoConcluir }) {
     try {
       const corpo = new FormData()
       corpo.append('arquivo', arquivo)
-      await api.post(`/entregas/${entrega.id}/versoes/`, corpo)
+      await api.post(destino, corpo)
       await aoConcluir()
     } catch (e) {
       setErro(mensagemDeErro(e, 'Não foi possível enviar a versão.'))
@@ -39,10 +46,8 @@ export default function EnviarVersao({ entrega, aoFechar, aoConcluir }) {
   }
 
   return (
-    <Modal titulo="Enviar versão" aoFechar={aoFechar}>
-      <p className="legenda">
-        {entrega.titulo} · nova versão {entrega.numero_da_proxima_versao}
-      </p>
+    <Modal titulo={titulo || 'Enviar versão'} aoFechar={aoFechar}>
+      <p className="legenda">{textoDaLegenda}</p>
 
       <form onSubmit={enviar}>
         <div

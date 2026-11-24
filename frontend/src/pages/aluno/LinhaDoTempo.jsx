@@ -18,6 +18,11 @@ const TIPOS_EVENTO = {
   entrega_concluida: { rotulo: 'Entrega concluída', icone: 'aprovacao' },
   entrega_enviada_a_banca: { rotulo: 'Entrega enviada à banca', icone: 'envio' },
   troca_orientador: { rotulo: 'Orientador alterado', icone: 'troca' },
+  trabalho_final_enviado: { rotulo: 'Trabalho final enviado', icone: 'envio' },
+  trabalho_final_correcao_solicitada: { rotulo: 'Correção do trabalho final solicitada', icone: 'comentario' },
+  trabalho_final_aprovado: { rotulo: 'Trabalho final aprovado', icone: 'aprovacao' },
+  trabalho_final_reprovado: { rotulo: 'Trabalho final reprovado', icone: 'comentario' },
+  trabalho_final_enviado_a_banca: { rotulo: 'Trabalho final enviado à banca', icone: 'envio' },
 }
 
 function IconeEvento({ tipo }) {

@@ -686,6 +686,26 @@ button.texto:hover:not(:disabled) {
   background: var(--st-banca);
 }
 
+/* trabalho final (US18–US20): correção solicitada e aprovado reaproveitam as cores acima */
+.ponto.nao_enviado {
+  background: transparent;
+  border: 1px dashed var(--texto-fraco);
+}
+
+.ponto.em_avaliacao {
+  background: var(--st-revisao);
+  border-radius: 2px;
+}
+
+.ponto.reprovado {
+  background: var(--vermelho);
+}
+
+.ponto.enviado_a_banca {
+  background: var(--st-banca);
+  border-radius: 2px;
+}
+
 /* tema */
 .ponto.proposto {
   background: var(--st-proposto);

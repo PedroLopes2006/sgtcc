@@ -38,6 +38,11 @@ export const ESTADOS_COM_COR = [
   'proposto',
   'ajuste_solicitado',
   'aprovado',
+  // trabalho final (US18–US20)
+  'nao_enviado',
+  'em_avaliacao',
+  'reprovado',
+  'enviado_a_banca',
 ]
 
 /**
@@ -56,6 +61,16 @@ export const ROTULO_ESTADO_ENTREGA = {
   correcao_solicitada: 'Correção solicitada',
   concluida: 'Concluída',
   enviada_a_banca: 'Enviada à banca',
+}
+
+/** US18–US20 — estados do trabalho final; "não enviado" é a ausência do registro. */
+export const ROTULO_ESTADO_TRABALHO_FINAL = {
+  nao_enviado: 'Não enviado',
+  em_avaliacao: 'Em avaliação',
+  correcao_solicitada: 'Correção solicitada',
+  aprovado: 'Aprovado',
+  reprovado: 'Reprovado',
+  enviado_a_banca: 'Enviado à banca',
 }
 
 export const ROTULO_STATUS_TEMA = {

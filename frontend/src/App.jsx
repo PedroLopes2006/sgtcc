@@ -13,6 +13,8 @@ import MeuTCC from './pages/aluno/MeuTCC'
 import NovaEntrega from './pages/aluno/NovaEntrega'
 import PerfilAluno from './pages/aluno/PerfilAluno'
 import ProporTema from './pages/aluno/ProporTema'
+import TrabalhoFinal from './pages/aluno/TrabalhoFinal'
+import AvaliarTrabalhoFinal from './pages/orientador/AvaliarTrabalhoFinal'
 import HistoricoOrientando from './pages/orientador/HistoricoOrientando'
 import FilaRevisao from './pages/orientador/FilaRevisao'
 import Orientandos from './pages/orientador/Orientandos'
@@ -47,6 +49,7 @@ export default function App() {
             <Route path="entregas" element={<Entregas />} />
             <Route path="entregas/nova" element={<NovaEntrega />} />
             <Route path="entregas/:entregaId/versoes" element={<HistoricoVersoes />} />
+            <Route path="trabalho-final" element={<TrabalhoFinal />} />
             <Route path="linha-do-tempo" element={<LinhaDoTempo />} />
             <Route path="avisos" element={<Avisos />} />
             <Route path="perfil" element={<PerfilAluno />} />
@@ -107,6 +110,16 @@ export default function App() {
             element={
               <RotaProtegida perfil="orientador">
                 <RevisaoEntrega />
+              </RotaProtegida>
+            }
+          />
+
+          {/* US19, US20 — o orientador avalia o trabalho final do orientando */}
+          <Route
+            path="/orientador/orientandos/:tccId/trabalho-final"
+            element={
+              <RotaProtegida perfil="orientador">
+                <AvaliarTrabalhoFinal />
               </RotaProtegida>
             }
           />

@@ -270,6 +270,16 @@ export default function Orientandos() {
                         Aprovar entrega
                       </button>
                     )}
+                    {/* US19, US20 — o trabalho final enviado pelo aluno */}
+                    {linha.trabalho_final && (
+                      <Link
+                        className="contorno"
+                        to={`/orientador/orientandos/${linha.id}/trabalho-final`}
+                        aria-label={`Trabalho final de ${linha.aluno?.nome}`}
+                      >
+                        Trabalho final
+                      </Link>
+                    )}
                     {/* US13 CA1 / RN12 */}
                     {linha.entrega_para_banca && (
                       <button onClick={() => pedirConclusao(linha.entrega_para_banca, 'enviar-a-banca')}
