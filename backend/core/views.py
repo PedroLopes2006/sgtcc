@@ -19,10 +19,13 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from . import services
-from .models import Entrega, Perfil, StatusTema, TCC, Tema, Usuario
+from .models import Entrega, Perfil, StatusTema, TCC, Tema, TrabalhoFinal, Usuario
 from .permissions import EhAluno, EhOrientador
 from .serializers import (
     HistoricoTCCSerializer,
+    ReprovacaoSerializer,
+    TrabalhoFinalSerializer,
+    situacao_do_trabalho_final_do_aluno,
     ReatribuicaoSerializer,
     AvisoSerializer,
     CadastroSerializer,
@@ -590,3 +593,137 @@ class PrioridadeEntregaView(APIView):
             nivel=serializer.validated_data["prioridade"],
         )
         return Response({"prioridade": nivel})
+
+
+# ---------------------------------------------------------------- Sprint 4: trabalho final
+
+
+class TrabalhoFinalAlunoView(APIView):
+    """
+    US18 — GET e POST /api/trabalho-final/ (aluno).
+
+    GET: estado do trabalho final, entregas que ainda impedem o envio (RN16) e o trabalho
+    com versões e pareceres. POST (multipart, campo `arquivo`): envia o PDF, o primeiro ou
+    uma nova versão depois de correção/reprovação (RN13, RN18). RNF04: só alunos.
+    """
+
+    permission_classes = [IsAuthenticated, EhAluno]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get(self, request):
+        tcc = TCC.objects.filter(aluno=request.user).first()
+        if tcc is None:
+            return Response(
+                {
+                    "estado": "nao_enviado",
+                    "estado_rotulo": "Não enviado",
+                    "pode_enviar": False,
+                    "pendentes": [],
+                    "trabalho": None,
+                }
+            )
+        return Response(situacao_do_trabalho_final_do_aluno(tcc, {"request": request}))
+
+    @traduzir_erros_de_dominio
+    def post(self, request):
+        serializer = EnvioDeVersaoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        services.enviar_trabalho_final(
+            aluno=request.user, arquivo=serializer.validated_data["arquivo"]
+        )
+        tcc = TCC.objects.get(aluno=request.user)
+        return Response(
+            situacao_do_trabalho_final_do_aluno(tcc, {"request": request}),
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class TrabalhoFinalOrientadorView(APIView):
+    """
+    US19 — GET /api/orientandos/<tcc_id>/trabalho-final/
+
+    O trabalho final aberto pelo orientador, com as ações possíveis agora. Responde
+    `trabalho: null` enquanto o aluno não enviou. RNF04: só orientadores; RN05: só o ativo.
+    """
+
+    permission_classes = [IsAuthenticated, EhOrientador]
+
+    @traduzir_erros_de_dominio
+    def get(self, request, tcc_id):
+        tcc = get_object_or_404(TCC.objects.select_related("aluno"), id=tcc_id)
+        trabalho = services.consultar_trabalho_final(orientador=request.user, tcc=tcc)
+        return Response(
+            {
+                "aluno": {"id": tcc.aluno.id, "nome": tcc.aluno.nome},
+                "trabalho": (
+                    TrabalhoFinalSerializer(trabalho, context={"request": request}).data
+                    if trabalho
+                    else None
+                ),
+            }
+        )
+
+
+class _AcaoDoTrabalhoFinalView(APIView):
+    """Base das quatro ações do orientador (US19, US20): busca o trabalho e devolve o novo estado."""
+
+    permission_classes = [IsAuthenticated, EhOrientador]
+
+    def _trabalho(self, trabalho_id):
+        return get_object_or_404(TrabalhoFinal, id=trabalho_id)
+
+    def _resposta(self, request, trabalho):
+        trabalho.refresh_from_db()
+        return Response(TrabalhoFinalSerializer(trabalho, context={"request": request}).data)
+
+
+class AprovarTrabalhoFinalView(_AcaoDoTrabalhoFinalView):
+    """US19 CA1 — POST /api/trabalho-final/<id>/aprovar/"""
+
+    @traduzir_erros_de_dominio
+    def post(self, request, trabalho_id):
+        trabalho = self._trabalho(trabalho_id)
+        services.aprovar_trabalho_final(orientador=request.user, trabalho=trabalho)
+        return self._resposta(request, trabalho)
+
+
+class SolicitarCorrecaoTrabalhoFinalView(_AcaoDoTrabalhoFinalView):
+    """US19 CA2 — POST /api/trabalho-final/<id>/solicitar-correcao/  {comentario}"""
+
+    @traduzir_erros_de_dominio
+    def post(self, request, trabalho_id):
+        serializer = SolicitacaoCorrecaoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        trabalho = self._trabalho(trabalho_id)
+        services.solicitar_correcao_trabalho_final(
+            orientador=request.user,
+            trabalho=trabalho,
+            comentario=serializer.validated_data["comentario"],
+        )
+        return self._resposta(request, trabalho)
+
+
+class ReprovarTrabalhoFinalView(_AcaoDoTrabalhoFinalView):
+    """US19 CA3, CA4 / RN17 — POST /api/trabalho-final/<id>/reprovar/  {justificativa}"""
+
+    @traduzir_erros_de_dominio
+    def post(self, request, trabalho_id):
+        serializer = ReprovacaoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        trabalho = self._trabalho(trabalho_id)
+        services.reprovar_trabalho_final(
+            orientador=request.user,
+            trabalho=trabalho,
+            justificativa=serializer.validated_data["justificativa"],
+        )
+        return self._resposta(request, trabalho)
+
+
+class EnviarTrabalhoFinalABancaView(_AcaoDoTrabalhoFinalView):
+    """US20 / RN12 — POST /api/trabalho-final/<id>/enviar-a-banca/"""
+
+    @traduzir_erros_de_dominio
+    def post(self, request, trabalho_id):
+        trabalho = self._trabalho(trabalho_id)
+        services.enviar_trabalho_final_a_banca(orientador=request.user, trabalho=trabalho)
+        return self._resposta(request, trabalho)

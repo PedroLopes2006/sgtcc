@@ -24,6 +24,7 @@ from .models import (
     Comentario,
     Entrega,
     EstadoEntrega,
+    EstadoTrabalhoFinal,
     Evento,
     NivelPrioridade,
     Notificacao,
@@ -31,11 +32,13 @@ from .models import (
     Perfil,
     PrioridadeRevisao,
     StatusEnvio,
+    StatusGeralTCC,
     StatusTema,
     TentativaLogin,
     TCC,
     Tema,
     TipoEvento,
+    TrabalhoFinal,
     Versao,
 )
 
@@ -723,6 +726,8 @@ TIPOS_DE_AVISO_DO_ORIENTADOR = (
     TipoEvento.TEMA_REENVIADO,
     TipoEvento.ENTREGA_PRONTA,
     TipoEvento.TROCA_ORIENTADOR,
+    # Sprint 4 / US18: o trabalho final enviado depende da avaliação do orientador.
+    TipoEvento.TRABALHO_FINAL_ENVIADO,
 )
 LIMITE_DE_AVISOS = 30
 
@@ -1004,3 +1009,277 @@ def vincular_telegram(*, usuario, chat_id):
         canal=CanalNotificacao.TELEGRAM, status_envio=StatusEnvio.PENDENTE,
     )
     return "enviada" if enviar_notificacao(notificacao.pk) else "falhou"
+
+
+# ---------------------------------------------------------------- Sprint 4: trabalho final
+# O trabalho final é o TCC completo, enviado depois que todas as entregas (as etapas) foram
+# concluídas. O aluno envia (US18), o orientador avalia (US19: aprovar, pedir correção ou
+# reprovar) e, aprovado, envia à banca (US20). Cada passo gera um Evento (RN10), que também
+# dispara a notificação (RF16). A reprovação vale só aqui: nas entregas, o orientador pede
+# correção.
+
+
+def entregas_pendentes(tcc):
+    """RN16 — as entregas que ainda impedem o envio do trabalho final."""
+    return list(tcc.entregas.exclude(estado__in=EstadoEntrega.encerrados()))
+
+
+def trabalho_final_do_tcc(tcc):
+    """O trabalho final do TCC, ou None se o aluno ainda não enviou (estado "não enviado")."""
+    return TrabalhoFinal.objects.filter(tcc=tcc).first()
+
+
+@transaction.atomic
+def enviar_trabalho_final(*, aluno, arquivo):
+    """
+    US18 / RF20 — o aluno envia o PDF do trabalho final.
+
+    CA1 / RN16: com todas as entregas concluídas, o trabalho entra "em avaliação", uma
+        Versão numerada é criada e o orientador é notificado.
+    CA2 / RN16: com entregas pendentes, o envio é recusado e a mensagem diz quais faltam.
+    CA3 / RN13 / RN18: depois de "correção solicitada" ou "reprovado", o aluno envia uma
+        nova versão (número incremental) e o trabalho volta "em avaliação" (nova tentativa).
+    CA4: mesmas regras de arquivo da US06 (PDF e limite de tamanho).
+    CA5 / RN10: registra um Evento.
+    """
+    if not aluno.eh_aluno:
+        raise PermissionDenied("Apenas alunos enviam o trabalho final.")
+
+    # Trava o TCC até o fim da transação: dois envios simultâneos não criam dois trabalhos
+    # nem calculam o mesmo número de versão.
+    tcc = TCC.objects.select_for_update().filter(aluno=aluno).first()
+    if tcc is None:
+        raise ValidationError(
+            {"detail": "Proponha o tema e conclua as entregas antes de enviar o trabalho final."}
+        )
+
+    trabalho = TrabalhoFinal.objects.filter(tcc=tcc).first()
+    reenvio = trabalho is not None
+    if not reenvio:
+        # CA2 / RN16 — o trabalho final só é liberado com todas as entregas concluídas.
+        if not tcc.entregas.exists():
+            raise ValidationError(
+                {"detail": "Crie e conclua as entregas antes de enviar o trabalho final."}
+            )
+        pendentes = entregas_pendentes(tcc)
+        if pendentes:
+            titulos = ", ".join(f'"{e.titulo}"' for e in pendentes)
+            raise ValidationError(
+                {
+                    "detail": "O trabalho final só é liberado com todas as entregas concluídas. "
+                    f"Faltam: {titulos}."
+                }
+            )
+    elif not trabalho.aceita_versao:
+        raise ValidationError(
+            {
+                "detail": "Só é possível enviar uma nova versão do trabalho final em "
+                '"correção solicitada" ou "reprovado".'
+            }
+        )
+
+    _validar_arquivo_da_versao(arquivo)
+
+    if trabalho is None:
+        trabalho = TrabalhoFinal.objects.create(tcc=tcc)
+
+    versao = Versao(
+        trabalho_final=trabalho,
+        numero=trabalho.numero_da_proxima_versao,
+        enviado_por=aluno,
+        nome_original=Path(arquivo.name).name[:255],
+        tamanho=arquivo.size,
+    )
+    versao.arquivo = arquivo
+    versao.save()
+
+    # CA3 / RN18 — qualquer envio coloca o trabalho de volta "em avaliação".
+    trabalho.versoes_enviadas = versao.numero
+    trabalho.estado = EstadoTrabalhoFinal.EM_AVALIACAO
+    trabalho.save(update_fields=["versoes_enviadas", "estado"])
+
+    descricao = f"Versão {versao.numero} do trabalho final enviada para avaliação."
+    if reenvio:
+        descricao = f"Nova versão ({versao.numero}) do trabalho final enviada para avaliação."
+    registrar_evento(tcc, TipoEvento.TRABALHO_FINAL_ENVIADO, descricao, usuario=aluno)
+    return versao
+
+
+def _trabalho_final_para_avaliar(orientador, trabalho):
+    """RN05 — só o orientador ativo age; o trabalho é relido com trava para a decisão."""
+    trabalho = (
+        TrabalhoFinal.objects.select_for_update().select_related("tcc__aluno").get(pk=trabalho.pk)
+    )
+    _exigir_orientador_ativo(orientador, trabalho.tcc)
+    return trabalho
+
+
+def _exigir_em_avaliacao(trabalho):
+    if trabalho.estado != EstadoTrabalhoFinal.EM_AVALIACAO:
+        raise ValidationError({"detail": 'Só é possível avaliar um trabalho final "em avaliação".'})
+
+
+def _registrar_parecer_do_trabalho_final(trabalho, orientador, texto):
+    """RN14 / RF10 — o parecer é gravado ligado à versão avaliada e nunca é alterado."""
+    return Comentario.objects.create(
+        trabalho_final=trabalho, versao=trabalho.versao_atual, autor=orientador, texto=texto
+    )
+
+
+@transaction.atomic
+def aprovar_trabalho_final(*, orientador, trabalho):
+    """
+    US19 CA1 / RF21 — "em avaliação" passa a "aprovado", com a data registrada.
+
+    CA5 / RN05: só o orientador ativo avalia. RN10: gera Evento, e o aluno é notificado.
+    """
+    trabalho = _trabalho_final_para_avaliar(orientador, trabalho)
+    _exigir_em_avaliacao(trabalho)
+
+    trabalho.estado = EstadoTrabalhoFinal.APROVADO
+    trabalho.data_aprovacao = timezone.now()
+    trabalho.save(update_fields=["estado", "data_aprovacao"])
+
+    registrar_evento(
+        trabalho.tcc,
+        TipoEvento.TRABALHO_FINAL_APROVADO,
+        f"Trabalho final aprovado por {orientador.nome}.",
+        usuario=orientador,
+    )
+    return trabalho
+
+
+@transaction.atomic
+def solicitar_correcao_trabalho_final(*, orientador, trabalho, comentario):
+    """
+    US19 CA2 / RF21 — "em avaliação" passa a "correção solicitada", com o comentário.
+
+    CA4 / RN07: o comentário é obrigatório. CA6 / RN14: o parecer fica ligado à versão
+    avaliada e nunca é editado. O aluno é notificado e recebe o texto.
+    """
+    trabalho = _trabalho_final_para_avaliar(orientador, trabalho)
+    texto = (comentario or "").strip()
+    if not texto:
+        raise ValidationError({"comentario": "O comentário é obrigatório."})
+    _exigir_em_avaliacao(trabalho)
+
+    _registrar_parecer_do_trabalho_final(trabalho, orientador, texto)
+    trabalho.estado = EstadoTrabalhoFinal.CORRECAO_SOLICITADA
+    trabalho.save(update_fields=["estado"])
+
+    registrar_evento(
+        trabalho.tcc,
+        TipoEvento.TRABALHO_FINAL_CORRECAO_SOLICITADA,
+        f"Correção solicitada no trabalho final: {texto}",
+        usuario=orientador,
+    )
+    return trabalho
+
+
+@transaction.atomic
+def reprovar_trabalho_final(*, orientador, trabalho, justificativa):
+    """
+    US19 CA3 / RF21 — "em avaliação" passa a "reprovado", com a justificativa.
+
+    CA4 / RN17: a justificativa é obrigatória e fica registrada de forma imutável (RN14),
+    ligada à versão avaliada. O aluno é notificado e lê o motivo. RN18: depois da reprovação
+    o aluno pode enviar uma nova versão (nova tentativa), e o histórico continua intacto.
+    A reprovação vale só para o trabalho final: nas entregas, o orientador pede correção.
+    """
+    trabalho = _trabalho_final_para_avaliar(orientador, trabalho)
+    texto = (justificativa or "").strip()
+    if not texto:
+        raise ValidationError({"justificativa": "A justificativa é obrigatória para reprovar."})
+    _exigir_em_avaliacao(trabalho)
+
+    _registrar_parecer_do_trabalho_final(trabalho, orientador, texto)
+    trabalho.estado = EstadoTrabalhoFinal.REPROVADO
+    trabalho.save(update_fields=["estado"])
+
+    registrar_evento(
+        trabalho.tcc,
+        TipoEvento.TRABALHO_FINAL_REPROVADO,
+        f"Trabalho final reprovado por {orientador.nome}: {texto}",
+        usuario=orientador,
+    )
+    return trabalho
+
+
+@transaction.atomic
+def enviar_trabalho_final_a_banca(*, orientador, trabalho):
+    """
+    US20 / RF12 — o trabalho final "aprovado" é enviado à banca.
+
+    CA1: o estado muda e fica registrado como encerramento formal (com a data).
+    CA2 / RN12: qualquer outro estado é recusado.
+    CA3: o TCC passa a "concluído", o aluno é notificado e um Evento é registrado (RN10).
+    """
+    trabalho = _trabalho_final_para_avaliar(orientador, trabalho)
+    if trabalho.estado != EstadoTrabalhoFinal.APROVADO:
+        raise ValidationError(
+            {"detail": 'Só é possível enviar à banca um trabalho final "aprovado".'}
+        )
+
+    trabalho.estado = EstadoTrabalhoFinal.ENVIADO_A_BANCA
+    trabalho.data_banca = timezone.now()
+    trabalho.save(update_fields=["estado", "data_banca"])
+
+    tcc = trabalho.tcc
+    tcc.status_geral = StatusGeralTCC.CONCLUIDO
+    tcc.save(update_fields=["status_geral"])
+
+    registrar_evento(
+        tcc,
+        TipoEvento.TRABALHO_FINAL_ENVIADO_A_BANCA,
+        f"Trabalho final enviado à banca por {orientador.nome}. TCC concluído.",
+        usuario=orientador,
+    )
+    return trabalho
+
+
+def situacao_do_trabalho_final(tcc):
+    """
+    US18 — o que a tela do aluno precisa saber sobre o trabalho final.
+
+    `trabalho`: o registro, ou None ("não enviado"). `pendentes`: as entregas que ainda
+    impedem o primeiro envio (RN16). `pode_enviar`: se o aluno pode mandar um PDF agora
+    (primeiro envio com tudo concluído, ou nova versão depois de correção ou reprovação).
+    """
+    trabalho = trabalho_final_do_tcc(tcc)
+    if trabalho is not None:
+        return {"trabalho": trabalho, "pendentes": [], "pode_enviar": trabalho.aceita_versao}
+    pendentes = entregas_pendentes(tcc)
+    return {
+        "trabalho": None,
+        "pendentes": pendentes,
+        "pode_enviar": tcc.entregas.exists() and not pendentes,
+    }
+
+
+def acoes_do_trabalho_final(trabalho):
+    """
+    US19, US20 — o que o orientador pode fazer agora com o trabalho final.
+
+    São as mesmas condições dos services que executam cada ação, reunidas aqui para a
+    tela não decidir regra sozinha: aprovar, pedir correção e reprovar valem "em
+    avaliação" (RN07, RN17); enviar à banca vale "aprovado" (RN12).
+    """
+    em_avaliacao = trabalho.estado == EstadoTrabalhoFinal.EM_AVALIACAO
+    return {
+        "aprovar": em_avaliacao,
+        "solicitar_correcao": em_avaliacao,
+        "reprovar": em_avaliacao,
+        "enviar_a_banca": trabalho.estado == EstadoTrabalhoFinal.APROVADO,
+    }
+
+
+def consultar_trabalho_final(*, orientador, tcc):
+    """
+    US19 — o trabalho final aberto pelo orientador, ou None se o aluno ainda não enviou.
+
+    RN05: só o orientador com Orientação ativa no TCC o consulta. RNF04: só orientadores.
+    """
+    if not orientador.eh_orientador:
+        raise PermissionDenied("Apenas orientadores avaliam o trabalho final.")
+    _exigir_orientador_ativo(orientador, tcc)
+    return trabalho_final_do_tcc(tcc)

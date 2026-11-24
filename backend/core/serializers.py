@@ -16,6 +16,7 @@ from .models import (
     StatusTema,
     TCC,
     Tema,
+    TrabalhoFinal,
     Usuario,
     Versao,
 )
@@ -318,12 +319,15 @@ class OrientandoSerializer(serializers.ModelSerializer):
     entrega_para_revisao = serializers.SerializerMethodField()
     # US11 / RF10 — a entrega que aceita um comentário a mais.
     entrega_para_comentario = serializers.SerializerMethodField()
+    # US19 — o estado do trabalho final, para a tela de Orientandos mostrar e abrir a avaliação.
+    trabalho_final = serializers.SerializerMethodField()
 
     class Meta:
         model = TCC
         fields = [
             "id",
             "aluno",
+            "trabalho_final",
             "tema",
             "entregas",
             "fase_atual",
@@ -336,6 +340,17 @@ class OrientandoSerializer(serializers.ModelSerializer):
             "entrega_para_comentario",
             "entrega_para_banca",
         ]
+
+    def get_trabalho_final(self, tcc):
+        trabalho = services.trabalho_final_do_tcc(tcc)
+        if trabalho is None:
+            return None
+        return {
+            "id": trabalho.id,
+            "estado": trabalho.estado,
+            "estado_rotulo": trabalho.get_estado_display(),
+            "acoes": services.acoes_do_trabalho_final(trabalho),
+        }
 
     def _entrega_atual(self, tcc):
         """A primeira entrega ainda em andamento; se não houver, a última."""
@@ -607,3 +622,63 @@ class NovaSenhaSerializer(serializers.Serializer):
 
     senha_atual = serializers.CharField(write_only=True, style={"input_type": "password"})
     nova_senha = serializers.CharField(write_only=True, style={"input_type": "password"})
+
+
+# ---------------------------------------------------------------- Sprint 4: trabalho final
+
+
+class TrabalhoFinalSerializer(serializers.ModelSerializer):
+    """
+    US18, US19 — o trabalho final com as versões (da mais antiga à mais nova, RN13) e os
+    pareceres do orientador (RF10, RN14). `acoes` diz o que o orientador pode fazer agora,
+    para a tela não decidir regra sozinha (RN12, RN17).
+    """
+
+    estado_rotulo = serializers.CharField(source="get_estado_display", read_only=True)
+    versoes = serializers.SerializerMethodField()
+    comentarios = ComentarioSerializer(many=True, read_only=True)
+    acoes = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TrabalhoFinal
+        fields = [
+            "id",
+            "estado",
+            "estado_rotulo",
+            "versoes_enviadas",
+            "data_criacao",
+            "data_aprovacao",
+            "data_banca",
+            "versoes",
+            "comentarios",
+            "acoes",
+        ]
+        read_only_fields = fields
+
+    def get_versoes(self, trabalho):
+        versoes = trabalho.versoes.order_by("data_envio", "id")
+        return VersaoSerializer(versoes, many=True, context=self.context).data
+
+    def get_acoes(self, trabalho):
+        return services.acoes_do_trabalho_final(trabalho)
+
+
+def situacao_do_trabalho_final_do_aluno(tcc, context):
+    """US18 — a resposta da tela do aluno: estado, o que impede o envio e o trabalho, se houver."""
+    situacao = services.situacao_do_trabalho_final(tcc)
+    trabalho = situacao["trabalho"]
+    return {
+        "estado": trabalho.estado if trabalho else "nao_enviado",
+        "estado_rotulo": trabalho.get_estado_display() if trabalho else "Não enviado",
+        "pode_enviar": situacao["pode_enviar"],
+        "pendentes": [
+            {"id": e.id, "titulo": e.titulo, "estado": e.estado} for e in situacao["pendentes"]
+        ],
+        "trabalho": TrabalhoFinalSerializer(trabalho, context=context).data if trabalho else None,
+    }
+
+
+class ReprovacaoSerializer(serializers.Serializer):
+    """US19 CA3, CA4 / RN17 — a justificativa da reprovação é obrigatória."""
+
+    justificativa = serializers.CharField(allow_blank=False, trim_whitespace=True)

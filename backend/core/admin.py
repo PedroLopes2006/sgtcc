@@ -8,6 +8,7 @@ from .models import (
     Orientacao,
     TCC,
     Tema,
+    TrabalhoFinal,
     Usuario,
     Versao,
 )
@@ -61,6 +62,14 @@ class EntregaAdmin(admin.ModelAdmin):
     list_filter = ("estado",)
 
 
+@admin.register(TrabalhoFinal)
+class TrabalhoFinalAdmin(SomenteLeituraAdmin):
+    """Trabalho final (US18–US20): o estado só muda pelas ações do sistema."""
+
+    list_display = ("tcc", "estado", "versoes_enviadas", "data_criacao")
+    list_filter = ("estado",)
+
+
 @admin.register(Evento)
 class EventoAdmin(SomenteLeituraAdmin):
     """Log do ciclo de vida do TCC (RN10, RNF12): somente leitura."""
@@ -83,12 +92,12 @@ class NotificacaoAdmin(SomenteLeituraAdmin):
 class ComentarioAdmin(SomenteLeituraAdmin):
     """Comentários de correção (US11, RF10): somente leitura, conforme a RN14."""
 
-    list_display = ("entrega", "versao", "autor", "data_criacao")
+    list_display = ("__str__", "versao", "autor", "data_criacao")
 
 
 @admin.register(Versao)
 class VersaoAdmin(admin.ModelAdmin):
     """Versões enviadas pelos alunos (US06), para consulta."""
 
-    list_display = ("entrega", "numero", "enviado_por", "data_envio")
+    list_display = ("__str__", "numero", "enviado_por", "data_envio")
 

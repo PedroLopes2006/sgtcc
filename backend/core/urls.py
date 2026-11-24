@@ -75,6 +75,33 @@ urlpatterns = [
         views.PrioridadeEntregaView.as_view(),
         name="prioridade-entrega",
     ),
+    # Sprint 4 — trabalho final: US18 (aluno envia), US19 (orientador avalia), US20 (banca)
+    path("trabalho-final/", views.TrabalhoFinalAlunoView.as_view(), name="trabalho-final"),
+    path(
+        "orientandos/<int:tcc_id>/trabalho-final/",
+        views.TrabalhoFinalOrientadorView.as_view(),
+        name="trabalho-final-orientador",
+    ),
+    path(
+        "trabalho-final/<int:trabalho_id>/aprovar/",
+        views.AprovarTrabalhoFinalView.as_view(),
+        name="trabalho-final-aprovar",
+    ),
+    path(
+        "trabalho-final/<int:trabalho_id>/solicitar-correcao/",
+        views.SolicitarCorrecaoTrabalhoFinalView.as_view(),
+        name="trabalho-final-solicitar-correcao",
+    ),
+    path(
+        "trabalho-final/<int:trabalho_id>/reprovar/",
+        views.ReprovarTrabalhoFinalView.as_view(),
+        name="trabalho-final-reprovar",
+    ),
+    path(
+        "trabalho-final/<int:trabalho_id>/enviar-a-banca/",
+        views.EnviarTrabalhoFinalABancaView.as_view(),
+        name="trabalho-final-enviar-a-banca",
+    ),
     # log / base da timeline
     path("eventos/", views.meus_eventos, name="eventos"),
 ]

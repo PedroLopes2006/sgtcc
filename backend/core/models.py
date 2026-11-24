@@ -36,6 +36,21 @@ class EstadoEntrega(models.TextChoices):
         return (cls.CONCLUIDA, cls.ENVIADA_A_BANCA)
 
 
+class EstadoTrabalhoFinal(models.TextChoices):
+    """
+    Sprint 4 / RF20, RF21 — estados do trabalho final.
+
+    "Não enviado" não é um estado gravado: é a ausência do registro. O trabalho nasce
+    "em avaliação" no primeiro envio (US18).
+    """
+
+    EM_AVALIACAO = "em_avaliacao", "Em avaliação"
+    CORRECAO_SOLICITADA = "correcao_solicitada", "Correção solicitada"
+    APROVADO = "aprovado", "Aprovado"
+    REPROVADO = "reprovado", "Reprovado"
+    ENVIADO_A_BANCA = "enviado_a_banca", "Enviado à banca"
+
+
 class StatusGeralTCC(models.TextChoices):
     EM_ANDAMENTO = "em_andamento", "Em andamento"
     CONCLUIDO = "concluido", "Concluído"
@@ -61,6 +76,19 @@ class TipoEvento(models.TextChoices):
     ENTREGA_CONCLUIDA = "entrega_concluida", "Entrega concluída"
     ENTREGA_ENVIADA_A_BANCA = "entrega_enviada_a_banca", "Entrega enviada à banca"
     TROCA_ORIENTADOR = "troca_orientador", "Troca de orientador"
+    # Sprint 4 / US18–US20 — RN10: o trabalho final (o TCC completo) tem o seu próprio ciclo.
+    # O envio é o gatilho da notificação ao orientador; os demais, ao aluno (RF16).
+    TRABALHO_FINAL_ENVIADO = "trabalho_final_enviado", "Trabalho final enviado"
+    TRABALHO_FINAL_CORRECAO_SOLICITADA = (
+        "trabalho_final_correcao_solicitada",
+        "Correção solicitada no trabalho final",
+    )
+    TRABALHO_FINAL_APROVADO = "trabalho_final_aprovado", "Trabalho final aprovado"
+    TRABALHO_FINAL_REPROVADO = "trabalho_final_reprovado", "Trabalho final reprovado"
+    TRABALHO_FINAL_ENVIADO_A_BANCA = (
+        "trabalho_final_enviado_a_banca",
+        "Trabalho final enviado à banca",
+    )
 
 
 class UsuarioManager(BaseUserManager):
@@ -286,15 +314,73 @@ class Entrega(models.Model):
     def numero_da_proxima_versao(self):
         return self.versoes_enviadas + 1
 
+class TrabalhoFinal(models.Model):
+    """
+    Sprint 4 / RF20, RF21 — o trabalho completo do aluno, enviado depois das entregas.
+
+    É o documento único que une as etapas e recebe o resultado do TCC: aprovado ou
+    reprovado pelo orientador, e então enviado à banca (US18 a US20). Um por TCC. As
+    versões e os comentários ficam nas mesmas tabelas das entregas (`Versao` e
+    `Comentario`), ligados a este registro.
+    """
+
+    tcc = models.OneToOneField(TCC, on_delete=models.CASCADE, related_name="trabalho_final")
+    estado = models.CharField(
+        max_length=25, choices=EstadoTrabalhoFinal.choices, default=EstadoTrabalhoFinal.EM_AVALIACAO
+    )
+    # RN13 — contador que só avança, como nas entregas.
+    versoes_enviadas = models.PositiveIntegerField("versões enviadas", default=0)
+    data_criacao = models.DateTimeField(default=timezone.now)
+    data_aprovacao = models.DateTimeField(null=True, blank=True)
+    data_banca = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "trabalho final"
+        verbose_name_plural = "trabalhos finais"
+
+    def __str__(self):
+        return f"Trabalho final de {self.tcc.aluno.nome} [{self.get_estado_display()}]"
+
+    @property
+    def aceita_versao(self):
+        """RN18 — o aluno reenvia depois de um pedido de correção ou de uma reprovação."""
+        return self.estado in (
+            EstadoTrabalhoFinal.CORRECAO_SOLICITADA,
+            EstadoTrabalhoFinal.REPROVADO,
+        )
+
+    @property
+    def versao_atual(self):
+        return self.versoes.first()
+
+    @property
+    def numero_da_proxima_versao(self):
+        return self.versoes_enviadas + 1
+
+
 def caminho_da_versao(versao, nome_original):
-    """tcc/<id>/entrega/<id>/v<n>.pdf — previsível e sem colisão entre alunos."""
+    """
+    tcc/<id>/entrega/<id>/v<n>.pdf (entrega) ou tcc/<id>/trabalho-final/v<n>.pdf —
+    previsível e sem colisão entre alunos.
+    """
     extensao = Path(nome_original).suffix.lower() or ".pdf"
+    if versao.trabalho_final_id:
+        return f"tcc/{versao.trabalho_final.tcc_id}/trabalho-final/v{versao.numero}{extensao}"
     return f"tcc/{versao.entrega.tcc_id}/entrega/{versao.entrega_id}/v{versao.numero}{extensao}"
 
-class Versao(models.Model):
-    """Arquivo enviado pelo aluno dentro de uma Entrega (US06)."""
 
-    entrega = models.ForeignKey(Entrega, on_delete=models.CASCADE, related_name="versoes")
+class Versao(models.Model):
+    """
+    Arquivo enviado pelo aluno: dentro de uma Entrega (US06) ou como versão do
+    Trabalho final (US18). Pertence a um dos dois, nunca aos dois (veja a restrição).
+    """
+
+    entrega = models.ForeignKey(
+        Entrega, on_delete=models.CASCADE, related_name="versoes", null=True, blank=True
+    )
+    trabalho_final = models.ForeignKey(
+        TrabalhoFinal, on_delete=models.CASCADE, related_name="versoes", null=True, blank=True
+    )
     numero = models.PositiveIntegerField("número")
     arquivo = models.FileField("arquivo", upload_to=caminho_da_versao)
     nome_original = models.CharField("nome original", max_length=255)
@@ -307,12 +393,31 @@ class Versao(models.Model):
         verbose_name_plural = "versões"
         ordering = ["-numero"]
         constraints = [
+            # RN13 — o número não se repete dentro da entrega nem dentro do trabalho final.
             models.UniqueConstraint(
                 fields=["entrega", "numero"], name="numero_de_versao_unico_por_entrega"
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["trabalho_final", "numero"],
+                name="numero_de_versao_unico_por_trabalho_final",
+            ),
+            # Uma versão é de uma entrega ou do trabalho final, nunca dos dois nem de nenhum.
+            models.CheckConstraint(
+                condition=(
+                    models.Q(entrega__isnull=False, trabalho_final__isnull=True)
+                    | models.Q(entrega__isnull=True, trabalho_final__isnull=False)
+                ),
+                name="versao_de_uma_entrega_ou_do_trabalho_final",
+            ),
         ]
 
+    @property
+    def tcc_id(self):
+        return self.entrega.tcc_id if self.entrega_id else self.trabalho_final.tcc_id
+
     def __str__(self):
+        if self.trabalho_final_id:
+            return f"Trabalho final — versão {self.numero}"
         return f"{self.entrega.titulo} — versão {self.numero}"
 
 
@@ -329,7 +434,13 @@ class Comentario(models.Model):
     comentário permanece, só perde o vínculo.
     """
 
-    entrega = models.ForeignKey(Entrega, on_delete=models.CASCADE, related_name="comentarios")
+    # Sprint 4 — o parecer é de uma entrega ou do trabalho final (veja a restrição abaixo).
+    entrega = models.ForeignKey(
+        Entrega, on_delete=models.CASCADE, related_name="comentarios", null=True, blank=True
+    )
+    trabalho_final = models.ForeignKey(
+        TrabalhoFinal, on_delete=models.CASCADE, related_name="comentarios", null=True, blank=True
+    )
     versao = models.ForeignKey(
         Versao, on_delete=models.SET_NULL, null=True, blank=True, related_name="comentarios"
     )
@@ -341,9 +452,19 @@ class Comentario(models.Model):
         verbose_name = "comentário"
         verbose_name_plural = "comentários"
         ordering = ["data_criacao", "id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(entrega__isnull=False, trabalho_final__isnull=True)
+                    | models.Q(entrega__isnull=True, trabalho_final__isnull=False)
+                ),
+                name="comentario_de_uma_entrega_ou_do_trabalho_final",
+            )
+        ]
 
     def __str__(self):
-        return f"Comentário de {self.autor.nome} em {self.entrega.titulo}"
+        alvo = "o trabalho final" if self.trabalho_final_id else self.entrega.titulo
+        return f"Comentário de {self.autor.nome} em {alvo}"
 
 
 class NivelPrioridade(models.TextChoices):
