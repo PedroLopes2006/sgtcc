@@ -57,7 +57,7 @@ export default function TrabalhoFinal() {
 
   if (erro && !dados) {
     return (
-      <div className="conteudo-estreito">
+      <div>
         <p className="erro" role="alert">{erro}</p>
       </div>
     )
@@ -70,7 +70,7 @@ export default function TrabalhoFinal() {
   const reenvio = Boolean(trabalho)
 
   return (
-    <div className="conteudo-estreito">
+    <div>
       <div className="cabecalho-pagina">
         <div>
           <h1>Trabalho final</h1>
@@ -108,8 +108,12 @@ export default function TrabalhoFinal() {
               <ul className="lista">
                 {pendentes.map((item) => (
                   <li key={item.id}>
-                    <div className="titulo">{item.titulo}</div>
-                    <Estado codigo={item.estado} rotulo={ROTULO_ESTADO_ENTREGA[item.estado]} />
+                    <div>
+                      <div className="titulo">{item.titulo}</div>
+                    </div>
+                    <div className="acoes-linha">
+                      <Estado codigo={item.estado} rotulo={ROTULO_ESTADO_ENTREGA[item.estado]} />
+                    </div>
                   </li>
                 ))}
               </ul>

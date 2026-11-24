@@ -52,7 +52,7 @@ export default function AvaliarTrabalhoFinal() {
   if (erroCarga) {
     return (
       <LayoutOrientador>
-        <div className="conteudo-estreito">
+        <div>
           {voltar}
           <p className="erro" role="alert">{erroCarga}</p>
         </div>
@@ -62,7 +62,7 @@ export default function AvaliarTrabalhoFinal() {
   if (!dados) {
     return (
       <LayoutOrientador>
-        <div className="conteudo-estreito">
+        <div>
           {voltar}
           <Carregando />
         </div>
@@ -151,7 +151,7 @@ export default function AvaliarTrabalhoFinal() {
   if (!trabalho) {
     return (
       <LayoutOrientador>
-        <div className="conteudo-estreito">
+        <div>
           {voltar}
           {cabecalho}
           <div className="vazio vazio-compacto">
@@ -169,7 +169,7 @@ export default function AvaliarTrabalhoFinal() {
 
   return (
     <LayoutOrientador>
-      <div className="conteudo-estreito">
+      <div>
         {voltar}
         {cabecalho}
 
