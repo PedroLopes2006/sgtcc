@@ -19,7 +19,8 @@ import FilaRevisao from '../pages/orientador/FilaRevisao'
 import Orientandos from '../pages/orientador/Orientandos'
 
 // O Vitest roda na raiz do frontend; o jsdom não dá uma URL de arquivo para este módulo.
-const CSS = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8')
+// O Git no Windows pode gravar o arquivo com CRLF; os testes comparam com \n.
+const CSS = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8').replace(/\r\n/g, '\n')
 
 const ORIENTADOR = { id: 2, nome: 'Marcos Ribeiro', email: 'm@prof.edu.br', perfil: 'orientador' }
 const ALUNO = { id: 1, nome: 'Lucas Andrade', email: 'lucas@aluno.edu.br', perfil: 'aluno' }

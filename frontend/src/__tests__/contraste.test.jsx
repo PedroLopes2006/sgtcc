@@ -11,7 +11,8 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 // O Vitest roda na raiz do frontend; o jsdom não dá uma URL de arquivo para este módulo.
-const CSS = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8')
+// O Git no Windows pode gravar o arquivo com CRLF; os testes comparam com \n.
+const CSS = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8').replace(/\r\n/g, '\n')
 
 /** Pega as variáveis `--nome: valor;` de um bloco do CSS, a partir do seletor dado. */
 function variaveis(seletor) {

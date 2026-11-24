@@ -18,7 +18,8 @@ import Login from '../pages/Login'
 
 // O Vitest roda na raiz do frontend; o jsdom não dá uma URL de arquivo para este módulo.
 const raiz = (...partes) => resolve(process.cwd(), ...partes)
-const CSS = readFileSync(raiz('src/styles.css'), 'utf8')
+// O Git no Windows pode gravar o arquivo com CRLF; os testes comparam com \n.
+const CSS = readFileSync(raiz('src/styles.css'), 'utf8').replace(/\r\n/g, '\n')
 
 afterEach(cleanup)
 

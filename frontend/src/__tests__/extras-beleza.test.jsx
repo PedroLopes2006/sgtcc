@@ -23,7 +23,8 @@ import AreaAluno from '../pages/aluno/AreaAluno'
 import Entregas from '../pages/aluno/Entregas'
 
 // O Vitest roda na raiz do frontend; o jsdom não dá uma URL de arquivo para este módulo.
-const CSS = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8')
+// O Git no Windows pode gravar o arquivo com CRLF; os testes comparam com \n.
+const CSS = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8').replace(/\r\n/g, '\n')
 
 beforeEach(() => {
   localStorage.clear()
